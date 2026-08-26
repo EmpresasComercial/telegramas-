@@ -306,8 +306,8 @@ export default function ChatsList() {
             className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
           >
             <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#5b5b9f] to-[#2d2d7e] flex items-center justify-center shadow-xs text-white text-[17px] font-bold">
-                P
+              <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs bg-gray-200">
+                <img src="/pavel_durov.jpg" alt="Pavel Durov" className="w-full h-full object-cover" />
               </div>
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
             </div>
