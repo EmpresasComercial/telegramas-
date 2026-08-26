@@ -115,10 +115,14 @@ export default function ChatsList() {
     if (activeFilter === 'unread') return false;
     if (!queryClean) return true;
     const communityKeywords = [
-      "telegram", "business", "comunidade", "canal", "oficial", "grupo", "anúncios", "mensagens"
+      "telegram", "business", "comunidade", "canal", "oficial", "grupo", "anúncios", "mensagens",
+      "whatsapp", "whats", "pavel", "durov", "ceo", "fundador"
     ];
     return communityKeywords.some(k => k.includes(queryClean) || queryClean.includes(k));
   }, [queryClean, activeFilter]);
+
+  // ID fixo para Pavel Durov (CEO) — conversa privada especial
+  const PAVEL_DUROV_ID = 'pavel-durov-ceo-00000000000000001';
 
   const filteredContacts = useMemo(() => {
     return contacts.filter(c => {
@@ -228,13 +232,45 @@ export default function ChatsList() {
       {/* ── CHAT LIST ── */}
       <main className="w-full max-w-[480px] flex-1 overflow-y-auto pb-28">
 
+        {/* ── PINNED: Comunidade WhatsApp ── */}
+        {showCommunityChat && (
+          <div
+            onClick={() => navigate('/chat/whatsapp-comunidade')}
+            className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
+          >
+            <div className="relative shrink-0">
+              <div className="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center shadow-xs overflow-hidden">
+                {/* Ícone oficial WhatsApp */}
+                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="w-[27px] h-[27px]">
+                  <path fill="#fff" d="M16.003 2.667C8.64 2.667 2.667 8.64 2.667 16c0 2.347.64 4.64 1.853 6.64L2.667 29.333l6.88-1.813A13.28 13.28 0 0016.003 29.333C23.36 29.333 29.333 23.36 29.333 16S23.36 2.667 16.003 2.667zm0 24.267a11.01 11.01 0 01-5.6-1.52l-.4-.24-4.08 1.067 1.093-3.973-.267-.413A10.987 10.987 0 015.003 16c0-6.08 4.947-11.027 11.013-11.027S27.04 9.92 27.04 16 22.08 26.934 16.003 26.934zm6.053-8.24c-.333-.16-1.947-.96-2.253-1.067-.307-.107-.52-.16-.747.16-.213.32-.84 1.067-1.04 1.28-.187.213-.387.24-.72.08-.333-.16-1.413-.52-2.693-1.667-.987-.88-1.667-1.973-1.853-2.307-.187-.333-.013-.507.147-.667.147-.147.333-.373.507-.56.16-.187.213-.32.32-.533.107-.213.053-.4-.027-.56-.08-.16-.747-1.787-1.013-2.44-.267-.64-.547-.547-.747-.56h-.64c-.213 0-.547.08-.84.4-.28.32-1.093 1.067-1.093 2.587 0 1.52 1.12 2.987 1.28 3.2.16.213 2.187 3.347 5.307 4.693.747.32 1.333.507 1.787.653.747.24 1.44.213 1.973.133.6-.093 1.853-.747 2.12-1.467.267-.72.267-1.333.187-1.467-.08-.133-.293-.213-.627-.373z"/>
+                </svg>
+              </div>
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
+            </div>
+            <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
+              <div className="flex justify-between items-center mb-[2px]">
+                <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
+                  Comunidade WhatsApp
+                </h3>
+                <div className="flex items-center gap-1 shrink-0 ml-1">
+                  <CheckCheck className="w-[15px] h-[15px] text-[#4CAF50] stroke-[2.5]" />
+                  <Pin className="w-[12px] h-[12px] text-[#a0a0a0]" />
+                  <span className="text-[12px] text-[#a0a0a0]">{timeStr}</span>
+                </div>
+              </div>
+              <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
+                Comunidade oficial do WhatsApp Business!
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── PINNED: Telegram Business (Comunidade) ── */}
         {showCommunityChat && (
           <div
             onClick={() => navigate('/chat/comunidade')}
             className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
           >
-            {/* Avatar (48px - Oficial Telegram) */}
             <div className="relative shrink-0">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-xs overflow-hidden">
                 <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[23px] h-[23px]">
@@ -243,11 +279,8 @@ export default function ChatsList() {
                   <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" />
                 </svg>
               </div>
-              {/* Online indicator */}
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
             </div>
-
-            {/* Content */}
             <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
               <div className="flex justify-between items-center mb-[2px]">
                 <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
@@ -261,6 +294,35 @@ export default function ChatsList() {
               </div>
               <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
                 Bem-vindo à comunidade oficial do Telegram Business!
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── CEO: Pavel Durov ── mesma rota de chat privado ── */}
+        {showCommunityChat && (
+          <div
+            onClick={() => navigate(`/chat/${PAVEL_DUROV_ID}?t=Pavel+Durov`)}
+            className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
+          >
+            <div className="relative shrink-0">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#5b5b9f] to-[#2d2d7e] flex items-center justify-center shadow-xs text-white text-[17px] font-bold">
+                P
+              </div>
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
+            </div>
+            <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
+              <div className="flex justify-between items-center mb-[2px]">
+                <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
+                  Pavel Durov
+                </h3>
+                <div className="flex items-center gap-1 shrink-0 ml-1">
+                  <CheckCheck className="w-[15px] h-[15px] text-[#4CAF50] stroke-[2.5]" />
+                  <span className="text-[12px] text-[#a0a0a0]">{timeStr}</span>
+                </div>
+              </div>
+              <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
+                CEO · Fundador do Telegram
               </p>
             </div>
           </div>
