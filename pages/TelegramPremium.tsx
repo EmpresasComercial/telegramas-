@@ -25,7 +25,7 @@ export default function TelegramPremium() {
       color: 'from-[#8b5cf6] to-[#6d28d9]',
       badgeColor: 'bg-[#8b5cf6]',
       description: 'Pessoas que se cadastram diretamente pelo seu link de convite.',
-      example: 'Se o seu amigo investir 50.000 Kz, você ganha 5.000 Kz na hora.',
+      example: 'Se o seu amigo ativar um bot de 50.000 Kz, você ganha 5.000 Kz na hora.',
       icon: Users,
     },
     {
@@ -34,7 +34,7 @@ export default function TelegramPremium() {
       color: 'from-[#3b82f6] to-[#1d4ed8]',
       badgeColor: 'bg-[#3b82f6]',
       description: 'Convidados trazidos pelos seus indicados de Nível 1.',
-      example: 'Se um membro de Nível 2 investir 50.000 Kz, você ganha 3.000 Kz.',
+      example: 'Se um membro de Nível 2 ativar um bot de 50.000 Kz, você ganha 3.000 Kz.',
       icon: TrendingUp,
     },
     {
@@ -43,7 +43,7 @@ export default function TelegramPremium() {
       color: 'from-[#10b981] to-[#047857]',
       badgeColor: 'bg-[#10b981]',
       description: 'Membros da terceira geração da sua rede de afiliados.',
-      example: 'Se um membro de Nível 3 investir 50.000 Kz, você ganha 1.000 Kz.',
+      example: 'Se um membro de Nível 3 ativar um bot de 50.000 Kz, você ganha 1.000 Kz.',
       icon: Zap,
     },
   ];
@@ -123,7 +123,7 @@ export default function TelegramPremium() {
               {
                 num: '2',
                 title: 'O amigo cadastra-se e ativa um Bot',
-                desc: 'Ao adquirir qualquer produto ou Bot disponível na plataforma.',
+                desc: 'Ao ativar qualquer Bot disponível na plataforma.',
               },
               {
                 num: '3',
