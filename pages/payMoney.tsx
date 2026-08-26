@@ -115,8 +115,22 @@ export default function PayMoney() {
 
       if (data?.success) {
         showToast(data.message || 'Enviado com sucesso!', 'success');
-        window.location.href = "intent://#Intent;package=ao.co.emis.multicaixaexpress;end";
-        navigate('/registro-transacoes?tab=recarga');
+
+        // Tenta abrir o Multicaixa Express sem redirecionar para Play Store
+        const tryOpenApp = () => {
+          const isAndroid = /android/i.test(navigator.userAgent);
+          if (isAndroid) {
+            // Usa intent com fallback vazio para evitar Play Store
+            const intent = "intent://open#Intent;scheme=multicaixaexpress;package=ao.co.emis.multicaixaexpress;S.browser_fallback_url=about:blank;end";
+            window.location.href = intent;
+          }
+          // Após tentativa, navega para histórico
+          setTimeout(() => {
+            navigate('/registro-transacoes?tab=recarga');
+          }, 1500);
+        };
+
+        tryOpenApp();
       } else {
         showToast(data?.message || 'Falha ao enviar. Tente novamente.', 'error');
       }
