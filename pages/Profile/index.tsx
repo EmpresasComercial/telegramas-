@@ -68,14 +68,23 @@ export default function Profile() {
         else if (meta.phone) setPhone(meta.phone);
       }
 
-      const { data, error } = await supabase.rpc("get_withdraw_info_mcpn");
+      const { data, error } = await supabase.rpc("get_my_account_data");
       if (!error && data && data.length > 0) {
-        const d = data[0];
-        if (d.balance !== undefined) setBalance(Number(d.balance));
-        if (d.total_recharge !== undefined) setTotalDeposits(Number(d.total_recharge));
-        if (d.total_withdraw !== undefined) setTotalWithdrawals(Number(d.total_withdraw));
-        if (d.daily_earnings !== undefined) setDailyIncome(Number(d.daily_earnings));
-        if (d.phone) setPhone(d.phone);
+        const d = data[0] as any;
+        if (d.saldo_disponivel !== undefined) setBalance(Number(d.saldo_disponivel));
+        else if (d.balance !== undefined) setBalance(Number(d.balance));
+        
+        if (d.total_recarregado !== undefined) setTotalDeposits(Number(d.total_recarregado));
+        else if (d.total_recharge !== undefined) setTotalDeposits(Number(d.total_recharge));
+        
+        if (d.total_retirado !== undefined) setTotalWithdrawals(Number(d.total_retirado));
+        else if (d.total_withdraw !== undefined) setTotalWithdrawals(Number(d.total_withdraw));
+        
+        if (d.lucro_acumulado !== undefined) setDailyIncome(Number(d.lucro_acumulado));
+        else if (d.daily_earnings !== undefined) setDailyIncome(Number(d.daily_earnings));
+        
+        if (d.telefone) setPhone(d.telefone);
+        else if (d.phone) setPhone(d.phone);
       }
     } catch {
       // Keep elegant default display values

@@ -216,7 +216,7 @@ export default function PrivateChat() {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const contactColor = getUserColor(contactPhone);
+  const contactColor = getUserColor(contactDisplayName);
 
   return (
     <div className="w-full h-[100dvh] bg-[#9bb88a] font-sans antialiased text-[#202020] select-none flex flex-col items-center overflow-hidden relative">
