@@ -263,46 +263,7 @@ export default function ChatsList() {
             </div>
           </div>
         )}
-
-        {/* ── 2º Telegram Bots ── */}
-        {showCommunityChat && (
-          <div
-            onClick={() => navigate('/bots')}
-            className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
-          >
-            <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-xs overflow-hidden">
-                {/* Ícone Bot */}
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[22px] h-[22px]">
-                  <rect x="3" y="8" width="18" height="13" rx="3" fill="white" fillOpacity="0.9"/>
-                  <circle cx="8.5" cy="14.5" r="1.5" fill="#1e96c8"/>
-                  <circle cx="15.5" cy="14.5" r="1.5" fill="#1e96c8"/>
-                  <path d="M9 18h6" stroke="#1e96c8" strokeWidth="1.5" strokeLinecap="round"/>
-                  <path d="M12 8V5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                  <circle cx="12" cy="4" r="1.5" fill="white"/>
-                </svg>
-              </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
-            </div>
-            <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
-              <div className="flex justify-between items-center mb-[2px]">
-                <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
-                  Telegram Bots
-                </h3>
-                <div className="flex items-center gap-1 shrink-0 ml-1">
-                  <CheckCheck className="w-[15px] h-[15px] text-[#4CAF50] stroke-[2.5]" />
-                  <Pin className="w-[12px] h-[12px] text-[#a0a0a0]" />
-                  <span className="text-[12px] text-[#a0a0a0]">{timeStr}</span>
-                </div>
-              </div>
-              <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
-                Automatize tarefas com os Bots do Telegram
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── 3º Comunidade WhatsApp ── */}
+        {/* ── 2º Comunidade WhatsApp ── */}
         {showCommunityChat && (
           <div
             onClick={() => navigate('/chat/whatsapp-comunidade')}
