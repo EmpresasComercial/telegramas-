@@ -281,8 +281,8 @@ export default function Profile() {
               icon={<Star className="w-5 h-5 text-white fill-white" />}
               iconBg="bg-[#8d54d9]"
               title="Telegram Premium"
-              subtitle="Assinatura e recursos VIP"
-              onClick={() => navigate("/bot-pay")}
+              subtitle="Sistema de convites e benefícios de afiliados"
+              onClick={() => navigate("/telegram-premium")}
             />
 
             <SettingsItem

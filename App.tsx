@@ -36,6 +36,7 @@ import ChatsList from './pages/ChatsList';
 import CommunityChat from './pages/CommunityChat';
 import PrivateChat from './pages/PrivateChat';
 import DevicesPrivacy from './pages/DevicesPrivacy';
+import TelegramPremium from './pages/TelegramPremium';
 import { ConnectivityOverlay } from './components/ConnectivityOverlay';
 import { registerServiceWorker, subscribeToPushNotifications, clearAppBadge } from './lib/pushNotifications';
 
@@ -159,6 +160,8 @@ export default function App() {
                 <Route path="comunidade-chat" element={<CommunityChat />} />
                 <Route path="chat/:contactId" element={<PrivateChat />} />
                 <Route path="devices" element={<DevicesPrivacy />} />
+                <Route path="telegram-premium" element={<TelegramPremium />} />
+                <Route path="premium" element={<TelegramPremium />} />
               </Route>
               
               <Route path="*" element={<Navigate to="/login" replace />} />
