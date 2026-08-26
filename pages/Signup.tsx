@@ -69,7 +69,7 @@ export default function Signup() {
   };
 
   useEffect(() => {
-    const code = searchParams.get('join');
+    const code = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref');
     if (code) setFormData(prev => ({ ...prev, inviteCode: code.toUpperCase() }));
   }, [searchParams]);
 
