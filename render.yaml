@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: telegram business-app
+    name: telegram-business-app
     env: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
@@ -15,12 +15,15 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
+      - path: /*
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
     envVars:
       - key: VITE_SUPABASE_URL
-        value: https://ptvmqurxtciyqxdpsuen.supabase.co
+        sync: false
       - key: VITE_SUPABASE_ANON_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dm1xdXJ4dGNpeXF4ZHBzdWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTMyMTEsImV4cCI6MjA5MjM4OTIxMX0.fAlsIBUdxU29-nEe3xAc4MCSgfQzwjbuPkRlwAFvSzc
+        sync: false
