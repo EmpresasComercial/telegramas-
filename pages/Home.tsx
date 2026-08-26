@@ -36,7 +36,7 @@ const BANNERS = [
     badge: "STARS",
     badgeBg: "bg-[#f59e0b]",
     actionText: "Comprar Stars",
-    link: "/bot-pay",
+    link: "/stars",
     icon: <Sparkles className="w-4 h-4 text-white" />,
   },
   {

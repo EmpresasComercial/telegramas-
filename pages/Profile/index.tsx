@@ -298,8 +298,8 @@ export default function Profile() {
               icon={<Star className="w-5 h-5 text-white fill-white" />}
               iconBg="bg-[#f2a93b]"
               title="Telegram Stars"
-              subtitle="Saldo e compras de estrelas"
-              onClick={() => navigate("/bot-pay")}
+              subtitle="Saldo, pacotes e conversão de estrelas"
+              onClick={() => navigate("/stars")}
             />
 
             <SettingsItem
