@@ -146,11 +146,14 @@ export default function ChatsList() {
 
   return (
     <div
-      className="w-full min-h-[100dvh] bg-white font-sans antialiased flex flex-col items-center"
+      className="w-full min-h-[100dvh] bg-white font-sans antialiased flex flex-col md:flex-row"
       style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
+      {/* ── SIDEBAR (desktop) / FULL (mobile) ── */}
+      <div className="w-full md:w-[380px] md:min-w-[320px] md:max-w-[400px] md:border-r md:border-gray-200 md:h-screen md:sticky md:top-0 md:overflow-hidden flex flex-col bg-white">
+
       {/* ── HEADER ── */}
-      <header className="w-full max-w-[480px] bg-white px-3 pt-3 pb-0 sticky top-0 z-30">
+      <header className="w-full bg-white px-3 pt-3 pb-0 z-30">
         {/* Top row: Logo + Title + 3-dots */}
         <div className="flex items-center justify-between px-1 mb-3">
           <div className="flex items-center gap-2.5">
@@ -230,7 +233,7 @@ export default function ChatsList() {
       </header>
 
       {/* ── CHAT LIST ── */}
-      <main className="w-full max-w-[480px] flex-1 overflow-y-auto pb-28">
+      <main className="w-full flex-1 overflow-y-auto pb-28 md:pb-4">
 
         {/* ── 1º CEO: Pavel Durov ── mesma rota de chat privado ── */}
         {showCommunityChat && (
@@ -436,14 +439,41 @@ export default function ChatsList() {
         )}
       </main>
 
-      {/* ── FAB (Floating Action Button) ── */}
+      {/* ── FAB (Floating Action Button) ── mobile only */}
       <button
         onClick={() => navigate('/convite')}
-        className="fixed bottom-[88px] right-4 w-[56px] h-[56px] bg-[#25D366] rounded-full shadow-[0_4px_20px_rgba(37,211,102,0.5)] flex items-center justify-center z-40 active:scale-95 transition-transform cursor-pointer"
+        className="md:hidden fixed bottom-[88px] right-4 w-[56px] h-[56px] bg-[#25D366] rounded-full shadow-[0_4px_20px_rgba(37,211,102,0.5)] flex items-center justify-center z-40 active:scale-95 transition-transform cursor-pointer"
         aria-label="Novo Chat"
       >
         <Plus className="w-6 h-6 text-white stroke-[2.5]" />
       </button>
+
+      </div>{/* end sidebar */}
+
+      {/* ── PAINEL DIREITO (apenas desktop) ── */}
+      <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#f1f3f4] h-screen">
+        <div className="flex flex-col items-center gap-4 select-none">
+          {/* Ícone Telegram grande */}
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-lg">
+            <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
+              <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232" />
+              <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035" />
+              <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" />
+            </svg>
+          </div>
+          <h2 className="text-[22px] font-bold text-[#202020]">Telegram Business</h2>
+          <p className="text-[14px] text-[#8e8e93] text-center max-w-[260px] leading-relaxed">
+            Selecione uma conversa na lista à esquerda para começar a conversar.
+          </p>
+          <button
+            onClick={() => navigate('/convite')}
+            className="mt-2 px-6 py-2.5 bg-[#25D366] text-white text-[14px] font-semibold rounded-full shadow hover:bg-[#20b558] transition-colors cursor-pointer"
+          >
+            + Novo Chat
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 }
