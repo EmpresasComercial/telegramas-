@@ -20,7 +20,6 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ phone: '', inviteCode: '', password: '' });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   // New states for Telegram layout
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
@@ -118,21 +117,10 @@ export default function Signup() {
     e.preventDefault();
     if (!validateForm()) return;
     setShowPasswordModal(false);
-    // Abre o modal de permissão de notificações antes de executar o cadastro
-    setShowNotificationModal(true);
+    executeRegistration();
   };
 
-  const executeRegistration = async (withNotifications = false) => {
-    setShowNotificationModal(false);
-
-    if (withNotifications) {
-      try {
-        await subscribeToPushNotifications();
-      } catch (err) {
-        console.debug('Erro ao solicitar push:', err);
-      }
-    }
-
+  const executeRegistration = async () => {
     setIsSubmitting(true);
     try {
       const { data: rpcData, error: vError } = await supabase.rpc('secure_registration_mcpn', {
@@ -172,7 +160,7 @@ export default function Signup() {
       }
 
       if (data.user) {
-        if (withNotifications || Notification.permission === 'granted') {
+        if ('Notification' in window && Notification.permission === 'granted') {
           subscribeToPushNotifications().catch(() => {});
         }
         showToast(t('auth.signup_success') || (data.session ? 'Registrado!' : 'Conta criada! Faça login.'), 'success');
@@ -404,63 +392,6 @@ export default function Signup() {
         )}
       </AnimatePresence>
 
-      {/* MODAL DE PERMISSÕES DE NOTIFICAÇÕES */}
-      <AnimatePresence>
-        {showNotificationModal && (
-          <div
-            className="fixed inset-0 z-[300] flex items-end justify-center bg-black/40"
-            onClick={(e) => e.target === e.currentTarget && setShowNotificationModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              transition={{ type: 'tween', ease: 'easeOut', duration: 0.25 }}
-              className="bg-[#f1f1f2] w-full max-w-[400px] rounded-t-[10px] relative overflow-hidden select-none font-sans antialiased"
-            >
-              <div className="bg-[#f1f1f2] px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#c8c7cc]">
-                <h1 className="text-[17px] font-semibold text-black tracking-tight">
-                  Notifications
-                </h1>
-                <button
-                  type="button"
-                  onClick={() => setShowNotificationModal(false)}
-                  className="text-[#3390ec] font-medium text-[17px] active:opacity-70 transition-opacity"
-                >
-                  Close
-                </button>
-              </div>
-
-              <div className="px-4 pt-3 pb-2">
-                <p className="text-[15px] text-[#8e8e93] font-normal leading-tight">
-                  Allow Telegram Business to send you notifications for messages and calls?
-                </p>
-              </div>
-
-              <div className="px-4 pt-2 pb-6 flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => executeRegistration(true)}
-                  disabled={isSubmitting}
-                  className="w-full h-[50px] rounded-[10px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-medium text-[17px] flex items-center justify-center gap-2 transition-all shadow-sm mt-2"
-                >
-                  <Bell className="w-5 h-5" />
-                  <span>Allow Notifications</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => executeRegistration(false)}
-                  disabled={isSubmitting}
-                  className="w-full h-[50px] rounded-[10px] bg-white text-[#3390ec] font-medium text-[17px] hover:bg-gray-50 active:scale-[0.98] transition-all shadow-sm"
-                >
-                  Skip for now
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
