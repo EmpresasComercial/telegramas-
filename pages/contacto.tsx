@@ -52,7 +52,13 @@ export default function Invite() {
         }
 
         if (linksRes.data?.link_app_atualizado) {
-          setBaseUrl(linksRes.data.link_app_atualizado.replace(/\/$/, ''));
+          let raw = linksRes.data.link_app_atualizado.trim().replace(/\/$/, '');
+          if (raw && !/^https?:\/\//i.test(raw)) {
+            raw = `https://${raw}`;
+          }
+          if (raw) {
+            setBaseUrl(raw);
+          }
         }
       } catch {
       } finally {
