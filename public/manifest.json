@@ -1,0 +1,29 @@
+{
+  "id": "/",
+  "short_name": "Telegram Business",
+  "name": "Telegram Business",
+  "description": "Telegram Business - Plataforma Oficial",
+  "icons": [
+    {
+      "src": "/telegram business_logo_icon_167892.webp",
+      "type": "image/webp",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/telegram business_logo_icon_167892.webp",
+      "type": "image/webp",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/cadastro",
+  "scope": "/",
+  "background_color": "#F2F2F2",
+  "theme_color": "#FE384F",
+  "display": "standalone",
+  "orientation": "portrait"
+}
+
+
+

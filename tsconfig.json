@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@supabase/realtime-js/src/*": [
+        "./node_modules/@supabase/realtime-js/dist/module/*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "components/**/*",
+    "constants/**/*",
+    "contexts/**/*",
+    "hooks/**/*",
+    "lib/**/*",
+    "pages/**/*",
+    "types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "node_modules/**/*",
+    "dist"
+  ]
+}

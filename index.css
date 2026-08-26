@@ -1,0 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+/* Design System Tokens */
+:root {
+  --font-sans: 'Inter', "Segoe UI", sans-serif;
+  --ms-blue: #0067b8;
+  --ms-bg: #FFFFFF;
+  --ms-text-primary: #111827;
+  --ms-text-secondary: #6B7280;
+  --ms-border: #E5E7EB;
+  --background: #FFFFFF;
+  --surface: #FFFFFF;
+  --input-background: #FFFFFF;
+  --primary-orange: #E7540F;
+  --primary-purple: #5A1089;
+  --text-primary: #2D2324;
+  --button-text: #000000;
+  --placeholder: #A09AA5;
+  --required: #C51B18;
+  --surface-shadow: rgba(242,240,242,0.55);
+  --divider: #F4F4F4;
+  --header-surface: #E9EDF6;
+}
+
+body {
+  background-color: var(--ms-bg);
+  color: var(--ms-text-primary);
+  font-family: var(--font-sans);
+  font-weight: 300; /* Super leve por padrão */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+}
+
+html, body, * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Component Classes in Pure CSS */
+.ms-card {
+  background-color: white;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 8px;
+}
+
+.ms-flat-card {
+  background-color: white;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+}
+
+.ms-page-container {
+  min-height: 100vh;
+  background-color: var(--ms-bg);
+  padding: 4px;
+  padding-bottom: 96px;
+}
+
+.ms-header {
+  background-color: white;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--ms-border);
+  border-radius: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.ms-btn-primary {
+  background-color: var(--ms-blue);
+  color: white;
+  padding: 0 24px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 400; /* Botão mais leve */
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.ms-btn-primary:active {
+  transform: scale(0.98);
+  filter: brightness(0.9);
+}
+
+.input-field {
+  border: none;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 12px 0;
+  width: 100%;
+  outline: none;
+  font-size: 16px;
+  font-weight: 300;
+  transition: all 0.2s ease;
+  background-color: transparent;
+}
+
+.input-field:focus {
+  border-bottom: 1px solid var(--ms-blue);
+}
+
+.product-badge {
+  background-color: #f3f4f6;
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  font-weight: 400;
+  color: #4b5563;
+}
+
+/* Animations */
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 10px;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Utilities */
+.img-filter-red {
+  filter: invert(27%) sepia(95%) saturate(3000%) hue-rotate(350deg);
+}
+
+.text-badge-xs {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.pb-safe-bottom {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+/* Shimmer Animation for Skeleton Screen */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #EDEDED 0%,
+    #F7F7F7 50%,
+    #EDEDED 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Animation for live feed items */
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in-fade {
+  animation: slideInFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
