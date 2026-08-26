@@ -5,7 +5,7 @@ import FloatingSupport from './FloatingSupport';
 
 export default function Layout() {
   const location = useLocation();
-  const allowedPaths = ['/home', '/convite', '/perfil', '/minhas-compras', '/settings'];
+  const allowedPaths = ['/home', '/perfil'];
   const showNavbar = allowedPaths.includes(location.pathname);
 
   return (
