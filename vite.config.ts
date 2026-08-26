@@ -15,9 +15,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5200,
-      strictPort: true, // falha se a porta já estiver ocupada em vez de usar outra aleatória
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify—file watching is disabled to prevent flickering during agent edits.
+      strictPort: true,
       hmr: process.env.DISABLE_HMR !== 'true',
     },
     preview: {
@@ -27,16 +25,38 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       sourcemap: false,
       minify: 'esbuild',
-      chunkSizeWarningLimit: 2000,
+      // Alerta apenas em chunks acima de 500KB
+      chunkSizeWarningLimit: 500,
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-            supabase: ['@supabase/supabase-js'],
+          // Granularidade maior → chunks menores → carregamento mais rápido
+          manualChunks(id) {
+            // Bibliotecas React core → chunk separado e cacheável
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'react-core';
+            }
+            // React Router → chunk separado
+            if (id.includes('node_modules/react-router')) {
+              return 'react-router';
+            }
+            // Supabase → chunk separado (grande)
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+            // Lucide icons → chunk separado
+            if (id.includes('lucide-react')) {
+              return 'icons';
+            }
           },
         },
       },
+      // Otimizações esbuild
+      esbuildOptions: {
+        // Remove console.log em produção
+        drop: ['console', 'debugger'],
+        // Target browsers modernos → bundle menor
+        target: 'es2020',
+      },
     },
-
   };
 });
