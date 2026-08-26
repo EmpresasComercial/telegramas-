@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Search, MoreVertical, CheckCheck, Loader2, Pin, Plus, X } from 'lucide-react';
+import TelegramStories from '../components/TelegramStories';
 
 export default function ChatsList() {
   const navigate = useNavigate();
@@ -234,6 +235,9 @@ export default function ChatsList() {
 
       {/* ── CHAT LIST ── */}
       <main className="w-full flex-1 overflow-y-auto pb-28 md:pb-4">
+
+        {/* ── TELEGRAM STORIES (HISTÓRIAS NO TOPO DOS CHATS) ── */}
+        <TelegramStories />
 
         {/* ── 1º CEO: Pavel Durov ── mesma rota de chat privado ── */}
         {showCommunityChat && (
