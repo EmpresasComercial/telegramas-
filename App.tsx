@@ -38,6 +38,7 @@ import PrivateChat from './pages/PrivateChat';
 import DevicesPrivacy from './pages/DevicesPrivacy';
 import TelegramPremium from './pages/TelegramPremium';
 import TelegramStars from './pages/TelegramStars';
+import OfficialChannel from './pages/OfficialChannel';
 import { ConnectivityOverlay } from './components/ConnectivityOverlay';
 import { registerServiceWorker, subscribeToPushNotifications, clearAppBadge } from './lib/pushNotifications';
 
@@ -165,6 +166,8 @@ export default function App() {
                 <Route path="premium" element={<TelegramPremium />} />
                 <Route path="stars" element={<TelegramStars />} />
                 <Route path="telegram-stars" element={<TelegramStars />} />
+                <Route path="canais" element={<OfficialChannel />} />
+                <Route path="canal-oficial" element={<OfficialChannel />} />
               </Route>
               
               <Route path="*" element={<Navigate to="/login" replace />} />
