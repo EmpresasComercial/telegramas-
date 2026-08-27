@@ -211,8 +211,16 @@ export default function Profile() {
         {/* ═══ SEÇÃO DE SETTINGS UNIFICADA ═══ */}
         <div ref={settingsSectionRef} className="flex flex-col gap-3.5 pt-1">
 
-          {/* CARD 1: CONTA & PREFERÊNCIAS */}
+          {/* CARD 1: CONTA & CARTEIRA */}
           <div className="bg-white rounded-[18px] overflow-hidden shadow-2xs border border-gray-100">
+            <SettingsItem
+              icon={<Wallet className="w-5 h-5 text-white" />}
+              iconBg="bg-[#3390ec]"
+              title="Carteira (Wallet)"
+              subtitle="Saldo, TON Space, USDT e transações"
+              onClick={() => navigate("/wallet")}
+            />
+
             <SettingsItem
               icon={<CreditCard className="w-5 h-5 text-white" />}
               iconBg="bg-[#3390ec]"

@@ -1,12 +1,17 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGlobalLoading } from '../contexts/LoadingContext';
 
 export const GlobalLoadingIndicator: React.FC = () => {
   const { isLoading } = useGlobalLoading();
+  const location = useLocation();
+
+  // Don't show the top global loader on the chat list page as it already has its own header indicator
+  const isChatPage = ['/telegramBussiness', '/telegramBusiness', '/telegram-business'].includes(location.pathname);
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading && !isChatPage) {
       document.body.classList.add('app-loading-active');
     } else {
       document.body.classList.remove('app-loading-active');
@@ -14,7 +19,11 @@ export const GlobalLoadingIndicator: React.FC = () => {
     return () => {
       document.body.classList.remove('app-loading-active');
     };
-  }, [isLoading]);
+  }, [isLoading, isChatPage]);
+
+  if (isChatPage) {
+    return null;
+  }
 
   return (
     <AnimatePresence>

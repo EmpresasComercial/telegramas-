@@ -13,7 +13,8 @@ export default function ChatsList() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<'all' | 'unread'>('all');
+  type ChatFolder = 'all' | 'personal' | 'groups' | 'bots' | 'unread';
+  const [activeFilter, setActiveFilter] = useState<ChatFolder>('all');
 
   useEffect(() => {
     if (!user) return;
@@ -113,7 +114,7 @@ export default function ChatsList() {
   const queryDigits = queryClean.replace(/\D/g, '');
 
   const showCommunityChat = useMemo(() => {
-    if (activeFilter === 'unread') return false;
+    if (activeFilter === 'personal' || activeFilter === 'bots' || activeFilter === 'unread') return false;
     if (!queryClean) return true;
     const communityKeywords = [
       "telegram", "business", "comunidade", "canal", "oficial", "grupo", "anúncios", "mensagens",
@@ -126,7 +127,12 @@ export default function ChatsList() {
   const PAVEL_DUROV_ID = 'pavel-durov-ceo-00000000000000001';
 
   const filteredContacts = useMemo(() => {
+    if (activeFilter === 'groups' || activeFilter === 'bots') return [];
     return contacts.filter(c => {
+      if (activeFilter === 'unread') {
+        // Only contacts where there are messages not sent by me or pending
+        return !c.isMe && Boolean(c.lastMessage);
+      }
       if (!queryClean) return true;
       const rawTel = (c.telefone || '').toLowerCase();
       const formattedTel = formatSenderPhone(c.telefone).toLowerCase();
@@ -138,9 +144,17 @@ export default function ChatsList() {
         (queryDigits.length > 0 && digitsOnly.includes(queryDigits))
       );
     });
-  }, [contacts, queryClean, queryDigits]);
+  }, [contacts, queryClean, queryDigits, activeFilter]);
 
-  const hasResults = showCommunityChat || filteredContacts.length > 0;
+  const hasResults = showCommunityChat || filteredContacts.length > 0 || activeFilter === 'bots';
+
+  const folders: { id: ChatFolder; label: string; count?: number }[] = [
+    { id: 'all', label: 'Todos os Chats', count: contacts.length + 3 },
+    { id: 'personal', label: 'Pessoais', count: contacts.length },
+    { id: 'groups', label: 'Grupos & Canais', count: 3 },
+    { id: 'bots', label: 'Bots' },
+    { id: 'unread', label: 'Não Lido', count: contacts.filter(c => !c.isMe && Boolean(c.lastMessage)).length },
+  ];
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
@@ -155,7 +169,7 @@ export default function ChatsList() {
 
       {/* ── HEADER ── */}
       <header className="w-full bg-white px-3 pt-3 pb-0 z-30">
-        {/* Top row: Logo + Title + 3-dots */}
+        {/* Top row: Logo + Title + Close */}
         <div className="flex items-center justify-between px-1 mb-3">
           <div className="flex items-center gap-2.5">
             {/* Telegram Logo with Spinning Ring on Loading */}
@@ -188,7 +202,7 @@ export default function ChatsList() {
         </div>
 
         {/* Search bar */}
-        <div className="mx-1 mb-3 h-[38px] bg-[#f1f1f2] rounded-[10px] flex items-center px-3 gap-2 relative">
+        <div className="mx-1 mb-2.5 h-[38px] bg-[#f1f1f2] rounded-[10px] flex items-center px-3 gap-2 relative">
           <Search className="w-4 h-4 text-[#a0a0a0] shrink-0" />
           <input
             type="text"
@@ -208,28 +222,31 @@ export default function ChatsList() {
           )}
         </div>
 
-        {/* Filter tabs */}
-        <div className="mx-1 mb-1 flex gap-0 bg-[#f1f1f2] rounded-full p-[3px]">
-          <button
-            onClick={() => setActiveFilter('all')}
-            className={`flex-1 h-8 rounded-full text-[13.5px] font-semibold transition-all cursor-pointer ${
-              activeFilter === 'all'
-                ? 'bg-white text-[#25ae60] shadow-sm'
-                : 'text-[#8e8e93] bg-transparent hover:text-gray-700'
-            }`}
-          >
-            Todos os Chats
-          </button>
-          <button
-            onClick={() => setActiveFilter('unread')}
-            className={`flex-1 h-8 rounded-full text-[13.5px] font-medium transition-all cursor-pointer ${
-              activeFilter === 'unread'
-                ? 'bg-white text-[#202020] shadow-sm'
-                : 'text-[#8e8e93] bg-transparent hover:text-gray-700'
-            }`}
-          >
-            Não Lido
-          </button>
+        {/* ── TELEGRAM iOS CHAT FOLDERS (Horizontal Scrollable Tabs) ── */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 px-1 border-b border-gray-100">
+          {folders.map(folder => {
+            const isActive = activeFilter === folder.id;
+            return (
+              <button
+                key={folder.id}
+                onClick={() => setActiveFilter(folder.id)}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13.5px] font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#3390ec] text-white shadow-xs'
+                    : 'bg-[#f1f1f2] text-[#8e8e93] hover:text-[#202020] active:bg-gray-200'
+                }`}
+              >
+                <span>{folder.label}</span>
+                {typeof folder.count === 'number' && folder.count > 0 && (
+                  <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
+                    isActive ? 'bg-white/25 text-white' : 'bg-black/10 text-[#666]'
+                  }`}>
+                    {folder.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </header>
 
@@ -328,6 +345,37 @@ export default function ChatsList() {
               </div>
               <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
                 Bem-vindo à comunidade oficial do Telegram Business!
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── 5º Bot de Pagamento e Assistente (Aparece em Todos e em Bots) ── */}
+        {(activeFilter === 'all' || activeFilter === 'bots') && (
+          <div
+            onClick={() => navigate('/bot-pay')}
+            className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
+          >
+            <div className="relative shrink-0">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8e44ad] to-[#a55eea] flex items-center justify-center shadow-xs overflow-hidden text-white font-bold text-lg">
+                🤖
+              </div>
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
+            </div>
+            <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
+              <div className="flex justify-between items-center mb-[2px]">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
+                    Telegram Business Bot
+                  </h3>
+                  <span className="bg-[#eef2ff] text-[#4f46e5] text-[10px] font-bold px-1.5 py-0.5 rounded-sm">
+                    BOT
+                  </span>
+                </div>
+                <span className="text-[12px] text-[#a0a0a0]">{timeStr}</span>
+              </div>
+              <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
+                Assistente de inteligência e automação financeira ativo
               </p>
             </div>
           </div>
