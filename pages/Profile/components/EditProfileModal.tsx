@@ -151,7 +151,7 @@ export default function EditProfileModal({
       </div>
 
       {/* ──────── CONTEÚDO ROLÁVEL ──────── */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-2 max-w-2xl mx-auto w-full">
 
         {/* ── AVATAR SECTION (clicável para trocar foto) ── */}
         <div
@@ -181,7 +181,7 @@ export default function EditProfileModal({
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
 
         {/* ── CARD: SEU NOME ── */}
-        <div className="bg-white mx-0 mb-0">
+        <div className="bg-white rounded-[14px] overflow-hidden shadow-2xs border border-gray-100 mb-2">
           <div className="px-4 pt-3 pb-1">
             <span className="text-[13px] font-semibold text-[#4faf64]">Seu nome</span>
           </div>
@@ -204,7 +204,7 @@ export default function EditProfileModal({
         </div>
 
         {/* ── CARD: BIO ── */}
-        <div className="bg-white mx-0 mt-[1px]">
+        <div className="bg-white rounded-[14px] overflow-hidden shadow-2xs border border-gray-100">
           <div className="flex items-center justify-between px-4 pt-3 pb-1">
             <span className="text-[13px] font-semibold text-[#4faf64]">Bio</span>
             <span className={`text-[13px] tabular-nums ${bioRemaining < 10 ? "text-red-500" : "text-[#8e8e93]"}`}>
@@ -223,10 +223,10 @@ export default function EditProfileModal({
         </div>
 
         {/* ── SPACER ── */}
-        <div className="h-5" />
+        <div className="h-4" />
 
         {/* ── CARD: SUAS INFORMAÇÕES ── */}
-        <div className="bg-white mx-0">
+        <div className="bg-white rounded-[14px] overflow-hidden shadow-2xs border border-gray-100">
           <div className="px-4 pt-3 pb-1">
             <span className="text-[13px] font-semibold text-[#4faf64]">Suas Informações</span>
           </div>
@@ -262,16 +262,16 @@ export default function EditProfileModal({
           </div>
         </div>
 
-        <p className="px-4 py-2 text-[13px] text-[#8e8e93]">
+        <p className="px-2 py-2 text-[13px] text-[#8e8e93]">
           Escolha quem pode ver seu aniversário nas{" "}
           <span className="text-[#3390ec] cursor-pointer">Configurações.</span>
         </p>
 
         {/* ── SPACER ── */}
-        <div className="h-5" />
+        <div className="h-3" />
 
         {/* ── CARD: CANAL + AUTOMAÇÃO ── */}
-        <div className="bg-white mx-0">
+        <div className="bg-white rounded-[14px] overflow-hidden shadow-2xs border border-gray-100">
           {/* Canal pessoal */}
           <div className="flex items-center px-4 py-3 border-b border-[#e5e5e5]">
             <div className="w-[34px] h-[34px] rounded-full bg-[#f25050] flex items-center justify-center mr-4 shrink-0">
@@ -291,7 +291,7 @@ export default function EditProfileModal({
           </div>
         </div>
 
-        <p className="px-4 py-2 text-[13px] text-[#8e8e93] mb-2">
+        <p className="px-2 py-2 text-[13px] text-[#8e8e93] mb-2">
           Escolha um bot para responder em seu nome.
         </p>
 
@@ -299,7 +299,7 @@ export default function EditProfileModal({
         <div className="h-2" />
 
         {/* ── CARD: ADICIONAR CONTA ── */}
-        <div className="bg-white mx-0">
+        <div className="bg-white rounded-[14px] overflow-hidden shadow-2xs border border-gray-100">
           <div className="flex items-center px-4 py-3">
             <div className="w-[34px] h-[34px] rounded-full border-[2px] border-[#3390ec] flex items-center justify-center mr-4 shrink-0">
               <UserPlus className="w-[17px] h-[17px] text-[#3390ec] stroke-[2]" />

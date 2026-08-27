@@ -8,7 +8,6 @@ import { Bot, Calendar, Sparkles, ChevronRight, ArrowUpRight } from "lucide-reac
 export default function PurchaseHistory() {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const { showToast } = useToast();
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
