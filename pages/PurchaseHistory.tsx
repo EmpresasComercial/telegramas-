@@ -55,13 +55,13 @@ export default function PurchaseHistory() {
       <main className="w-full max-w-[480px] px-4 pt-4 flex-1 space-y-3">
         {loading ? (
           <div className="text-center py-20 text-gray-400 font-normal text-[12px]">
-            Sincronizando licenças...
+            Sincronizando bots ativos...
           </div>
         ) : purchases.length === 0 ? (
           <div className="bg-white rounded-none p-12 text-center shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex flex-col items-center space-y-2">
              <History size={36} className="text-gray-300" />
              <p className="text-[12.5px] text-[#888888] font-normal">
-               Nenhuma licença ativa
+               Nenhum bot ativo no momento
              </p>
           </div>
         ) : (
@@ -105,21 +105,21 @@ export default function PurchaseHistory() {
                           </div>
                           
                           <p className="text-[10px] text-[#AAAAAA] font-normal">
-                            {t('history.license_id')}: {item.id.toString().substring(0, 8).toUpperCase()}
+                            ID: {item.id.toString().substring(0, 8).toUpperCase()}
                           </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-100 text-[11.5px]">
                           <div>
-                            <span className="text-[#888888] block text-[10px]">Investido</span>
+                            <span className="text-[#888888] block text-[10px]">Ativação</span>
                             <span className="font-medium text-[#202020]">
                               {Number(item.preco_pago).toLocaleString(undefined, { minimumFractionDigits: 2 })} Kz
                             </span>
                           </div>
                           
                           <div className="text-right">
-                            <span className="text-[#888888] block text-[10px]">Renda Diária</span>
-                            <span className="font-medium text-[#FE384F]">
+                            <span className="text-[#888888] block text-[10px]">Recompensa Diária</span>
+                            <span className="font-medium text-[#25D366]">
                               +{Number(dailyIncome).toLocaleString(undefined, { minimumFractionDigits: 2 })} Kz
                             </span>
                           </div>
@@ -129,7 +129,7 @@ export default function PurchaseHistory() {
 
                     <div className="space-y-1 py-2 border-t border-gray-100 text-[11px] text-[#777777]">
                       <div className="flex justify-between items-center">
-                        <span>Data da compra:</span>
+                        <span>Data de ativação:</span>
                         <span className="font-normal text-[#202020]">{formatDate(item.data_inicio)}</span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -137,14 +137,14 @@ export default function PurchaseHistory() {
                         <span className="font-normal text-[#202020]">{formatDate(item.data_fim)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span>Armazenamento:</span>
+                        <span>Capacidade:</span>
                         <span className="font-normal text-[#202020]">{item.storage_size || '---'}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-1 border-t border-gray-100">
                       <span className="text-[10px] text-[#AAAAAA] font-normal">
-                        LICENÇA COMPRADA
+                        BOT ATIVO
                       </span>
                       
                       <button 
@@ -155,9 +155,9 @@ export default function PurchaseHistory() {
                             showToast('Download indisponível', 'error');
                           }
                         }}
-                        className="h-7 px-4 rounded-none bg-[#FE384F] hover:bg-[#E02E44] text-white text-[11px] font-normal transition-all active:scale-95 cursor-pointer"
+                        className="h-7 px-4 rounded-none bg-[#3390ec] hover:bg-[#287dc9] text-white text-[11px] font-normal transition-all active:scale-95 cursor-pointer"
                       >
-                        Download
+                        Acessar
                       </button>
                     </div>
                   </motion.div>

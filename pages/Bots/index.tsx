@@ -112,13 +112,13 @@ function ProductCard({
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-100">
           <p className="text-[13.5px] text-gray-600 leading-relaxed mt-3 mb-4">
-            {product.descricao || "Aumente seus ganhos diários com este produto oficial."}
+            {product.descricao || "Aumente suas estrelas e recompensas diárias com este bot oficial."}
           </p>
 
           {/* Stats */}
           <div className="flex flex-col gap-2 mb-4 bg-gray-50/70 p-3 rounded-[12px]">
             <div className="flex items-center justify-between text-[13px]">
-              <span className="text-gray-500">Renda diária:</span>
+              <span className="text-gray-500">Recompensa diária:</span>
               <span className="font-bold text-[#25D366]">
                 +{formatCurrency(rendaNum, "KZ")} / dia
               </span>
@@ -130,7 +130,7 @@ function ProductCard({
               </span>
             </div>
             <div className="flex items-center justify-between text-[13px]">
-              <span className="text-gray-500">Limite de compras:</span>
+              <span className="text-gray-500">Limite de ativação:</span>
               <span className="font-semibold text-gray-800">
                 {product.limite_compra ? `${product.limite_compra} unidade(s)` : "Ilimitado"}
               </span>
@@ -160,7 +160,7 @@ function ProductCard({
             {isBuying ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              `Adquirir por ${formatCurrency(precoNum, "KZ")}`
+              `Ativar Bot por ${formatCurrency(precoNum, "KZ")}`
             )}
           </button>
         </div>
@@ -251,29 +251,29 @@ export default function Products() {
             <path d="M19 12H5M5 12l7-7M5 12l7 7" />
           </svg>
         </button>
-        <span className="text-[18px] font-bold flex-1">Produtos & Bots</span>
+        <span className="text-[18px] font-bold flex-1">Bots Telegram</span>
         <span className="text-[13px] text-gray-500 bg-white px-2.5 py-1 rounded-full border border-gray-200 shadow-2xs">
-          {products.length} produtos
+          {products.length} bots disponíveis
         </span>
       </div>
 
       {/* Subtítulo */}
       <div className="px-6 mb-5">
         <p className="text-[13.5px] text-gray-500 leading-relaxed">
-          Escolha o produto ideal para os seus rendimentos diários. Toque em qualquer item para ver detalhes e adquirir.
+          Escolha o bot ideal para automatizar suas recompensas e rendimentos em estrelas. Toque em qualquer item para ver detalhes e ativar.
         </p>
       </div>
 
-      {/* Lista de produtos do banco de dados */}
+      {/* Lista de bots do banco de dados */}
       <main className="w-full px-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-8 h-8 text-[#25D366] animate-spin mb-2" />
-            <p className="text-[13px] text-gray-400">Carregando produtos do banco...</p>
+            <p className="text-[13px] text-gray-400">Carregando bots disponíveis...</p>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-16 text-gray-400 text-[14px]">
-            Nenhum produto disponível no momento.
+            Nenhum bot disponível no momento.
           </div>
         ) : (
           <div className="flex flex-col gap-3">

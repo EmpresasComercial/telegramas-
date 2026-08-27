@@ -42,22 +42,22 @@ const BANNERS = [
   {
     id: 4,
     image: "/tg_banner_4.jpg",
-    title: "Rendimento Diário Garantido",
-    subtitle: "Acompanhe os lucros e rendimentos diários na sua carteira",
-    badge: "RENDIMENTO",
+    title: "Recompensas em Estrelas",
+    subtitle: "Acompanhe suas estrelas e rendimentos diários no seu perfil",
+    badge: "ESTRELAS",
     badgeBg: "bg-[#25D366]",
-    actionText: "Ver Saldo",
+    actionText: "Ver Estrelas",
     link: "/perfil",
     icon: <TrendingUp className="w-4 h-4 text-white" />,
   },
   {
     id: 5,
     image: "/tg_banner_5.jpg",
-    title: "Retiradas Rápidas 24/7",
-    subtitle: "Pagamentos e transferências bancárias com segurança máxima",
+    title: "Resgates de Estrelas 24/7",
+    subtitle: "Conversão de estrelas e transferências com máxima segurança",
     badge: "SEGURO",
     badgeBg: "bg-[#0ea5e9]",
-    actionText: "Solicitar Retirada",
+    actionText: "Resgatar Estrelas",
     link: "/retirada",
     icon: <ShieldCheck className="w-4 h-4 text-white" />,
   },
@@ -294,7 +294,7 @@ export default function Home() {
         {/* ── BOTÕES DE AÇÃO RÁPIDA (ESTILO TELEGRAM) ── */}
         <div className="grid grid-cols-3 gap-3 px-3 py-4 bg-white rounded-[12px] mt-3 border border-gray-200/40 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
           
-          {/* Botão Adicionar Saldo */}
+          {/* Botão Obter Estrelas */}
           <button
             onClick={() => navigate("/recarregar")}
             className="flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
@@ -303,11 +303,11 @@ export default function Home() {
               <Plus className="w-6 h-6 stroke-[2.5]" />
             </div>
             <span className="text-[12px] font-medium text-gray-700 text-center leading-tight">
-              Adicionar Saldo
+              Obter Estrelas
             </span>
           </button>
 
-          {/* Botão Retirar Saldo */}
+          {/* Botão Resgatar Estrelas */}
           <button
             onClick={() => navigate("/retirada")}
             className="flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
@@ -316,11 +316,11 @@ export default function Home() {
               <ArrowDownToLine className="w-6 h-6 stroke-[2.5]" />
             </div>
             <span className="text-[12px] font-medium text-gray-700 text-center leading-tight">
-              Retirar Saldo
+              Resgatar Estrelas
             </span>
           </button>
 
-          {/* Botão Prêmios */}
+          {/* Botão Recompensas */}
           <button
             onClick={() => navigate("/resgate")}
             className="flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer"
@@ -329,7 +329,7 @@ export default function Home() {
               <Gift className="w-6 h-6 stroke-[2.5]" />
             </div>
             <span className="text-[12px] font-medium text-gray-700 text-center leading-tight">
-              Prêmios
+              Recompensas
             </span>
           </button>
 
@@ -345,7 +345,7 @@ export default function Home() {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
               <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">
-                Atividade de Saques
+                Resgates de Estrelas Recentes
               </h3>
             </div>
             <div className="flex items-center gap-1 text-[11px] text-[#0088cc] font-semibold bg-[#e5f3fc] px-2.5 py-0.5 rounded-full">

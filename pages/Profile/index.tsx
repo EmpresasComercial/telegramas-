@@ -163,14 +163,14 @@ export default function Profile() {
             className="bg-white rounded-[16px] py-3.5 px-2 flex flex-col items-center justify-center gap-1 shadow-2xs border border-gray-100 hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer"
           >
             <Wallet className="w-[22px] h-[22px] text-black" strokeWidth={1.8} />
-            <span className="text-[12px] font-semibold text-black leading-tight text-center">Retirar saldo</span>
+            <span className="text-[12px] font-semibold text-black leading-tight text-center">Resgatar Estrelas</span>
           </button>
           <button
             onClick={() => navigate("/recarregar")}
             className="bg-white rounded-[16px] py-3.5 px-2 flex flex-col items-center justify-center gap-1 shadow-2xs border border-gray-100 hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer"
           >
             <PlusCircle className="w-[22px] h-[22px] text-black" strokeWidth={1.8} />
-            <span className="text-[12px] font-semibold text-black leading-tight text-center">Adicionar saldo</span>
+            <span className="text-[12px] font-semibold text-black leading-tight text-center">Obter Estrelas</span>
           </button>
           <button
             onClick={scrollToSettings}
@@ -181,28 +181,37 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* CARD INFORMAÇÕES & DASHBOARD FINANCEIRO */}
+        {/* CARD INFORMAÇÕES & DASHBOARD DE ESTRELAS */}
         <div className="bg-white rounded-[18px] p-4 flex flex-col gap-4 shadow-2xs border border-gray-100">
-          <div className="pb-3 border-b border-gray-100">
-            <div className="text-[16px] text-black font-semibold leading-tight mb-0.5">{phone}</div>
-            <div className="text-[13px] text-[#8e8e93]">Celular</div>
+          <div className="pb-3 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <div className="text-[16px] text-black font-semibold leading-tight mb-0.5">{phone}</div>
+              <div className="text-[13px] text-[#8e8e93]">Celular</div>
+            </div>
+            <div className="flex items-center gap-1 bg-[#fff8ec] px-2.5 py-1 rounded-full border border-[#fef3c7]">
+              <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
+              <span className="text-[12px] font-bold text-[#b45309]">Stars VIP</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-y-3.5 gap-x-4 w-full">
             <div className="text-left">
-              <div className="text-[13px] text-[#8e8e93] mb-0.5">Saldo Total</div>
+              <div className="text-[13px] text-[#8e8e93] mb-0.5 flex items-center gap-1">
+                <span>Saldo de Estrelas</span>
+                <Star className="w-3 h-3 text-[#f59e0b] fill-[#f59e0b]" />
+              </div>
               <div className="text-[16px] text-[#25D366] font-bold">{formatCurrency(balance, "KZ")}</div>
             </div>
             <div className="text-right">
-              <div className="text-[13px] text-[#8e8e93] mb-0.5">Renda Diária</div>
-              <div className="text-[16px] text-black font-semibold">{formatCurrency(dailyIncome, "KZ")}</div>
+              <div className="text-[13px] text-[#8e8e93] mb-0.5">Estrelas Diárias</div>
+              <div className="text-[16px] text-black font-semibold">+{formatCurrency(dailyIncome, "KZ")}</div>
             </div>
             <div className="text-left">
-              <div className="text-[13px] text-[#8e8e93] mb-0.5">Total Depósitos</div>
+              <div className="text-[13px] text-[#8e8e93] mb-0.5">Total Adquirido</div>
               <div className="text-[16px] text-black font-semibold">{formatCurrency(totalDeposits, "KZ")}</div>
             </div>
             <div className="text-right">
-              <div className="text-[13px] text-[#8e8e93] mb-0.5">Total Retiradas</div>
+              <div className="text-[13px] text-[#8e8e93] mb-0.5">Total Resgatado</div>
               <div className="text-[16px] text-black font-semibold">{formatCurrency(totalWithdrawals, "KZ")}</div>
             </div>
           </div>
@@ -211,16 +220,8 @@ export default function Profile() {
         {/* ═══ SEÇÃO DE SETTINGS UNIFICADA ═══ */}
         <div ref={settingsSectionRef} className="flex flex-col gap-3.5 pt-1">
 
-          {/* CARD 1: CONTA & CARTEIRA */}
+          {/* CARD 1: CONTA & PREFERÊNCIAS */}
           <div className="bg-white rounded-[18px] overflow-hidden shadow-2xs border border-gray-100">
-            <SettingsItem
-              icon={<Wallet className="w-5 h-5 text-white" />}
-              iconBg="bg-[#3390ec]"
-              title="Carteira (Wallet)"
-              subtitle="Saldo, TON Space, USDT e transações"
-              onClick={() => navigate("/wallet")}
-            />
-
             <SettingsItem
               icon={<CreditCard className="w-5 h-5 text-white" />}
               iconBg="bg-[#3390ec]"

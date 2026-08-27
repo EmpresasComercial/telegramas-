@@ -47,7 +47,6 @@ const DevicesPrivacy   = lazy(() => import('./pages/DevicesPrivacy'));
 const TelegramPremium  = lazy(() => import('./pages/TelegramPremium'));
 const TelegramStars    = lazy(() => import('./pages/TelegramStars'));
 const OfficialChannel  = lazy(() => import('./pages/OfficialChannel'));
-const Wallet           = lazy(() => import('./pages/Wallet'));
 
 /* ── Skeleton de transição ultra-leve ────────────────────────────────────── */
 function PageSkeleton() {
@@ -178,8 +177,6 @@ export default function App() {
                     <Route path="telegram-stars"          element={<TelegramStars />} />
                     <Route path="canais"                  element={<OfficialChannel />} />
                     <Route path="canal-oficial"           element={<OfficialChannel />} />
-                    <Route path="wallet"                  element={<Wallet />} />
-                    <Route path="carteira"                element={<Wallet />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/login" replace />} />
