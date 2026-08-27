@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Search, MoreVertical, CheckCheck, Loader2, Pin, Plus, X } from 'lucide-react';
+import { Search, CheckCheck, Loader2, Pin, Plus, X } from 'lucide-react';
 import TelegramStories from '../components/TelegramStories';
 
 export default function ChatsList() {

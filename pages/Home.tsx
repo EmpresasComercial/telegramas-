@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Sparkles, TrendingUp, ShieldCheck, Headphones, Zap, Crown, Check, User, Plus, ArrowDownToLine, Gift } from "lucide-react";
+import { ChevronLeft, Sparkles, TrendingUp, ShieldCheck, Headphones, Zap, Crown, User, Plus, ArrowDownToLine, Gift } from "lucide-react";
 
 /* ══════════════════════════════════════════════════════════════
    DADOS DOS 6 BANNERS DO CARROSSEL

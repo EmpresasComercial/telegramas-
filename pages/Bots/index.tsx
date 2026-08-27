@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, ChevronRight, Sparkles } from "lucide-react";
+import { Loader2, ChevronRight } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../components/Toast";
 import { formatCurrency } from "../../lib/currency";
