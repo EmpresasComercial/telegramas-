@@ -12,6 +12,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ConnectivityOverlay } from './components/ConnectivityOverlay';
 import { registerServiceWorker, subscribeToPushNotifications, clearAppBadge } from './lib/pushNotifications';
+import { LoadingProvider } from './contexts/LoadingContext';
+import { GlobalLoadingIndicator } from './components/GlobalLoadingIndicator';
 
 /* ── Lazy imports ─────────────────────────────────────────────────────────── */
 // Critical path: carregadas no pacote principal (sem lazy)
@@ -121,66 +123,69 @@ export default function App() {
 
   return (
     <LanguageProvider>
-      <BrowserRouter>
-        <ToastProvider>
-          <AuthProvider>
-            <ConnectivityOverlay />
-            <Suspense fallback={<PageSkeleton />}>
-              <Routes>
-                <Route path="/"        element={<RootRedirect />} />
-                <Route path="/login"   element={<Login />} />
-                <Route path="/cadastro" element={<Signup />} />
+      <LoadingProvider>
+        <BrowserRouter>
+          <ToastProvider>
+            <AuthProvider>
+              <ConnectivityOverlay />
+              <GlobalLoadingIndicator />
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="/"        element={<RootRedirect />} />
+                  <Route path="/login"   element={<Login />} />
+                  <Route path="/cadastro" element={<Signup />} />
 
-                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  <Route path="home"                    element={<Home />} />
-                  <Route path="bot-pay"                 element={<Bots />} />
-                  <Route path="convite"                 element={<Invite />} />
-                  <Route path="perfil"                  element={<Profile />} />
-                  <Route path="settings"                element={<Navigate to="/perfil" replace />} />
-                  <Route path="adicionar-banco"         element={<AddBank />} />
-                  <Route path="alterar-senha"           element={<ChangePassword />} />
-                  <Route path="configuracoes-conta"     element={<Navigate to="/perfil" replace />} />
-                  <Route path="recarregar"              element={<Recharge />} />
-                  <Route path="suporte"                 element={<Navigate to="/telegramBussiness" replace />} />
-                  <Route path="retirada"                element={<Withdraw />} />
-                  <Route path="informacao-bancaria"     element={<BankInfo />} />
-                  <Route path="registro-retirada"       element={<WithdrawalHistory />} />
-                  <Route path="registro-recarga"        element={<WithdrawalHistory />} />
-                  <Route path="registro-transnacionais" element={<WithdrawalHistory />} />
-                  <Route path="registro-transacoes"     element={<WithdrawalHistory />} />
-                  <Route path="historico-atividades"    element={<GeneralHistory />} />
-                  <Route path="historico-geral"         element={<GeneralHistory />} />
-                  <Route path="resgate"                 element={<RedeemCoupon />} />
-                  <Route path="minhas-compras"          element={<PurchaseHistory />} />
-                  <Route path="operacoes"               element={<Operations />} />
-                  <Route path="sobre-telegram business" element={<AboutUs />} />
-                  <Route path="help-faq"                element={<HelpFAQ />} />
-                  <Route path="suporte/feedback"        element={<SupportFeedback />} />
-                  <Route path="provas-social"           element={<Navigate to="/home?postarProva=true" replace />} />
-                  <Route path="confirmar-recarga"       element={<PayMoney />} />
-                  <Route path="payMoney"                element={<PayMoney />} />
-                  <Route path="telegramBussiness"       element={<ChatsList />} />
-                  <Route path="telegramBusiness"        element={<ChatsList />} />
-                  <Route path="telegram-business"       element={<ChatsList />} />
-                  <Route path="chat-comunidade"         element={<CommunityChat />} />
-                  <Route path="chat/comunidade"         element={<CommunityChat />} />
-                  <Route path="comunidade-chat"         element={<CommunityChat />} />
-                  <Route path="chat/:contactId"         element={<PrivateChat />} />
-                  <Route path="devices"                 element={<DevicesPrivacy />} />
-                  <Route path="telegram-premium"        element={<TelegramPremium />} />
-                  <Route path="premium"                 element={<TelegramPremium />} />
-                  <Route path="stars"                   element={<TelegramStars />} />
-                  <Route path="telegram-stars"          element={<TelegramStars />} />
-                  <Route path="canais"                  element={<OfficialChannel />} />
-                  <Route path="canal-oficial"           element={<OfficialChannel />} />
-                </Route>
+                  <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                    <Route path="home"                    element={<Home />} />
+                    <Route path="bot-pay"                 element={<Bots />} />
+                    <Route path="convite"                 element={<Invite />} />
+                    <Route path="perfil"                  element={<Profile />} />
+                    <Route path="settings"                element={<Navigate to="/perfil" replace />} />
+                    <Route path="adicionar-banco"         element={<AddBank />} />
+                    <Route path="alterar-senha"           element={<ChangePassword />} />
+                    <Route path="configuracoes-conta"     element={<Navigate to="/perfil" replace />} />
+                    <Route path="recarregar"              element={<Recharge />} />
+                    <Route path="suporte"                 element={<Navigate to="/telegramBussiness" replace />} />
+                    <Route path="retirada"                element={<Withdraw />} />
+                    <Route path="informacao-bancaria"     element={<BankInfo />} />
+                    <Route path="registro-retirada"       element={<WithdrawalHistory />} />
+                    <Route path="registro-recarga"        element={<WithdrawalHistory />} />
+                    <Route path="registro-transnacionais" element={<WithdrawalHistory />} />
+                    <Route path="registro-transacoes"     element={<WithdrawalHistory />} />
+                    <Route path="historico-atividades"    element={<GeneralHistory />} />
+                    <Route path="historico-geral"         element={<GeneralHistory />} />
+                    <Route path="resgate"                 element={<RedeemCoupon />} />
+                    <Route path="minhas-compras"          element={<PurchaseHistory />} />
+                    <Route path="operacoes"               element={<Operations />} />
+                    <Route path="sobre-telegram business" element={<AboutUs />} />
+                    <Route path="help-faq"                element={<HelpFAQ />} />
+                    <Route path="suporte/feedback"        element={<SupportFeedback />} />
+                    <Route path="provas-social"           element={<Navigate to="/home?postarProva=true" replace />} />
+                    <Route path="confirmar-recarga"       element={<PayMoney />} />
+                    <Route path="payMoney"                element={<PayMoney />} />
+                    <Route path="telegramBussiness"       element={<ChatsList />} />
+                    <Route path="telegramBusiness"        element={<ChatsList />} />
+                    <Route path="telegram-business"       element={<ChatsList />} />
+                    <Route path="chat-comunidade"         element={<CommunityChat />} />
+                    <Route path="chat/comunidade"         element={<CommunityChat />} />
+                    <Route path="comunidade-chat"         element={<CommunityChat />} />
+                    <Route path="chat/:contactId"         element={<PrivateChat />} />
+                    <Route path="devices"                 element={<DevicesPrivacy />} />
+                    <Route path="telegram-premium"        element={<TelegramPremium />} />
+                    <Route path="premium"                 element={<TelegramPremium />} />
+                    <Route path="stars"                   element={<TelegramStars />} />
+                    <Route path="telegram-stars"          element={<TelegramStars />} />
+                    <Route path="canais"                  element={<OfficialChannel />} />
+                    <Route path="canal-oficial"           element={<OfficialChannel />} />
+                  </Route>
 
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </Suspense>
-          </AuthProvider>
-        </ToastProvider>
-      </BrowserRouter>
+                  <Route path="*" element={<Navigate to="/login" replace />} />
+                </Routes>
+              </Suspense>
+            </AuthProvider>
+          </ToastProvider>
+        </BrowserRouter>
+      </LoadingProvider>
     </LanguageProvider>
   );
 }

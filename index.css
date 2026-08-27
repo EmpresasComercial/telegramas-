@@ -211,3 +211,27 @@ html, body, * {
   animation: slideInFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── Global Connection Loader Page Shift ── */
+:root {
+  --loading-offset: 0px;
+}
+
+body.app-loading-active {
+  --loading-offset: 44px;
+}
+
+body {
+  padding-top: var(--loading-offset, 0px);
+  transition: padding-top 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Push down sticky and fixed headers when connection loader is active */
+header.sticky, 
+header[class*="sticky"],
+.sticky-header,
+[class*="sticky"][class*="top-0"],
+.ms-header {
+  top: var(--loading-offset, 0px) !important;
+  transition: top 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
