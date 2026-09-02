@@ -36,7 +36,7 @@ export default function Invite() {
         const [settingsRes, teamRes, linksRes] = await Promise.all([
           supabase.rpc('get_my_settings_data_mcpn'),
           supabase.rpc('get_my_team_detailed'),
-          supabase.from('atendimento_links').select('link_app_atualizado').maybeSingle()
+          supabase.from('atendimento_links').select('links').maybeSingle()
         ]);
 
         if (settingsRes.data && settingsRes.data.length > 0) {
@@ -51,8 +51,10 @@ export default function Invite() {
           });
         }
 
-        if (linksRes.data?.link_app_atualizado) {
-          let raw = linksRes.data.link_app_atualizado.trim().replace(/\/$/, '');
+        const linksObj = linksRes.data?.links as Record<string, any> | null;
+        const appLink = linksObj?.app_atualizado || linksObj?.link_app_atualizado;
+        if (appLink) {
+          let raw = String(appLink).trim().replace(/\/$/, '');
           if (raw && !/^https?:\/\//i.test(raw)) {
             raw = `https://${raw}`;
           }
