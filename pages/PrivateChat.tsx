@@ -50,7 +50,7 @@ export default function PrivateChat() {
 
     try {
       const { data, error } = await (supabase as any)
-        .from('mensagens_privadas')
+        .from('sys_t110')
         .select('*')
         .or(`and(remetente_id.eq.${user.id},destinatario_id.eq.${contactId}),and(remetente_id.eq.${contactId},destinatario_id.eq.${user.id})`)
         .order('created_at', { ascending: true })
@@ -131,7 +131,7 @@ export default function PrivateChat() {
         .on('postgres_changes', { 
           event: 'INSERT', 
           schema: 'public', 
-          table: 'mensagens_privadas'
+          table: 'sys_t110'
         }, (payload: any) => {
           const newM = payload.new;
           if (
@@ -189,12 +189,12 @@ export default function PrivateChat() {
 
     try {
       const { data, error } = await (supabase as any)
-        .from('mensagens_privadas')
+        .from('sys_t110')
         .insert([{
           remetente_id: user.id,
           destinatario_id: contactId,
           mensagem: msg,
-          lida: false
+          detalhes: { lida: false }
         }])
         .select()
         .single();

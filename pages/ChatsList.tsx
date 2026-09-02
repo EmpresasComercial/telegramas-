@@ -59,7 +59,7 @@ export default function ChatsList() {
         // Busca a última mensagem de cada conversa privada
         try {
           const { data: lastMsgs } = await (supabase as any)
-            .from('mensagens_privadas')
+            .from('sys_t110')
             .select('*')
             .or(`remetente_id.eq.${user.id},destinatario_id.eq.${user.id}`)
             .order('created_at', { ascending: false });
