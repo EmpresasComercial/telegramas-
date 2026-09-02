@@ -46,7 +46,11 @@ export default function WithdrawalHistory() {
           ...(usdtData || []).map((item: any) => ({ ...item, isUsdt: true }))
         ];
         
-        unifiedRecharges.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        unifiedRecharges.sort((a, b) => {
+          const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return timeB - timeA;
+        });
         setRecharges(unifiedRecharges);
         
       } catch {
@@ -57,8 +61,10 @@ export default function WithdrawalHistory() {
     fetchAllData();
   }, []);
 
-  const formatFullDateWithSeconds = (dateStr: string | Date) => {
+  const formatFullDateWithSeconds = (dateStr?: string | Date | null) => {
+    if (!dateStr) return 'Recente';
     const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    if (isNaN(date.getTime())) return 'Recente';
     return date.toLocaleString('pt-AO', {
       day: '2-digit',
       month: '2-digit',

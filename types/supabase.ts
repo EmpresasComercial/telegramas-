@@ -466,38 +466,23 @@ export type Database = {
       }
       recargas_mcpn: {
         Row: {
-          banco_destino: string | null
-          banco_origem: string | null
-          chave_transacao: string | null
-          comprovativo_url: string | null
-          created_at: string
+          banco_origem: string
           id: string
           status: string
-          updated_at: string | null
           user_id: string
           valor: number
         }
         Insert: {
-          banco_destino?: string | null
-          banco_origem?: string | null
-          chave_transacao?: string | null
-          comprovativo_url?: string | null
-          created_at?: string
+          banco_origem: string
           id?: string
           status?: string
-          updated_at?: string | null
           user_id: string
           valor: number
         }
         Update: {
-          banco_destino?: string | null
-          banco_origem?: string | null
-          chave_transacao?: string | null
-          comprovativo_url?: string | null
-          created_at?: string
+          banco_origem?: string
           id?: string
           status?: string
-          updated_at?: string | null
           user_id?: string
           valor?: number
         }
