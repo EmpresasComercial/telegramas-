@@ -27,9 +27,7 @@ export default function Recharge() {
 
   useEffect(() => {
     async function fetchBanks() {
-      const { data, error } = await supabase
-        .from('bancos_arrecadacao_mcpn')
-        .select('*');
+      const { data, error } = await supabase.rpc('get_collection_banks_mcpn');
       if (!error && data) {
         setBanks(data);
         if (data.length > 0) {

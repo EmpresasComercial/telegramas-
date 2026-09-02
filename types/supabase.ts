@@ -64,25 +64,19 @@ export type Database = {
       }
       bancos_arrecadacao_mcpn: {
         Row: {
-          created_at: string | null
-          iban: string
+          contas: Json
           id: string
-          nome_banco: string
-          nome_proprietario: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
-          iban: string
+          contas?: Json
           id?: string
-          nome_banco: string
-          nome_proprietario: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
-          iban?: string
+          contas?: Json
           id?: string
-          nome_banco?: string
-          nome_proprietario?: string
+          updated_at?: string
         }
         Relationships: []
       }
