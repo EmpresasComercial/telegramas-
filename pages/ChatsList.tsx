@@ -34,8 +34,8 @@ export default function ChatsList() {
         let uniqueContacts = new Map<string, any>();
 
         const fetchUserPhone = async (uid: string) => {
-          const { data } = await supabase.from('perfis_mcpn').select('telefone').eq('id', uid).single();
-          return data?.telefone || null; // null = sem perfil, filtrar depois
+          const { data } = await supabase.from('account_user').select('telefone').eq('id', uid).single();
+          return data?.telefone || null;
         };
 
         if (subordinatesData) {

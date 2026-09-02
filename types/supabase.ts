@@ -16,25 +16,40 @@ export type Database = {
     Tables: {
       account_user: {
         Row: {
+          codigo_convite_ref: string | null
+          codigo_meu_refferal: string | null
           id: string
+          metadados: Json | null
+          nome_exibicao: string | null
           saldo_disponivel: number
           senha_saque: string | null
+          telefone: string
           total_recarregado: number
           total_retirado: number
           updated_at: string
         }
         Insert: {
+          codigo_convite_ref?: string | null
+          codigo_meu_refferal?: string | null
           id: string
+          metadados?: Json | null
+          nome_exibicao?: string | null
           saldo_disponivel?: number
           senha_saque?: string | null
+          telefone?: string
           total_recarregado?: number
           total_retirado?: number
           updated_at?: string
         }
         Update: {
+          codigo_convite_ref?: string | null
+          codigo_meu_refferal?: string | null
           id?: string
+          metadados?: Json | null
+          nome_exibicao?: string | null
           saldo_disponivel?: number
           senha_saque?: string | null
+          telefone?: string
           total_recarregado?: number
           total_retirado?: number
           updated_at?: string
@@ -356,39 +371,7 @@ export type Database = {
           },
         ]
       }
-      perfis_mcpn: {
-        Row: {
-          codigo_captcha: string | null
-          codigo_convite_ref: string | null
-          codigo_meu_refferal: string
-          created_at: string
-          device_id: string | null
-          id: string
-          ip_registro: unknown
-          telefone: string
-        }
-        Insert: {
-          codigo_captcha?: string | null
-          codigo_convite_ref?: string | null
-          codigo_meu_refferal: string
-          created_at?: string
-          device_id?: string | null
-          id: string
-          ip_registro?: unknown
-          telefone: string
-        }
-        Update: {
-          codigo_captcha?: string | null
-          codigo_convite_ref?: string | null
-          codigo_meu_refferal?: string
-          created_at?: string
-          device_id?: string | null
-          id?: string
-          ip_registro?: unknown
-          telefone?: string
-        }
-        Relationships: []
-      }
+
       produtos: {
         Row: {
           ativo: boolean
