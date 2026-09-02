@@ -388,6 +388,7 @@ export default function CommunityChat() {
     setImagePreview(null);
     setReplyTo(null);
     if (inputRef.current) {
+      inputRef.current.value = "";
       inputRef.current.style.height = "auto";
       inputRef.current.focus();
     }
@@ -423,8 +424,6 @@ export default function CommunityChat() {
     } catch (err: any) { 
       console.error("Erro ao enviar mensagem na comunidade:", err);
       showToast("Erro ao enviar mensagem.", "error"); 
-      setPublicInput(tempMsg);
-      setImagePreview(tempImg);
     } finally { 
       setIsSending(false); 
     }
@@ -829,9 +828,7 @@ export default function CommunityChat() {
               className="w-[46px] h-[46px] rounded-full bg-[#25D366] text-white flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_2px_8px_rgba(37,211,102,0.4)] cursor-pointer"
               title="Enviar"
             >
-              {isSending ? (
-                <Loader2 className="w-5 h-5 animate-spin text-white" />
-              ) : (publicInput.trim() || imagePreview) ? (
+              {(publicInput.trim() || imagePreview) ? (
                 <Send className="w-5 h-5 text-white ml-0.5 stroke-[2]" />
               ) : (
                 <Mic className="w-5 h-5 text-white stroke-[2]" />

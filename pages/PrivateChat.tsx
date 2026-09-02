@@ -360,12 +360,9 @@ export default function PrivateChat() {
             className={`w-[46px] h-[46px] rounded-full text-white flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_2px_8px_rgba(37,211,102,0.4)] ${
               (inputText.trim()) ? 'bg-[#25D366] cursor-pointer' : 'bg-[#25D366]/60 cursor-default'
             }`}
+            title="Enviar"
           >
-            {isSending ? (
-              <Loader2 className="w-5 h-5 animate-spin text-white" />
-            ) : (
-              <Send className="w-5 h-5 text-white ml-0.5 stroke-[2]" />
-            )}
+            <Send className="w-5 h-5 text-white ml-0.5 stroke-[2]" />
           </button>
         </div>
       </div>
