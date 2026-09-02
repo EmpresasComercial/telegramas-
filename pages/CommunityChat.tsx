@@ -279,6 +279,24 @@ export default function CommunityChat() {
           const result = Array.from(msgMap.values()).sort((a, b) =>
             new Date(a.data_registrada).getTime() - new Date(b.data_registrada).getTime()
           );
+
+          // Se não houver alteração nas mensagens, mantém a referência anterior para evitar piscar na tela
+          if (prev.length === result.length) {
+            let unchanged = true;
+            for (let i = 0; i < result.length; i++) {
+              if (
+                prev[i]?.id !== result[i]?.id ||
+                prev[i]?.mensagem !== result[i]?.mensagem ||
+                prev[i]?.reacoes_emojis !== result[i]?.reacoes_emojis ||
+                prev[i]?.perfis_mcpn?.telefone !== result[i]?.perfis_mcpn?.telefone
+              ) {
+                unchanged = false;
+                break;
+              }
+            }
+            if (unchanged) return prev;
+          }
+
           try { localStorage.setItem('community_chat_cache', JSON.stringify(result.slice(-60))); } catch {}
           return result;
         });

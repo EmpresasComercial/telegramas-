@@ -74,6 +74,20 @@ export default function PrivateChat() {
             (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           );
 
+          if (prev.length === combined.length) {
+            let unchanged = true;
+            for (let i = 0; i < combined.length; i++) {
+              if (
+                prev[i]?.id !== combined[i]?.id ||
+                prev[i]?.mensagem !== combined[i]?.mensagem
+              ) {
+                unchanged = false;
+                break;
+              }
+            }
+            if (unchanged) return prev;
+          }
+
           if (localKey) {
             try { localStorage.setItem(localKey, JSON.stringify(combined)); } catch {}
           }

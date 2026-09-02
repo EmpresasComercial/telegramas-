@@ -98,6 +98,14 @@ export default function Invite() {
     return `ID ${clean || '4700'}`;
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1 && window.history.state?.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/home');
+    }
+  };
+
   const totalMembers = teamData.level1.length + teamData.level2.length + teamData.level3.length;
   const currentList = teamData[activeLevel] || [];
 
@@ -111,8 +119,11 @@ export default function Invite() {
       {/* HEADER */}
       <header className="w-full px-4 pt-4 pb-2 bg-[#f1f1f2] sticky top-0 z-20 flex items-center">
         <button 
-          onClick={() => navigate(-1)} 
-          className="mr-4 text-black active:opacity-50 transition-opacity p-1 -ml-1 cursor-pointer"
+          type="button"
+          onClick={handleBack} 
+          aria-label="Voltar"
+          title="Voltar"
+          className="mr-4 text-black active:opacity-50 hover:opacity-75 transition-opacity p-2 -ml-2 cursor-pointer touch-manipulation z-30"
         >
           <ArrowLeft className="w-6 h-6 stroke-[2.2]" />
         </button>

@@ -10,23 +10,15 @@ const customFetch = async (url: URL | RequestInfo, options: RequestInit = {}): P
     return Promise.reject(new Error('Offline'));
   }
 
-  const isSilent = url.toString().includes('chat_gruop');
-
-  if (!isSilent) {
-    window.dispatchEvent(new CustomEvent('app:loading-start'));
-  }
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(timeoutId);
-    if (!isSilent) window.dispatchEvent(new CustomEvent('app:loading-end'));
     return response;
   } catch (error: unknown) {
     clearTimeout(timeoutId);
-    if (!isSilent) window.dispatchEvent(new CustomEvent('app:loading-end'));
     if ((error as Error).name === 'AbortError') {
       window.dispatchEvent(new CustomEvent('app:timeout'));
       return Promise.reject(new Error('Request Timeout'));
@@ -42,3 +34,4 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     fetch: customFetch
   }
 });
+

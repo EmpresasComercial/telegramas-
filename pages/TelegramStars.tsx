@@ -128,9 +128,17 @@ export default function TelegramStars() {
       {/* ── TOP HEADER (BOTÃO VOLTAR APENAS) ── */}
       <header className="w-full max-w-[480px] px-4 pt-3 pb-1 flex items-center justify-between">
         <button
-          onClick={() => navigate(-1)}
-          className="p-2 -ml-2 text-[#000000] active:opacity-50 transition-opacity cursor-pointer rounded-full border-none bg-transparent"
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1 && window.history.state?.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate('/home');
+            }
+          }}
+          className="p-2 -ml-2 text-[#000000] active:opacity-50 hover:opacity-75 transition-opacity cursor-pointer rounded-full border-none bg-transparent touch-manipulation z-30"
           aria-label="Voltar"
+          title="Voltar"
         >
           <ArrowLeft className="w-6 h-6 stroke-[2]" />
         </button>

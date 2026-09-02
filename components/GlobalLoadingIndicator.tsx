@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGlobalLoading } from '../contexts/LoadingContext';
@@ -7,19 +7,18 @@ export const GlobalLoadingIndicator: React.FC = () => {
   const { isLoading } = useGlobalLoading();
   const location = useLocation();
 
-  // Don't show the top global loader on the chat list page as it already has its own header indicator
-  const isChatPage = ['/telegramBussiness', '/telegramBusiness', '/telegram-business'].includes(location.pathname);
-
-  useEffect(() => {
-    if (isLoading && !isChatPage) {
-      document.body.classList.add('app-loading-active');
-    } else {
-      document.body.classList.remove('app-loading-active');
-    }
-    return () => {
-      document.body.classList.remove('app-loading-active');
-    };
-  }, [isLoading, isChatPage]);
+  // Don't show the top global loader on chat and community pages
+  const isChatPage = 
+    location.pathname.startsWith('/chat') ||
+    [
+      '/telegramBussiness',
+      '/telegramBusiness',
+      '/telegram-business',
+      '/comunidade-chat',
+      '/chat-comunidade',
+      '/canais',
+      '/canal-oficial'
+    ].includes(location.pathname);
 
   if (isChatPage) {
     return null;
@@ -32,8 +31,8 @@ export const GlobalLoadingIndicator: React.FC = () => {
           initial={{ y: -44, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -44, opacity: 0 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed top-0 left-0 right-0 h-[44px] z-[10000] bg-white border-b border-gray-100 flex items-center justify-start px-[18px] select-none overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed top-0 left-0 right-0 h-[44px] z-[10000] bg-white/95 backdrop-blur-xs border-b border-gray-100 flex items-center justify-start px-[18px] select-none overflow-hidden shadow-xs pointer-events-none"
         >
           <div className="flex items-center gap-2.5">
             {/* Telegram Logo with Spinning Ring */}

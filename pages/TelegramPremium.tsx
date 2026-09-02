@@ -54,8 +54,17 @@ export default function TelegramPremium() {
       {/* ── HEADER ── */}
       <header className="w-full px-4 pt-4 pb-3 sticky top-0 z-30 bg-[#0f1015]/90 backdrop-blur-md flex items-center justify-between border-b border-white/10">
         <button
-          onClick={() => navigate(-1)}
-          className="p-1.5 -ml-1 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer rounded-full bg-white/5"
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1 && window.history.state?.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate('/home');
+            }
+          }}
+          className="p-1.5 -ml-1 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer rounded-full bg-white/5 touch-manipulation z-30"
+          aria-label="Voltar"
+          title="Voltar"
         >
           <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
         </button>
