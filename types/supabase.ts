@@ -17,30 +17,24 @@ export type Database = {
       account_user: {
         Row: {
           id: string
-          lucro_acumulado: number
           saldo_disponivel: number
           senha_saque: string | null
-          total_investido: number | null
           total_recarregado: number
           total_retirado: number
           updated_at: string
         }
         Insert: {
           id: string
-          lucro_acumulado?: number
           saldo_disponivel?: number
           senha_saque?: string | null
-          total_investido?: number | null
           total_recarregado?: number
           total_retirado?: number
           updated_at?: string
         }
         Update: {
           id?: string
-          lucro_acumulado?: number
           saldo_disponivel?: number
           senha_saque?: string | null
-          total_investido?: number | null
           total_recarregado?: number
           total_retirado?: number
           updated_at?: string

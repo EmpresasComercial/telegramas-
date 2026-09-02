@@ -369,7 +369,7 @@ export default function Invite() {
 
                     <div className="text-right flex flex-col items-end shrink-0 ml-2">
                       <span className="text-[12.5px] font-bold text-[#25D366]">
-                        {Number(person.total_investido || 0).toLocaleString('pt-PT')} Kz
+                        {Number(person.total_recarregado ?? person.total_investido ?? 0).toLocaleString('pt-PT')} Kz
                       </span>
                       <span className="text-[11px] text-[#8e8e93]">
                         {new Date(person.created_at).toLocaleDateString('pt-PT')}
