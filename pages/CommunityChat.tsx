@@ -259,16 +259,17 @@ export default function CommunityChat() {
             .select('id, telefone, nome_exibicao')
             .in('id', uncachedIds);
           if (profiles) {
-            // Usa nome_exibicao se definido, senão telefone sem máscara
+            // Usa nome_exibicao se definido, senão telefone mascarado
             profiles.forEach((p: any) => {
-              phoneCache[p.id] = p.nome_exibicao?.trim() || p.telefone || "Membro";
+              const display = p.nome_exibicao?.trim() || p.telefone || null;
+              phoneCache[p.id] = display ?? "Utilizador";
             });
           }
         }
 
         const dataWithPhones = data.map((m: any) => ({
           ...m,
-          perfis_mcpn: { telefone: phoneCache[m.uid_emissor] || "Membro" }
+          perfis_mcpn: { telefone: phoneCache[m.uid_emissor] || "Utilizador" }
         }));
 
         const sorted = dataWithPhones.reverse();
@@ -330,12 +331,20 @@ export default function CommunityChat() {
         if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
           const { data } = await supabase.from("chat_gruop").select('*').eq("id", payload.new.id).single();
           if (data) { 
-            let telefone = "Membro";
-            if (data.uid_emissor) {
-              const { data: prof } = await supabase.from('perfis_mcpn').select('telefone').eq('id', data.uid_emissor).maybeSingle();
-              if (prof?.telefone) telefone = prof.telefone;
+            // Usa cache primeiro; se não tiver, busca do servidor com nome_exibicao
+            let displayName = phoneCache[data.uid_emissor] || null;
+            if (!displayName && data.uid_emissor) {
+              const { data: prof } = await supabase
+                .from('perfis_mcpn')
+                .select('telefone, nome_exibicao')
+                .eq('id', data.uid_emissor)
+                .maybeSingle();
+              if (prof) {
+                displayName = prof.nome_exibicao?.trim() || prof.telefone || "Utilizador";
+                phoneCache[data.uid_emissor] = displayName; // actualiza cache
+              }
             }
-            const dataWithPhone = { ...data, perfis_mcpn: { telefone } };
+            const dataWithPhone = { ...data, perfis_mcpn: { telefone: displayName || "Utilizador" } };
             setPublicMessages((c) => {
               const msgMap = new Map(c.map(m => [m.id, m]));
               msgMap.set(data.id, dataWithPhone);
@@ -564,7 +573,7 @@ export default function CommunityChat() {
       >
         {publicMessages.map((m, i) => {
           const isMe = m.uid_emissor === user?.id;
-          const phone = m.perfis_mcpn?.telefone || "Membro";
+          const phone = m.perfis_mcpn?.telefone || "Utilizador";
           const showDate = i === 0 || formatDateLabel(m.data_registrada) !== formatDateLabel(publicMessages[i-1].data_registrada);
           const authorColor = getUserColor(phone);
 

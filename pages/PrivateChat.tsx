@@ -260,7 +260,7 @@ export default function PrivateChat() {
             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-xs"
             style={{ backgroundColor: contactColor }}
           >
-            {contactDisplayName === 'Patrocinador' ? 'P' : contactDisplayName === 'Membro' ? 'M' : contactDisplayName.slice(0, 2).toUpperCase()}
+            {contactDisplayName.slice(0, 2).toUpperCase() || '?'}
           </div>
 
           <div className="flex flex-col min-w-0">
