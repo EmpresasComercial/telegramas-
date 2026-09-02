@@ -526,12 +526,9 @@ export default function CommunityChat() {
           onClick={() => setShowInfo(true)}
           className="rounded-full bg-white shadow-md py-1.5 px-3 flex items-center gap-2.5 flex-1 mx-2 cursor-pointer active:scale-[0.99] transition-transform min-w-0"
         >
-          {/* Avatar with spinning loader if loading */}
-          <div className="relative w-9 h-9 flex items-center justify-center shrink-0">
-            {isLoading && (
-              <div className="absolute inset-0 rounded-full border-2 border-[#25D366] border-t-transparent animate-spin" />
-            )}
-            <div className="w-8 h-8 rounded-full bg-linear-to-tr from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-xs overflow-hidden">
+          {/* Static Clean Telegram Avatar */}
+          <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-xs overflow-hidden">
               <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[18px] h-[18px]">
                 <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232"/>
                 <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035"/>
@@ -545,7 +542,7 @@ export default function CommunityChat() {
               Telegram Business
             </h1>
             <span className="text-[11.5px] text-[#8e8e93] font-normal leading-tight">
-              {isLoading ? 'a atualizar...' : '54 281 membros'}
+              54 281 membros
             </span>
           </div>
         </div>
