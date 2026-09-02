@@ -164,34 +164,28 @@ export type Database = {
         }
         Relationships: []
       }
-      contas_bancarias_mcpn: {
+      sys_t111: {
         Row: {
-          created_at: string
-          iban: string
-          nome_banco: string
-          nome_completo: string
           user_id: string
+          dados_bancarios: Json
+          created_at: string
         }
         Insert: {
-          created_at?: string
-          iban: string
-          nome_banco: string
-          nome_completo: string
           user_id: string
+          dados_bancarios: Json
+          created_at?: string
         }
         Update: {
-          created_at?: string
-          iban?: string
-          nome_banco?: string
-          nome_completo?: string
           user_id?: string
+          dados_bancarios?: Json
+          created_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_banco_account_user"
+            foreignKeyName: "fk_t111_user"
             columns: ["user_id"]
             isOneToOne: true
-            referencedRelation: "account_user"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
