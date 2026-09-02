@@ -278,7 +278,7 @@ export default function CommunityChat() {
               if (
                 prev[i]?.id !== result[i]?.id ||
                 prev[i]?.mensagem !== result[i]?.mensagem ||
-                prev[i]?.reacoes_emojis !== result[i]?.reacoes_emojis ||
+                JSON.stringify(prev[i]?.detalhes) !== JSON.stringify(result[i]?.detalhes) ||
                 prev[i]?.perfis_mcpn?.telefone !== result[i]?.perfis_mcpn?.telefone
               ) {
                 unchanged = false;
@@ -380,7 +380,9 @@ export default function CommunityChat() {
     const tempMsg = publicInput.trim();
     const tempImg = imagePreview;
     const tempReply = replyTo;
-    const reacoesJson = tempReply ? JSON.stringify({ reply: { id: tempReply.id, text: tempReply.mensagem, sender: tempReply.perfis_mcpn?.telefone || "Membro" } }) : "";
+    const detalhes: Record<string, any> = {};
+    if (tempImg) { detalhes.imagem_url = tempImg; detalhes.tipo_midia = 'imagem'; }
+    if (tempReply) { detalhes.resposta_para_id = tempReply.id; detalhes.reply = { id: tempReply.id, text: tempReply.mensagem, sender: tempReply.perfis_mcpn?.telefone || '' }; }
 
     setPublicInput("");
     setImagePreview(null);
@@ -397,8 +399,7 @@ export default function CommunityChat() {
       id: tempId,
       uid_emissor: user.id,
       mensagem: tempMsg || "",
-      reacoes_emojis: reacoesJson,
-      url_imagen_conversa: tempImg || "",
+      detalhes,
       data_registrada: new Date().toISOString(),
       perfis_mcpn: { telefone: "Eu" }
     };
@@ -410,8 +411,7 @@ export default function CommunityChat() {
       const { data, error } = await supabase.from("chat_gruop").insert([{
         uid_emissor: user.id,
         mensagem: tempMsg || "",
-        reacoes_emojis: reacoesJson,
-        url_imagen_conversa: tempImg || "",
+        detalhes,
       }]).select().single();
 
       if (error) throw error;
@@ -566,10 +566,9 @@ export default function CommunityChat() {
           const showDate = i === 0 || formatDateLabel(m.data_registrada) !== formatDateLabel(publicMessages[i-1].data_registrada);
           const authorColor = getUserColor(phone);
 
-          let parsedData: any = {};
-          try { if (m.reacoes_emojis) parsedData = JSON.parse(m.reacoes_emojis); } catch {}
+          const parsedData: any = (m.detalhes && typeof m.detalhes === 'object') ? m.detalhes : {};
           const reply = parsedData.reply;
-          const reactions = parsedData.reactions || {};
+          const reactions = parsedData.reacoes || {};
 
           return (
             <React.Fragment key={m.id}>
@@ -654,13 +653,13 @@ export default function CommunityChat() {
                   )}
 
                   {/* Attached Image */}
-                  {m.url_imagen_conversa && (
+                  {parsedData.imagem_url && (
                     <div className="mb-1.5 -mx-1.5 -mt-0.5 overflow-hidden rounded-[14px]">
                       <img
-                        src={m.url_imagen_conversa}
+                        src={parsedData.imagem_url}
                         alt="Anexo"
                         className="w-full h-auto max-h-[260px] object-cover cursor-pointer active:opacity-90 rounded-[14px]"
-                        onClick={() => setZoomedImage(m.url_imagen_conversa)}
+                        onClick={() => setZoomedImage(parsedData.imagem_url)}
                       />
                     </div>
                   )}

@@ -152,27 +152,24 @@ export type Database = {
       chat_gruop: {
         Row: {
           data_registrada: string
+          detalhes: Json
           id: number
           mensagem: string
-          reacoes_emojis: string
           uid_emissor: string
-          url_imagen_conversa: string
         }
         Insert: {
           data_registrada?: string
+          detalhes?: Json
           id?: number
           mensagem: string
-          reacoes_emojis?: string
           uid_emissor: string
-          url_imagen_conversa?: string
         }
         Update: {
           data_registrada?: string
+          detalhes?: Json
           id?: number
           mensagem?: string
-          reacoes_emojis?: string
           uid_emissor?: string
-          url_imagen_conversa?: string
         }
         Relationships: []
       }
