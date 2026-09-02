@@ -572,47 +572,35 @@ export type Database = {
       }
       retiradas_mcpn: {
         Row: {
-          banco_destino: string
           created_at: string
-          iban_snapshot: string | null
+          dados_bancarios_snapshot: Json
           id: string
-          nome_beneficiario: string | null
-          nome_usuario: string | null
           status: string
-          taxa_14: number
           user_id: string
           valor_bruto: number
           valor_liquido: number
         }
         Insert: {
-          banco_destino: string
           created_at?: string
-          iban_snapshot?: string | null
+          dados_bancarios_snapshot: Json
           id?: string
-          nome_beneficiario?: string | null
-          nome_usuario?: string | null
           status?: string
-          taxa_14: number
           user_id: string
           valor_bruto: number
-          valor_liquido: number
+          valor_liquido?: number
         }
         Update: {
-          banco_destino?: string
           created_at?: string
-          iban_snapshot?: string | null
+          dados_bancarios_snapshot?: Json
           id?: string
-          nome_beneficiario?: string | null
-          nome_usuario?: string | null
           status?: string
-          taxa_14?: number
           user_id?: string
           valor_bruto?: number
           valor_liquido?: number
         }
         Relationships: [
           {
-            foreignKeyName: "fk_retiradas_user_final"
+            foreignKeyName: "fk_retiradas_user"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "account_user"

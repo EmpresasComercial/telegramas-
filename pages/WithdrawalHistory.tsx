@@ -256,7 +256,7 @@ export default function WithdrawalHistory() {
                           </div>
                           <div>
                             <p className="text-[13.5px] font-medium text-[#202020] leading-tight">
-                              {(item.banco_destino || 'Banco').split(' - ')[0]}
+                              {(item.banco_destino || item.dados_bancarios_snapshot?.banco || 'Banco').split(' - ')[0]}
                             </p>
                             <p className="text-[10.5px] text-[#AAAAAA] font-normal mt-0.5">
                               {formatFullDateWithSeconds(item.created_at)}
@@ -281,13 +281,13 @@ export default function WithdrawalHistory() {
                         <div className="flex justify-between items-center">
                           <span className="text-[#888888] font-normal">{t('history.tax_applied')}</span>
                           <span className="font-normal text-[#555555]">
-                            {Number(item.taxa_14).toLocaleString(undefined, { minimumFractionDigits: 2 })} Kz
+                            {Number(item.taxa_14 ?? (item.valor_bruto - item.valor_liquido) ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} Kz
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-[#888888] font-normal">{t('history.dest_iban')}</span>
                           <span className="font-normal text-[#202020] tracking-tight">
-                            {item.iban_snapshot || t('common.not_informed')}
+                            {item.iban_snapshot || item.dados_bancarios_snapshot?.iban || t('common.not_informed')}
                           </span>
                         </div>
                         {item.status === 'aprovado' && (
@@ -301,7 +301,7 @@ export default function WithdrawalHistory() {
                       </div>
 
                       <div className="flex items-center justify-between text-[10px] text-[#AAAAAA] font-normal">
-                        <span>{t('history.beneficiary')}: {item.nome_beneficiario || 'N/A'}</span>
+                        <span>{t('history.beneficiary')}: {item.nome_beneficiario || item.dados_bancarios_snapshot?.nome_beneficiario || 'N/A'}</span>
                         <span className="truncate max-w-[150px]">ID: {item.id.toString().toUpperCase()}</span>
                       </div>
                     </motion.div>
