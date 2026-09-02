@@ -91,10 +91,10 @@ export default function EditProfileModal({
         },
       });
 
-      // Persiste nome de exibição em perfis_mcpn para ser visível nos chats
+      // Persiste nome de exibição em account_user para ser visível nos chats
       try {
         await (supabase as any)
-          .from("perfis_mcpn")
+          .from("account_user")
           .update({ nome_exibicao: fullName || null })
           .eq("id", user.id);
       } catch { /* silencia */ }
