@@ -419,48 +419,27 @@ export type Database = {
       produtos: {
         Row: {
           ativo: boolean
-          created_at: string
-          descricao: string
           duracao_dias: number
           id: string
-          imagem_url: string | null
-          limite_compra: number | null
           nome: string
           preco: number
           renda_diaria: number
-          storage_size: string | null
-          updated_at: string | null
-          url_download_setup: string | null
         }
         Insert: {
           ativo?: boolean
-          created_at?: string
-          descricao: string
           duracao_dias: number
           id?: string
-          imagem_url?: string | null
-          limite_compra?: number | null
           nome: string
           preco: number
           renda_diaria: number
-          storage_size?: string | null
-          updated_at?: string | null
-          url_download_setup?: string | null
         }
         Update: {
           ativo?: boolean
-          created_at?: string
-          descricao?: string
           duracao_dias?: number
           id?: string
-          imagem_url?: string | null
-          limite_compra?: number | null
           nome?: string
           preco?: number
           renda_diaria?: number
-          storage_size?: string | null
-          updated_at?: string | null
-          url_download_setup?: string | null
         }
         Relationships: []
       }
