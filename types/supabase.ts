@@ -43,40 +43,22 @@ export type Database = {
       }
       atendimento_links: {
         Row: {
-          created_at: string | null
-          facebook_url: string | null
           id: string
-          link_app_atualizado: string | null
+          links: Json
           splash_message: string | null
-          telegram_url: string | null
-          video_hub_url: string | null
-          whatsapp_gerente_url: string | null
-          whatsapp_grupo_vendas_url: string | null
-          youtube_url: string | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
-          facebook_url?: string | null
           id?: string
-          link_app_atualizado?: string | null
+          links?: Json
           splash_message?: string | null
-          telegram_url?: string | null
-          video_hub_url?: string | null
-          whatsapp_gerente_url?: string | null
-          whatsapp_grupo_vendas_url?: string | null
-          youtube_url?: string | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
-          facebook_url?: string | null
           id?: string
-          link_app_atualizado?: string | null
+          links?: Json
           splash_message?: string | null
-          telegram_url?: string | null
-          video_hub_url?: string | null
-          whatsapp_gerente_url?: string | null
-          whatsapp_grupo_vendas_url?: string | null
-          youtube_url?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -106,8 +88,8 @@ export type Database = {
       }
       bonus_equipe_mcpn: {
         Row: {
-          created_at: string | null
-          descricao: string | null
+          created_at: string
+          detalhes: Json | null
           from_user_id: string | null
           id: string
           nivel: number
@@ -115,8 +97,8 @@ export type Database = {
           valor: number
         }
         Insert: {
-          created_at?: string | null
-          descricao?: string | null
+          created_at?: string
+          detalhes?: Json | null
           from_user_id?: string | null
           id?: string
           nivel: number
@@ -124,8 +106,8 @@ export type Database = {
           valor: number
         }
         Update: {
-          created_at?: string | null
-          descricao?: string | null
+          created_at?: string
+          detalhes?: Json | null
           from_user_id?: string | null
           id?: string
           nivel?: number
