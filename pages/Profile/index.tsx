@@ -37,62 +37,83 @@ export default function Profile() {
 
   const [showLanguage, setShowLanguage] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [balance, setBalance] = useState<number>(15000);
-  const [dailyIncome, setDailyIncome] = useState<number>(500);
-  const [totalDeposits, setTotalDeposits] = useState<number>(20000);
-  const [totalWithdrawals, setTotalWithdrawals] = useState<number>(5000);
-  const [phone, setPhone] = useState<string>("+244 941465064");
-  const [userName, setUserName] = useState<string>("Thomas Hall");
-  const [firstName, setFirstName] = useState<string>("Thomas");
-  const [lastName, setLastName] = useState<string>("Hall");
+  const [balance, setBalance] = useState<number>(0);
+  const [dailyIncome, setDailyIncome] = useState<number>(0);
+  const [totalDeposits, setTotalDeposits] = useState<number>(0);
+  const [totalWithdrawals, setTotalWithdrawals] = useState<number>(0);
+  const [comissaoEquipe, setComissaoEquipe] = useState<number>(0);
+  const [tarefasHoje, setTarefasHoje] = useState<number>(0);
+  const [refCode, setRefCode] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
   const [userBio, setUserBio] = useState<string>("");
-  const [avatarUrl, setAvatarUrl] = useState<string>(
-    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop"
-  );
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
 
-  // Fetch real account stats from Supabase
+  // Busca dados reais do banco via RPC segura (SECURITY DEFINER)
   const fetchData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const meta = user.user_metadata || {};
-        const fName = meta.first_name || (meta.name || meta.full_name || "Thomas").split(" ")[0];
+        const fName = meta.first_name || (meta.name || meta.full_name || "").split(" ")[0];
         const lName = meta.last_name || (meta.name || meta.full_name || "").split(" ").slice(1).join(" ");
-        const fullName = [fName, lName].filter(Boolean).join(" ");
         setFirstName(fName);
         setLastName(lName);
-        setUserName(fullName || "Thomas Hall");
+        setUserName([fName, lName].filter(Boolean).join(" "));
         if (meta.bio) setUserBio(meta.bio);
         if (meta.avatar_url) setAvatarUrl(meta.avatar_url);
-        if (user.phone) setPhone(user.phone);
-        else if (meta.phone) setPhone(meta.phone);
       }
 
       const { data, error } = await supabase.rpc("get_my_account_data");
       if (!error && data && data.length > 0) {
         const d = data[0] as any;
-        if (d.saldo_disponivel !== undefined) setBalance(Number(d.saldo_disponivel));
-        else if (d.balance !== undefined) setBalance(Number(d.balance));
-        
-        if (d.total_recarregado !== undefined) setTotalDeposits(Number(d.total_recarregado));
-        else if (d.total_recharge !== undefined) setTotalDeposits(Number(d.total_recharge));
-        
-        if (d.total_retirado !== undefined) setTotalWithdrawals(Number(d.total_retirado));
-        else if (d.total_withdraw !== undefined) setTotalWithdrawals(Number(d.total_withdraw));
-        
-        if (d.lucro_acumulado !== undefined) setDailyIncome(Number(d.lucro_acumulado));
-        else if (d.daily_earnings !== undefined) setDailyIncome(Number(d.daily_earnings));
-        
+        setBalance(Number(d.saldo_disponivel ?? 0));
+        setTotalDeposits(Number(d.total_recarregado ?? 0));
+        setTotalWithdrawals(Number(d.total_retirado ?? 0));
+        setComissaoEquipe(Number(d.total_comissao_equipe ?? 0));
+        setDailyIncome(Number(d.lucro_acumulado ?? 0));
+        setTarefasHoje(Number(d.tarefas_hoje ?? 0));
         if (d.telefone) setPhone(d.telefone);
-        else if (d.phone) setPhone(d.phone);
+        if (d.nome_exibicao) setUserName(d.nome_exibicao);
+        if (d.codigo_meu_refferal) setRefCode(d.codigo_meu_refferal);
       }
     } catch {
-      // Keep elegant default display values
+      // Falha silenciosa
     }
   }, []);
 
+  // Realtime: atualiza saldo/recargas/retiradas em tempo real
   useEffect(() => {
     fetchData();
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      channel = supabase
+        .channel(`profile_realtime_${user.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'sys_t500',
+          filter: `id=eq.${user.id}`
+        }, () => { fetchData(); })
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'renda_diaria_mcpn',
+          filter: `user_id=eq.${user.id}`
+        }, () => { fetchData(); })
+        .subscribe();
+    })();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [fetchData]);
 
   const scrollToSettings = () => {
@@ -190,19 +211,31 @@ export default function Profile() {
 
         {/* CARD INFORMAÇÕES & DASHBOARD DE ESTRELAS */}
         <div className="bg-white rounded-[18px] overflow-hidden shadow-2xs border border-gray-100">
-          {/* Saldo de Estrelas */}
+          {/* Saldo disponível */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
             <span className="text-[15px] font-medium text-[#8e8e93]">Saldo de Estrelas</span>
             <span className="text-[16px] font-bold text-[#25D366]">{formatCurrency(balance, "KZ")}</span>
           </div>
 
-          {/* Estrelas Diárias */}
+          {/* Lucro acumulado */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
-            <span className="text-[15px] font-medium text-[#8e8e93]">Estrelas Diárias</span>
+            <span className="text-[15px] font-medium text-[#8e8e93]">Lucro Acumulado</span>
             <span className="text-[15px] font-semibold text-black">+{formatCurrency(dailyIncome, "KZ")}</span>
           </div>
 
-          {/* Total Adquirido */}
+          {/* Tarefas concluídas hoje */}
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
+            <span className="text-[15px] font-medium text-[#8e8e93]">Tarefas Hoje</span>
+            <span className="text-[15px] font-semibold text-black">{tarefasHoje} tarefa{tarefasHoje !== 1 ? "s" : ""}</span>
+          </div>
+
+          {/* Comissão de equipe */}
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
+            <span className="text-[15px] font-medium text-[#8e8e93]">Comissão Equipe</span>
+            <span className="text-[15px] font-semibold text-black">{formatCurrency(comissaoEquipe, "KZ")}</span>
+          </div>
+
+          {/* Total Recarregado */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
             <span className="text-[15px] font-medium text-[#8e8e93]">Total Adquirido</span>
             <span className="text-[15px] font-semibold text-black">{formatCurrency(totalDeposits, "KZ")}</span>

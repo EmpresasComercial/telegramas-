@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      account_user: {
+      sys_t500: {
         Row: {
           codigo_convite_ref: string | null
           codigo_meu_refferal: string | null
@@ -128,14 +128,14 @@ export type Database = {
             foreignKeyName: "fk_bonus_from_user_final"
             columns: ["from_user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_bonus_user_final"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -224,7 +224,7 @@ export type Database = {
             foreignKeyName: "fk_coupon_redeem_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -283,14 +283,14 @@ export type Database = {
             foreignKeyName: "fk_equipe_patrocinador"
             columns: ["patrocinador_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fk_equipe_user"
             columns: ["usuario_id"]
             isOneToOne: true
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -322,7 +322,7 @@ export type Database = {
             foreignKeyName: "fk_feedback_account_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -360,7 +360,7 @@ export type Database = {
             foreignKeyName: "fk_ip_audit_account_user"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -453,7 +453,7 @@ export type Database = {
             foreignKeyName: "fk_recargas_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -488,7 +488,7 @@ export type Database = {
             foreignKeyName: "fk_recharges_usdt_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -520,7 +520,7 @@ export type Database = {
             foreignKeyName: "fk_renda_diaria_account_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
           {
@@ -565,7 +565,7 @@ export type Database = {
             foreignKeyName: "fk_retiradas_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -600,7 +600,7 @@ export type Database = {
             foreignKeyName: "fk_social_proof_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]
@@ -677,7 +677,7 @@ export type Database = {
             foreignKeyName: "fk_user_produtos_account_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
           {
@@ -725,7 +725,7 @@ export type Database = {
             foreignKeyName: "fk_verificacao_account_user"
             columns: ["user_id"]
             isOneToOne: true
-            referencedRelation: "account_user"
+            referencedRelation: "sys_t500"
             referencedColumns: ["id"]
           },
         ]

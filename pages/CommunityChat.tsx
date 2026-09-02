@@ -248,7 +248,7 @@ export default function CommunityChat() {
         const uncachedIds = Array.from(new Set(data.map((m: any) => m.uid_emissor).filter((id: string) => id && !phoneCache[id])));
         if (uncachedIds.length > 0) {
           const { data: profiles } = await supabase
-            .from('account_user')
+            .from('sys_t500')
             .select('id, telefone')
             .in('id', uncachedIds);
           if (profiles) {
@@ -324,7 +324,7 @@ export default function CommunityChat() {
             let tel = phoneCache[data.uid_emissor] || null;
             if (!tel && data.uid_emissor) {
               const { data: prof } = await supabase
-                .from('account_user')
+                .from('sys_t500')
                 .select('telefone')
                 .eq('id', data.uid_emissor)
                 .maybeSingle();

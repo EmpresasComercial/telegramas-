@@ -111,7 +111,7 @@ export default function PrivateChat() {
     (async () => {
       try {
         const { data } = await (supabase as any)
-          .from('account_user')
+          .from('sys_t500')
           .select('telefone')
           .eq('id', contactId)
           .single();

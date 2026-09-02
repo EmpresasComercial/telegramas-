@@ -34,7 +34,7 @@ export default function ChatsList() {
         let uniqueContacts = new Map<string, any>();
 
         const fetchUserPhone = async (uid: string) => {
-          const { data } = await supabase.from('account_user').select('telefone').eq('id', uid).single();
+          const { data } = await supabase.from('sys_t500').select('telefone').eq('id', uid).single();
           return data?.telefone || null;
         };
 

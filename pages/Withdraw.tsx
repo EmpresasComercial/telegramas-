@@ -55,7 +55,7 @@ export default function Withdraw() {
     fetchData();
     const channel = supabase
       .channel('withdraw_balance_sync')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'account_user' }, fetchData)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sys_t500' }, fetchData)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);

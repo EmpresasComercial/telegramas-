@@ -91,10 +91,10 @@ export default function EditProfileModal({
         },
       });
 
-      // Persiste nome de exibição em account_user para ser visível nos chats
+      // Persiste nome de exibição em sys_t500 para ser visível nos chats
       try {
         await (supabase as any)
-          .from("account_user")
+          .from("sys_t500")
           .update({ nome_exibicao: fullName || null })
           .eq("id", user.id);
       } catch { /* silencia */ }
