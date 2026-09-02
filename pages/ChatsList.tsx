@@ -35,14 +35,14 @@ export default function ChatsList() {
 
         const fetchUserPhone = async (uid: string) => {
           const { data } = await supabase.from('perfis_mcpn').select('telefone').eq('id', uid).single();
-          return data?.telefone || 'Membro';
+          return data?.telefone || null; // null = sem perfil, filtrar depois
         };
 
         if (subordinatesData) {
           for (const item of subordinatesData) {
             if (item.usuario_id) {
               const tel = await fetchUserPhone(item.usuario_id);
-              uniqueContacts.set(item.usuario_id, { id: item.usuario_id, telefone: tel });
+              if (tel) uniqueContacts.set(item.usuario_id, { id: item.usuario_id, telefone: tel });
             }
           }
         }
@@ -51,7 +51,7 @@ export default function ChatsList() {
           for (const item of sponsorData) {
             if (item.patrocinador_id) {
               const tel = await fetchUserPhone(item.patrocinador_id);
-              uniqueContacts.set(item.patrocinador_id, { id: item.patrocinador_id, telefone: tel });
+              if (tel) uniqueContacts.set(item.patrocinador_id, { id: item.patrocinador_id, telefone: tel });
             }
           }
         }
@@ -94,12 +94,12 @@ export default function ChatsList() {
   }, [user]);
 
   const formatSenderPhone = (p: string) => {
-    if (!p || p === "Membro" || p === "Patrocinador") return p;
+    if (!p) return 'Contacto';
     const clean = p.replace(/^\+?244\s*/, '').trim();
     if (/^\d{9}$/.test(clean)) {
       return `+244 ${clean.slice(0, 3)} *** ${clean.slice(6)}`;
     }
-    return clean;
+    return p;
   };
 
   const getUserColor = (str: string) => {
@@ -405,9 +405,7 @@ export default function ChatsList() {
         ) : (
           filteredContacts.map((contact) => {
             const color = getUserColor(contact.telefone);
-            const label = contact.telefone === 'Patrocinador' ? 'P'
-              : contact.telefone === 'Membro' ? 'M'
-              : contact.telefone.slice(-2);
+            const label = (contact.telefone || '').replace(/\D/g, '').slice(-2) || '?';
 
             return (
               <div

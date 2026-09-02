@@ -160,16 +160,9 @@ export default function CommunityChat() {
   const { showToast } = useToast();
   const { language } = useLanguage();
 
-  // Carregamento instantâneo em 0ms do cache
-  const [publicMessages, setPublicMessages] = useState<any[]>(() => {
-    try {
-      const cached = localStorage.getItem('community_chat_cache');
-      if (cached) return JSON.parse(cached);
-    } catch {}
-    return [];
-  });
-
-  const [isLoading, setIsLoading] = useState(() => publicMessages.length === 0);
+  // Sempre inicia vazio para carregar apenas dados reais do banco de dados
+  const [publicMessages, setPublicMessages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [publicInput, setPublicInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [replyTo, setReplyTo] = useState<any>(null);
@@ -251,25 +244,23 @@ export default function CommunityChat() {
         .limit(60);
       if (error) throw error;
       if (data) {
-        // Busca apenas perfis não cacheados
+        // Busca apenas números de telefone dos perfis
         const uncachedIds = Array.from(new Set(data.map((m: any) => m.uid_emissor).filter((id: string) => id && !phoneCache[id])));
         if (uncachedIds.length > 0) {
           const { data: profiles } = await supabase
             .from('perfis_mcpn')
-            .select('id, telefone, nome_exibicao')
+            .select('id, telefone')
             .in('id', uncachedIds);
           if (profiles) {
-            // Usa nome_exibicao se definido, senão telefone mascarado
             profiles.forEach((p: any) => {
-              const display = p.nome_exibicao?.trim() || p.telefone || null;
-              phoneCache[p.id] = display ?? "Utilizador";
+              phoneCache[p.id] = p.telefone || "Telefone Desconhecido";
             });
           }
         }
 
         const dataWithPhones = data.map((m: any) => ({
           ...m,
-          perfis_mcpn: { telefone: phoneCache[m.uid_emissor] || "Utilizador" }
+          perfis_mcpn: { telefone: phoneCache[m.uid_emissor] || "Telefone Desconhecido" }
         }));
 
         const sorted = dataWithPhones.reverse();
@@ -281,7 +272,6 @@ export default function CommunityChat() {
             new Date(a.data_registrada).getTime() - new Date(b.data_registrada).getTime()
           );
 
-          // Se não houver alteração nas mensagens, mantém a referência anterior para evitar piscar na tela
           if (prev.length === result.length) {
             let unchanged = true;
             for (let i = 0; i < result.length; i++) {
@@ -298,7 +288,6 @@ export default function CommunityChat() {
             if (unchanged) return prev;
           }
 
-          try { localStorage.setItem('community_chat_cache', JSON.stringify(result.slice(-60))); } catch {}
           return result;
         });
         if (isInitial) scrollToBottom("auto");
@@ -311,6 +300,7 @@ export default function CommunityChat() {
   };
 
   useEffect(() => {
+    try { localStorage.removeItem('community_chat_cache'); } catch {}
     fetchMessages(true);
     pollingRef.current = setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -331,20 +321,19 @@ export default function CommunityChat() {
         if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
           const { data } = await supabase.from("chat_gruop").select('*').eq("id", payload.new.id).single();
           if (data) { 
-            // Usa cache primeiro; se não tiver, busca do servidor com nome_exibicao
-            let displayName = phoneCache[data.uid_emissor] || null;
-            if (!displayName && data.uid_emissor) {
+            let tel = phoneCache[data.uid_emissor] || null;
+            if (!tel && data.uid_emissor) {
               const { data: prof } = await supabase
                 .from('perfis_mcpn')
-                .select('telefone, nome_exibicao')
+                .select('telefone')
                 .eq('id', data.uid_emissor)
                 .maybeSingle();
-              if (prof) {
-                displayName = prof.nome_exibicao?.trim() || prof.telefone || "Utilizador";
-                phoneCache[data.uid_emissor] = displayName; // actualiza cache
+              if (prof?.telefone) {
+                tel = prof.telefone;
+                phoneCache[data.uid_emissor] = tel;
               }
             }
-            const dataWithPhone = { ...data, perfis_mcpn: { telefone: displayName || "Utilizador" } };
+            const dataWithPhone = { ...data, perfis_mcpn: { telefone: tel || "Telefone Desconhecido" } };
             setPublicMessages((c) => {
               const msgMap = new Map(c.map(m => [m.id, m]));
               msgMap.set(data.id, dataWithPhone);

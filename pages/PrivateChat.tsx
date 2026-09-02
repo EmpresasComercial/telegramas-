@@ -15,24 +15,16 @@ export default function PrivateChat() {
   const user = session?.user;
   const { showToast } = useToast();
 
-  // Nome de exibição do contacto — nome definido ou telefone completo
+  // Nome de exibição do contacto — sempre o número de telefone
   const [contactDisplayName, setContactDisplayName] = useState(rawContactPhone);
 
   const localKey = user && contactId ? `private_chat_${user.id}_${contactId}` : null;
 
-  // Carregamento instantâneo em 0ms do cache local
-  const [messages, setMessages] = useState<any[]>(() => {
-    if (localKey) {
-      try {
-        const cached = localStorage.getItem(localKey);
-        if (cached) return JSON.parse(cached);
-      } catch {}
-    }
-    return [];
-  });
+  // Carregamento direto do banco de dados (sem lixo de cache anterior)
+  const [messages, setMessages] = useState<any[]>([]);
 
   const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(() => messages.length === 0);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -88,9 +80,6 @@ export default function PrivateChat() {
             if (unchanged) return prev;
           }
 
-          if (localKey) {
-            try { localStorage.setItem(localKey, JSON.stringify(combined)); } catch {}
-          }
           return combined;
         });
 
@@ -104,6 +93,9 @@ export default function PrivateChat() {
   };
 
   useEffect(() => {
+    if (localKey) {
+      try { localStorage.removeItem(localKey); } catch {}
+    }
     fetchMessages(true);
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -113,18 +105,18 @@ export default function PrivateChat() {
     return () => clearInterval(interval);
   }, [user, contactId]);
 
-  // Busca o nome de exibição do contacto (nome_exibicao ou telefone sem máscara)
+  // Busca o telefone do contacto
   useEffect(() => {
     if (!contactId) return;
     (async () => {
       try {
         const { data } = await (supabase as any)
           .from('perfis_mcpn')
-          .select('nome_exibicao, telefone')
+          .select('telefone')
           .eq('id', contactId)
           .single();
-        if (data) {
-          setContactDisplayName(data.nome_exibicao?.trim() || data.telefone || rawContactPhone);
+        if (data && data.telefone) {
+          setContactDisplayName(data.telefone);
         }
       } catch { /* silencia */ }
     })();
