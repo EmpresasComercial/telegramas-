@@ -74,12 +74,14 @@ export function SocialProofFeed() {
         (payload) => {
           const n = payload.new;
           if (!n || !n.id || !n.user_id) return;
+          const comment = n.conteudo?.comentario || n.comentario || '';
+          const image = n.conteudo?.imagem_url || n.imagem_url || '';
           setProofs(prev => [{
             id: n.id,
             user: `M-E ***${String(n.user_id).substring(0, 4)}`,
             amount: `${Number(n.valor || 0).toLocaleString('pt-AO')},00 Kz`,
-            comment: n.comentario || '',
-            image: n.imagem_url || '',
+            comment,
+            image,
             timestamp: n.created_at ? new Date(n.created_at).toLocaleString('pt-AO') : '---'
           }, ...prev]);
         }

@@ -422,6 +422,36 @@ export type Database = {
         }
         Relationships: []
       }
+      push_notifications_log: {
+        Row: {
+          body: string
+          id: string
+          payload: Json | null
+          sent_at: string
+          status: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          id?: string
+          payload?: Json | null
+          sent_at?: string
+          status?: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          id?: string
+          payload?: Json | null
+          sent_at?: string
+          status?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       recargas_mcpn: {
         Row: {
           created_at: string
@@ -571,35 +601,32 @@ export type Database = {
       }
       social_proofs_mcpn: {
         Row: {
-          comentario: string
-          created_at: string | null
+          conteudo: Json
+          created_at: string
           id: string
-          imagem_url: string
-          status: string | null
+          status: string
           user_id: string
           valor: number
         }
         Insert: {
-          comentario: string
-          created_at?: string | null
+          conteudo?: Json
+          created_at?: string
           id?: string
-          imagem_url: string
-          status?: string | null
+          status?: string
           user_id: string
           valor: number
         }
         Update: {
-          comentario?: string
-          created_at?: string | null
+          conteudo?: Json
+          created_at?: string
           id?: string
-          imagem_url?: string
-          status?: string | null
+          status?: string
           user_id?: string
           valor?: number
         }
         Relationships: [
           {
-            foreignKeyName: "fk_social_proof_account_user"
+            foreignKeyName: "fk_social_proof_user"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "account_user"
