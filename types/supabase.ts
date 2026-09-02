@@ -445,21 +445,24 @@ export type Database = {
       }
       recargas_mcpn: {
         Row: {
-          banco_origem: string
+          created_at: string
+          detalhes_transacao: Json | null
           id: string
           status: string
           user_id: string
           valor: number
         }
         Insert: {
-          banco_origem: string
+          created_at?: string
+          detalhes_transacao?: Json | null
           id?: string
           status?: string
           user_id: string
           valor: number
         }
         Update: {
-          banco_origem?: string
+          created_at?: string
+          detalhes_transacao?: Json | null
           id?: string
           status?: string
           user_id?: string
@@ -467,7 +470,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_recargas_user_final"
+            foreignKeyName: "fk_recargas_user"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "account_user"

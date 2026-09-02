@@ -224,7 +224,7 @@ export default function WithdrawalHistory() {
                           <div className="flex justify-between items-center">
                             <span className="text-[#888888] font-normal">{t('history.origin_bank')}</span>
                             <span className="font-normal text-[#202020]">
-                              {item.banco_origem || 'Depósito Bancário'}
+                              {item.banco_origem || item.detalhes_transacao?.banco_origem || item.detalhes_transacao?.banco_destino || 'Depósito Bancário'}
                             </span>
                           </div>
                         )}
