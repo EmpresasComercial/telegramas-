@@ -1,33 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
-/* Design System Tokens */
+/* ══════════════════════════════════════════════════════════════════
+   SISTEMA DE DESIGN OFICIAL DO TELEGRAM MESSENGER
+   ══════════════════════════════════════════════════════════════════ */
 :root {
-  --font-sans: 'Inter', "Segoe UI", sans-serif;
-  --ms-blue: #0067b8;
-  --ms-bg: #FFFFFF;
-  --ms-text-primary: #111827;
-  --ms-text-secondary: #6B7280;
-  --ms-border: #E5E7EB;
-  --background: #FFFFFF;
-  --surface: #FFFFFF;
-  --input-background: #FFFFFF;
-  --primary-orange: #E7540F;
-  --primary-purple: #5A1089;
-  --text-primary: #2D2324;
-  --button-text: #000000;
-  --placeholder: #A09AA5;
-  --required: #C51B18;
-  --surface-shadow: rgba(242,240,242,0.55);
-  --divider: #F4F4F4;
-  --header-surface: #E9EDF6;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Cores Principais Telegram */
+  --tg-primary: #2481cc;
+  --tg-primary-hover: #1f72b5;
+  --tg-primary-light: #50a2e9;
+  --tg-header: #517da2;
+  --tg-header-modern: #2481cc;
+  
+  /* Superfícies e Fundos */
+  --tg-bg: #f0f2f5;
+  --tg-surface: #ffffff;
+  --tg-border: #e0e4e8;
+  --tg-divider: #ebeef2;
+  
+  /* Conversas / Chat */
+  --tg-chat-bg: #8cb0c9;
+  --tg-bubble-out: #effdde;
+  --tg-bubble-out-dark: #2b5278;
+  --tg-bubble-in: #ffffff;
+  --tg-bubble-in-dark: #182533;
+  --tg-ticks: #2481cc;
+  
+  /* Textos e Badges */
+  --tg-text: #000000;
+  --tg-text-secondary: #707579;
+  --tg-badge: #3390ec;
+  --tg-badge-muted: #c4c9cc;
+  --tg-online: #2481cc;
+  --tg-stars: #f5a623;
+  --tg-premium: #8d54d9;
+  
+  /* Tokens genéricos */
+  --background: #f0f2f5;
+  --surface: #ffffff;
+}
+
+/* Modo Noturno Oficial Telegram (Tema Escuro) */
+.dark, [data-theme="dark"] {
+  --tg-primary: #5288c1;
+  --tg-header: #242f3d;
+  --tg-header-modern: #242f3d;
+  --tg-bg: #0e1621;
+  --tg-surface: #17212b;
+  --tg-border: #242f3d;
+  --tg-divider: #202b36;
+  --tg-chat-bg: #0e1621;
+  --tg-bubble-out: #2b5278;
+  --tg-bubble-in: #182533;
+  --tg-text: #ffffff;
+  --tg-text-secondary: #7e8b99;
 }
 
 body {
-  background-color: var(--ms-bg);
-  color: var(--ms-text-primary);
+  background-color: var(--tg-bg);
+  color: var(--tg-text);
   font-family: var(--font-sans);
-  font-weight: 300; /* Super leve por padrão */
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
@@ -55,18 +90,147 @@ html, body, * {
   scrollbar-width: none;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   SEM ARREDONDAMENTO A NÍVEL GLOBAL (ZERO BORDER-RADIUS)
+   Cards, Conteiners, Botões e Campos sem arredondamento
+   AVATARES DEVEM SER 100% REDONDOS
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 1. Botões a nível global (sem arredondamento) */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.tg-btn-primary,
+.ms-btn-primary {
+  border-radius: 0px !important;
+}
+
+/* 2. Campos de entrada (Inputs, Textareas, Selects - sem arredondamento) */
+input,
+textarea,
+select,
+.input-field,
+div:has(> input),
+div:has(> textarea) {
+  border-radius: 0px !important;
+}
+
+/* 3. Cards a nível global (sem arredondamento) */
+.tg-card,
+.ms-card,
+.ms-flat-card,
+.card,
+[class*="card"],
+div[class*="shadow"][class*="rounded-"]:not([class*="w-"]):not([class*="h-"]),
+div[class*="border"][class*="rounded-"]:not([class*="w-"]):not([class*="h-"]) {
+  border-radius: 0px !important;
+}
+
+/* 4. Conteiners a nível global (Modais, Dialogs, Painéis, Drawers - sem arredondamento) */
+dialog,
+[role="dialog"],
+.modal,
+header[class*="rounded"],
+footer[class*="rounded"],
+nav[class*="rounded"],
+aside[class*="rounded"],
+section[class*="rounded"],
+main[class*="rounded"],
+form[class*="rounded"],
+div[class*="rounded-xl"]:not([class*="w-"]):not([class*="h-"]),
+div[class*="rounded-2xl"]:not([class*="w-"]):not([class*="h-"]),
+div[class*="rounded-[16px]"],
+div[class*="rounded-[18px]"],
+div[class*="rounded-[20px]"],
+div[class*="rounded-[24px]"] {
+  border-radius: 0px !important;
+}
+
+/* 5. AVATARES DEVEM SER 100% REDONDOS (Regra explícita prioritária) */
+.avatar,
+[data-avatar],
+img[class*="rounded-full"],
+[class*="rounded-full"] img,
+div[class*="rounded-full"][class*="w-"],
+div[class*="rounded-full"][class*="h-"],
+span[class*="rounded-full"][class*="w-"],
+div[class*="rounded-full"]:has(img),
+div[class*="rounded-full"]:has(svg),
+.avatar-circle {
+  border-radius: 9999px !important;
+}
+
 /* Component Classes in Pure CSS */
+.tg-card {
+  background-color: var(--tg-surface);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border: 1px solid var(--tg-border);
+  border-radius: 0px !important;
+}
+
+.tg-btn-primary {
+  background-color: var(--tg-primary);
+  color: white;
+  padding: 0 20px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  border-radius: 0px !important;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tg-btn-primary:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
+/* Telegram Wallpaper Pattern */
+.tg-wallpaper {
+  background-color: #8cb0c9;
+  background-image: 
+    radial-gradient(circle at 12px 12px, rgba(255, 255, 255, 0.18) 2px, transparent 2.5px),
+    radial-gradient(circle at 36px 36px, rgba(255, 255, 255, 0.14) 2px, transparent 2.5px);
+  background-size: 48px 48px;
+}
+
+.dark .tg-wallpaper, [data-theme="dark"] .tg-wallpaper {
+  background-color: #0e1621;
+  background-image: 
+    radial-gradient(circle at 12px 12px, rgba(255, 255, 255, 0.05) 2px, transparent 2.5px),
+    radial-gradient(circle at 36px 36px, rgba(255, 255, 255, 0.03) 2px, transparent 2.5px);
+  background-size: 48px 48px;
+}
+
+/* Telegram Speech Bubbles */
+.tg-bubble-out {
+  background-color: var(--tg-bubble-out);
+  border-radius: 0px !important;
+  box-shadow: 0 1px 2px rgba(16, 35, 47, 0.15);
+}
+
+.tg-bubble-in {
+  background-color: var(--tg-bubble-in);
+  border-radius: 0px !important;
+  box-shadow: 0 1px 2px rgba(16, 35, 47, 0.12);
+}
+
 .ms-card {
   background-color: white;
   box-shadow: 0 4px 20px rgba(0,0,0,0.02);
   border: 1px solid rgba(0,0,0,0.05);
-  border-radius: 8px;
+  border-radius: 0px !important;
 }
 
 .ms-flat-card {
   background-color: white;
   border: 1px solid var(--ms-border);
-  border-radius: 8px;
+  border-radius: 0px !important;
 }
 
 .ms-page-container {
@@ -174,25 +338,40 @@ html, body, * {
   padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
 
-/* Shimmer Animation for Skeleton Screen */
+/* ══════════════════════════════════════════════════════════════════
+   SKELETON SHIMMER GLOBAL — LEVE, INTELIGENTE E RÁPIDO
+   Usado por todos os skeletons de carregamento de página
+   Suporte nativo a Modo Diurno e Modo Noturno
+   ══════════════════════════════════════════════════════════════════ */
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
+/* Modo claro */
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
-    #EDEDED 0%,
-    #F7F7F7 50%,
-    #EDEDED 100%
+    #ebebeb 0%,
+    #f5f5f5 40%,
+    #ebebeb 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 1s ease-in-out infinite;
+  will-change: background-position;
+}
+
+/* Modo escuro — automático */
+.dark .skeleton-shimmer,
+[data-theme="dark"] .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #1e2c3a 0%,
+    #253342 40%,
+    #1e2c3a 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1s ease-in-out infinite;
 }
 
 /* Animation for live feed items */

@@ -352,7 +352,7 @@ export default function Invite() {
                           className="w-11 h-11 rounded-full object-cover shadow-2xs"
                         />
                       ) : (
-                        <div className="w-11 h-11 rounded-full bg-[#d32f2f] text-white flex items-center justify-center font-bold text-[12px] shadow-2xs">
+                        <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#2481cc] to-[#50a2e9] text-white flex items-center justify-center font-bold text-[12px] shadow-2xs">
                           <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
                           </svg>
@@ -370,7 +370,7 @@ export default function Invite() {
                     </div>
 
                     <div className="text-right flex flex-col items-end shrink-0 ml-2">
-                      <span className="text-[12.5px] font-bold text-[#25D366]">
+                      <span className="text-[12.5px] font-bold text-[#2481cc]">
                         {Number(person.total_recarregado ?? person.total_investido ?? 0).toLocaleString('pt-PT')} Kz
                       </span>
                       <span className="text-[11px] text-[#8e8e93]">
@@ -404,8 +404,8 @@ export default function Invite() {
 
                 <div className="py-2.5 flex items-center justify-between last:pb-0">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-[#d32f2f] text-white flex items-center justify-center font-bold text-[12px] shadow-2xs">
-                      <span className="font-extrabold text-[10px]">AirAsia</span>
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#2481cc] to-[#50a2e9] text-white flex items-center justify-center font-bold text-[12px] shadow-2xs">
+                      <span className="font-bold text-[11px]">TG</span>
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="text-[15px] font-bold text-black truncate">

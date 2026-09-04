@@ -84,9 +84,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[9999] pointer-events-none px-4 w-full flex justify-center"
           >
             <div 
-              className="bg-[#1c1c1d]/90 backdrop-blur-md rounded-[18px] px-4 py-2.5 max-w-[320px] shadow-sm text-center"
+              className="bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.12)] px-5 py-3 max-w-[320px] text-center"
             >
-              <p className="font-sans font-medium text-[15px] text-white leading-tight">
+              <p className="font-sans font-medium text-[14.5px] text-black leading-snug">
                 {toast.message}
               </p>
             </div>

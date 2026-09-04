@@ -107,11 +107,11 @@ export default function Recharge() {
         <span className="text-[18px] font-semibold flex-1">Adicionar Saldo</span>
         {/* Step indicator */}
         <div className="flex items-center gap-1.5">
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${currentStep >= 1 ? 'bg-[#25D366] text-white' : 'bg-gray-200 text-gray-500'}`}>
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${currentStep >= 1 ? 'bg-[#2481cc] text-white' : 'bg-gray-200 text-gray-500'}`}>
             {currentStep >= 2 ? <Check className="w-3.5 h-3.5" /> : '1'}
           </div>
-          <div className={`w-5 h-[2px] rounded ${currentStep >= 2 ? 'bg-[#25D366]' : 'bg-gray-200'}`} />
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${currentStep >= 2 ? 'bg-[#25D366] text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
+          <div className={`w-5 h-[2px] rounded ${currentStep >= 2 ? 'bg-[#2481cc]' : 'bg-gray-200'}`} />
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${currentStep >= 2 ? 'bg-[#2481cc] text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
           <div className="w-5 h-[2px] rounded bg-gray-200" />
           <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-[11px] font-bold">3</div>
         </div>
@@ -142,7 +142,7 @@ export default function Recharge() {
                   value={amount}
                   onChange={handleAmountChange}
                 />
-                <span className="text-[14px] font-semibold text-[#25D366] ml-2">KZ</span>
+                <span className="text-[14px] font-semibold text-[#2481cc] ml-2">KZ</span>
               </div>
             </div>
 
@@ -157,7 +157,7 @@ export default function Recharge() {
                     onClick={() => setAmount(val.toString())}
                     className={`h-[38px] rounded-[12px] text-[12px] font-semibold transition-all border flex items-center justify-center cursor-pointer ${
                       isSelected
-                        ? 'bg-[#e5f5e9] text-[#25D366] border-[#25D366]'
+                        ? 'bg-[#e5f5e9] text-[#2481cc] border-[#2481cc]'
                         : 'bg-white text-black border-gray-200 active:bg-gray-50'
                     }`}
                   >
@@ -169,7 +169,7 @@ export default function Recharge() {
 
             {/* Info card */}
             <div className="bg-white rounded-[16px] px-4 py-4">
-              <p className="text-[13px] font-semibold text-[#25D366] mb-2">Instruções de Depósito</p>
+              <p className="text-[13px] font-semibold text-[#2481cc] mb-2">Instruções de Depósito</p>
               <div className="space-y-2">
                 {[
                   'Recarregue no horário das 09:00 às 21:00.',
@@ -178,7 +178,7 @@ export default function Recharge() {
                   'Se o valor não for creditado, contacte o suporte.',
                 ].map((text, i) => (
                   <div key={i} className="flex items-start gap-2">
-                    <span className="text-[#25D366] text-[13px]">•</span>
+                    <span className="text-[#2481cc] text-[13px]">•</span>
                     <span className="text-[13px] text-[#8e8e93] leading-snug">{text}</span>
                   </div>
                 ))}
@@ -189,7 +189,7 @@ export default function Recharge() {
               type="button"
               onClick={handleNextStep1}
               disabled={!amount}
-              className="w-full h-[50px] rounded-[16px] bg-[#25D366] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
+              className="w-full h-[50px] rounded-[16px] bg-[#2481cc] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
             >
               Continuar
             </button>
@@ -201,13 +201,13 @@ export default function Recharge() {
             {/* Amount summary */}
             <div className="bg-white rounded-[16px] px-4 py-3 flex items-center justify-between">
               <span className="text-[14px] text-[#8e8e93]">Valor selecionado</span>
-              <span className="text-[16px] font-bold text-[#25D366]">{numAmount.toLocaleString('pt-PT')} Kz</span>
+              <span className="text-[16px] font-bold text-[#2481cc]">{numAmount.toLocaleString('pt-PT')} Kz</span>
             </div>
 
             {/* Bank list */}
             <div className="bg-white rounded-[16px] overflow-hidden">
               <div className="px-4 pt-3 pb-1">
-                <span className="text-[13px] font-semibold text-[#25D366]">Selecionar Banco</span>
+                <span className="text-[13px] font-semibold text-[#2481cc]">Selecionar Banco</span>
               </div>
               {banks.length > 0 ? banks.map((bank, idx) => {
                 const isSelected = selectedBankId === bank.id;
@@ -217,8 +217,8 @@ export default function Recharge() {
                     onClick={() => setSelectedBankId(bank.id)}
                     className={`flex items-center px-4 py-3 cursor-pointer active:bg-gray-50 ${idx < banks.length - 1 ? 'border-b border-[#e5e5e5]' : ''}`}
                   >
-                    <div className={`w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center mr-4 shrink-0 ${isSelected ? 'border-[#25D366]' : 'border-gray-300'}`}>
-                      {isSelected && <div className="w-[10px] h-[10px] rounded-full bg-[#25D366]" />}
+                    <div className={`w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center mr-4 shrink-0 ${isSelected ? 'border-[#2481cc]' : 'border-gray-300'}`}>
+                      {isSelected && <div className="w-[10px] h-[10px] rounded-full bg-[#2481cc]" />}
                     </div>
                     <span className={`text-[16px] ${isSelected ? 'font-semibold text-black' : 'text-black font-normal'}`}>{bank.nome_banco}</span>
                   </div>
@@ -232,7 +232,7 @@ export default function Recharge() {
               type="button"
               onClick={handleFinalSubmit}
               disabled={isSubmitting || !selectedBankId}
-              className="w-full h-[50px] rounded-[16px] bg-[#25D366] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
+              className="w-full h-[50px] rounded-[16px] bg-[#2481cc] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
             >
               {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'Continuar'}
             </button>

@@ -134,7 +134,7 @@ export default function Withdraw() {
 
         {/* Icon */}
         <div className="flex flex-col items-center py-4">
-          <div className="w-[72px] h-[72px] rounded-[22px] bg-[#25D366] flex items-center justify-center mb-3 shadow-[0_4px_12px_rgba(37,211,102,0.3)]">
+          <div className="w-[72px] h-[72px] rounded-[22px] bg-[#2481cc] flex items-center justify-center mb-3 shadow-[0_4px_12px_rgba(37,211,102,0.3)]">
             <Wallet className="w-9 h-9 text-white" strokeWidth={1.8} />
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function Withdraw() {
         {/* Balance display */}
         <div className="bg-white rounded-[16px] px-4 py-3 flex items-center justify-between">
           <span className="text-[14px] text-[#8e8e93]">Saldo disponível</span>
-          <span className="text-[16px] font-bold text-[#25D366]">{formatCurrency(balance, 'KZ')}</span>
+          <span className="text-[16px] font-bold text-[#2481cc]">{formatCurrency(balance, 'KZ')}</span>
         </div>
 
         {/* Inputs card */}
@@ -155,7 +155,7 @@ export default function Withdraw() {
               value={amount}
               onChange={handleAmountChange}
             />
-            <span className="text-[13px] font-semibold text-[#25D366] ml-2">KZ</span>
+            <span className="text-[13px] font-semibold text-[#2481cc] ml-2">KZ</span>
           </div>
           <div className="flex items-center px-4 h-[52px]">
             <input
@@ -181,11 +181,11 @@ export default function Withdraw() {
 
         {/* Guide card */}
         <div className="bg-white rounded-[16px] px-4 py-4">
-          <p className="text-[13px] font-semibold text-[#25D366] mb-2">Instruções de Retirada</p>
+          <p className="text-[13px] font-semibold text-[#2481cc] mb-2">Instruções de Retirada</p>
           <div className="space-y-2">
             {guideItems.map((text, idx) => (
               <div key={idx} className="flex items-start gap-2">
-                <span className="text-[#25D366] mt-0.5 text-[13px]">•</span>
+                <span className="text-[#2481cc] mt-0.5 text-[13px]">•</span>
                 <span className="text-[13px] text-[#8e8e93] leading-snug">{text}</span>
               </div>
             ))}
@@ -197,7 +197,7 @@ export default function Withdraw() {
           type="submit"
           form="withdraw-form"
           disabled={isSubmitting || hasPending || !amount || parseInt(amount) < MIN_WITHDRAW}
-          className="w-full h-[50px] rounded-[16px] bg-[#25D366] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
+          className="w-full h-[50px] rounded-[16px] bg-[#2481cc] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
         >
           {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'Confirmar Retirada'}
         </button>

@@ -1,20 +1,46 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Search, CheckCheck, Loader2, Pin, Plus, X } from 'lucide-react';
+import { 
+  Menu, 
+  Search, 
+  CheckCheck, 
+  Loader2, 
+  Pin, 
+  X, 
+  Bookmark, 
+  Radio, 
+  MessageSquare, 
+  Edit3, 
+  ShieldCheck,
+  Megaphone,
+  Moon,
+  Sun,
+  MoreVertical
+} from 'lucide-react';
 import TelegramStories from '../components/TelegramStories';
+import { useToast } from '../components/Toast';
 
 export default function ChatsList() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const user = session?.user;
+  const { showToast } = useToast();
+
+  // Recebe openDrawer do Layout através do useOutletContext
+  const outletContext = useOutletContext<{ openDrawer?: () => void; openAutoMessages?: () => void }>();
 
   const [contacts, setContacts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  type ChatFolder = 'all' | 'personal' | 'groups' | 'bots' | 'unread';
+  const [isSearching, setIsSearching] = useState(false);
+  
+  type ChatFolder = 'all' | 'personal' | 'groups' | 'channels' | 'bots' | 'unread';
   const [activeFilter, setActiveFilter] = useState<ChatFolder>('all');
+
+  // ID fixo para Pavel Durov (CEO)
+  const PAVEL_DUROV_ID = 'pavel-durov-ceo-00000000000000001';
 
   useEffect(() => {
     if (!user) return;
@@ -113,24 +139,10 @@ export default function ChatsList() {
   const queryClean = searchQuery.toLowerCase().trim();
   const queryDigits = queryClean.replace(/\D/g, '');
 
-  const showCommunityChat = useMemo(() => {
-    if (activeFilter === 'personal' || activeFilter === 'bots' || activeFilter === 'unread') return false;
-    if (!queryClean) return true;
-    const communityKeywords = [
-      "telegram", "business", "comunidade", "canal", "oficial", "grupo", "anúncios", "mensagens",
-      "whatsapp", "whats", "pavel", "durov", "ceo", "fundador"
-    ];
-    return communityKeywords.some(k => k.includes(queryClean) || queryClean.includes(k));
-  }, [queryClean, activeFilter]);
-
-  // ID fixo para Pavel Durov (CEO) — conversa privada especial
-  const PAVEL_DUROV_ID = 'pavel-durov-ceo-00000000000000001';
-
   const filteredContacts = useMemo(() => {
-    if (activeFilter === 'groups' || activeFilter === 'bots') return [];
+    if (activeFilter === 'groups' || activeFilter === 'channels' || activeFilter === 'bots') return [];
     return contacts.filter(c => {
       if (activeFilter === 'unread') {
-        // Only contacts where there are messages not sent by me or pending
         return !c.isMe && Boolean(c.lastMessage);
       }
       if (!queryClean) return true;
@@ -146,103 +158,139 @@ export default function ChatsList() {
     });
   }, [contacts, queryClean, queryDigits, activeFilter]);
 
-  const hasResults = showCommunityChat || filteredContacts.length > 0 || activeFilter === 'bots';
-
   const folders: { id: ChatFolder; label: string; count?: number }[] = [
-    { id: 'all', label: 'Todos os Chats', count: contacts.length + 3 },
+    { id: 'all', label: 'Todos', count: contacts.length + 4 },
     { id: 'personal', label: 'Pessoais', count: contacts.length },
-    { id: 'groups', label: 'Grupos & Canais', count: 3 },
-    { id: 'bots', label: 'Bots' },
-    { id: 'unread', label: 'Não Lido', count: contacts.filter(c => !c.isMe && Boolean(c.lastMessage)).length },
+    { id: 'groups', label: 'Grupos', count: 2 },
+    { id: 'channels', label: 'Canais', count: 1 },
+    { id: 'bots', label: 'Bots', count: 1 },
+    { id: 'unread', label: 'Não Lidos', count: 3 },
   ];
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div
-      className="w-full min-h-[100dvh] bg-white font-sans antialiased flex flex-col md:flex-row"
-      style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}
-    >
-      {/* ── SIDEBAR (desktop) / FULL (mobile) ── */}
-      <div className="w-full md:w-[380px] md:min-w-[320px] md:max-w-[400px] md:border-r md:border-gray-200 md:h-screen md:sticky md:top-0 md:overflow-hidden flex flex-col bg-white">
-
-      {/* ── HEADER ── */}
-      <header className="w-full bg-white px-3 pt-3 pb-0 z-30">
-        {/* Top row: Logo + Title + Close */}
-        <div className="flex items-center justify-between px-1 mb-3">
-          <div className="flex items-center gap-2.5">
-            {/* Telegram Logo with Spinning Ring on Loading */}
-            <div className="relative w-9 h-9 flex items-center justify-center shrink-0">
-              {isLoading && (
-                <div className="absolute -inset-[3px] rounded-full border-[2.5px] border-[#25ae60] border-t-transparent animate-spin" />
-              )}
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-sm">
-                <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[18px] h-[18px]">
-                  <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232" />
-                  <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035" />
-                  <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" />
-                </svg>
-              </div>
-            </div>
-            <span className={`text-[21px] font-bold tracking-[-0.3px] transition-colors duration-200 ${
-              isLoading ? "text-[#25ae60]" : "text-[#202020]"
-            }`}>
-              {isLoading ? "Conectando..." : "Telegram Business"}
-            </span>
-          </div>
-          <button 
-            onClick={() => navigate('/home')}
-            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 active:bg-gray-100 rounded-full cursor-pointer transition-colors"
-            aria-label="Fechar e voltar à Home"
-            title="Fechar"
-          >
-            <X className="w-5 h-5 stroke-[2.2]" />
-          </button>
-        </div>
-
-        {/* Search bar */}
-        <div className="mx-1 mb-2.5 h-[38px] bg-[#f1f1f2] rounded-[10px] flex items-center px-3 gap-2 relative">
-          <Search className="w-4 h-4 text-[#a0a0a0] shrink-0" />
-          <input
-            type="text"
-            placeholder="Buscar Chats"
-            className="flex-1 bg-transparent text-[15px] text-[#202020] placeholder:text-[#a0a0a0] outline-none border-none pr-6"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
+    <div className="w-full min-h-[100dvh] bg-white dark:bg-[#17212b] font-sans antialiased flex flex-col transition-colors">
+      
+      {/* ── TOP APP BAR OFICIAL DO TELEGRAM (ANDROID NATIVO) ── */}
+      <header className="sticky top-0 z-40 bg-[#517da2] dark:bg-[#242f3d] text-white shadow-sm select-none transition-colors">
+        <div className="h-[56px] px-3 flex items-center justify-between gap-2">
+          
+          {/* Botão Hambúrguer (Drawer) ou Voltar da Busca */}
+          {isSearching ? (
             <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 w-5 h-5 rounded-full bg-[#d0d0d2] text-white flex items-center justify-center hover:bg-[#b0b0b2] transition-colors cursor-pointer"
-              title="Limpar pesquisa"
+              onClick={() => {
+                setIsSearching(false);
+                setSearchQuery("");
+              }}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+              title="Voltar"
             >
-              <X className="w-3 h-3 stroke-[2.5]" />
+              <X className="w-5 h-5 text-white" />
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (outletContext?.openDrawer) {
+                  outletContext.openDrawer();
+                } else {
+                  showToast('Abrindo menu...', 'info');
+                }
+              }}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+              title="Abrir Menu Lateral"
+              aria-label="Menu Telegram"
+            >
+              <Menu className="w-6 h-6 text-white stroke-[2.2]" />
             </button>
           )}
+
+          {/* Título Oficial ou Campo de Busca */}
+          {isSearching ? (
+            <div className="flex-1 flex items-center bg-black/15 dark:bg-black/25 rounded-full px-3.5 py-1.5 mx-1">
+              <Search className="w-4 h-4 text-white/70 mr-2 shrink-0" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Buscar chats, pessoas ou mensagens..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-sm text-white placeholder:text-white/60 outline-none border-none"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="w-5 h-5 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center gap-2 pl-1">
+              <h1 className="text-[20px] font-bold tracking-tight text-white">
+                Telegram
+              </h1>
+              <span className="inline-flex items-center px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-white/20 text-white uppercase tracking-wider">
+                Business
+              </span>
+            </div>
+          )}
+
+          {/* Ações da Direita */}
+          <div className="flex items-center gap-0.5">
+            {!isSearching && (
+              <button
+                onClick={() => setIsSearching(true)}
+                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+                title="Pesquisar"
+              >
+                <Search className="w-5 h-5 text-white" />
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                if (outletContext?.openAutoMessages) {
+                  outletContext.openAutoMessages();
+                } else {
+                  navigate('/perfil');
+                }
+              }}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer text-white"
+              title="Mensagens Automáticas & Configurações"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* ── TELEGRAM iOS CHAT FOLDERS (Horizontal Scrollable Tabs) ── */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 px-1 border-b border-gray-100">
+        {/* ── ABAS DE PASTAS DE CHATS DO TELEGRAM (TABS NATIVAS) ── */}
+        <div className="flex overflow-x-auto no-scrollbar px-2 bg-[#517da2] dark:bg-[#242f3d] border-t border-white/10">
           {folders.map(folder => {
             const isActive = activeFilter === folder.id;
             return (
               <button
                 key={folder.id}
                 onClick={() => setActiveFilter(folder.id)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13.5px] font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                className={`relative flex items-center gap-1.5 px-3.5 py-2.5 text-[14px] font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-[#3390ec] text-white shadow-xs'
-                    : 'bg-[#f1f1f2] text-[#8e8e93] hover:text-[#202020] active:bg-gray-200'
+                    ? 'text-white font-semibold'
+                    : 'text-white/70 hover:text-white'
                 }`}
               >
                 <span>{folder.label}</span>
                 {typeof folder.count === 'number' && folder.count > 0 && (
                   <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
-                    isActive ? 'bg-white/25 text-white' : 'bg-black/10 text-[#666]'
+                    isActive ? 'bg-white text-[#2481cc]' : 'bg-black/20 text-white/90'
                   }`}>
                     {folder.count}
                   </span>
+                )}
+                {/* Linha indicadora inferior Telegram */}
+                {isActive && (
+                  <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-white rounded-t-sm" />
                 )}
               </button>
             );
@@ -250,159 +298,211 @@ export default function ChatsList() {
         </div>
       </header>
 
-      {/* ── CHAT LIST ── */}
-      <main className="w-full flex-1 overflow-y-auto pb-28 md:pb-4">
-
-        {/* ── TELEGRAM STORIES (HISTÓRIAS NO TOPO DOS CHATS) ── */}
+      {/* ── CORPO PRINCIPAL DE CHATS ── */}
+      <main className="w-full flex-1 overflow-y-auto pb-20">
+        
+        {/* Telegram Stories Carousel */}
         <TelegramStories />
 
-        {/* ── 1º CEO: Pavel Durov ── mesma rota de chat privado ── */}
-        {showCommunityChat && (
+        {/* ── 1. COMUNIDADE OFICIAL TELEGRAM BUSINESS (PINNED #1) ── */}
+        {(activeFilter === 'all' || activeFilter === 'groups') && (
           <div
-            onClick={() => navigate(`/chat/${PAVEL_DUROV_ID}?t=Pavel+Durov`)}
-            className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
+            onClick={() => navigate('/chat-comunidade')}
+            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
           >
+            {/* Avatar Oficial Telegram */}
             <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs bg-gray-200">
-                <img src="/pavel_durov.jpg" alt="Pavel Durov" className="w-full h-full object-cover" />
-              </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
-            </div>
-            <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
-              <div className="flex justify-between items-center mb-[2px]">
-                <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
-                  Pavel Durov
-                </h3>
-                <div className="flex items-center gap-1 shrink-0 ml-1">
-                  <CheckCheck className="w-[15px] h-[15px] text-[#4CAF50] stroke-[2.5]" />
-                  <span className="text-[12px] text-[#a0a0a0]">{timeStr}</span>
-                </div>
-              </div>
-              <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
-                CEO · Fundador do Telegram
-              </p>
-            </div>
-          </div>
-        )}
-        {/* ── 2º Comunidade WhatsApp ── */}
-        {showCommunityChat && (
-          <div
-            onClick={() => navigate('/chat/whatsapp-comunidade')}
-            className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
-          >
-            <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center shadow-xs overflow-hidden">
-                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="w-[27px] h-[27px]">
-                  <path fill="#fff" d="M16.003 2.667C8.64 2.667 2.667 8.64 2.667 16c0 2.347.64 4.64 1.853 6.64L2.667 29.333l6.88-1.813A13.28 13.28 0 0016.003 29.333C23.36 29.333 29.333 23.36 29.333 16S23.36 2.667 16.003 2.667zm0 24.267a11.01 11.01 0 01-5.6-1.52l-.4-.24-4.08 1.067 1.093-3.973-.267-.413A10.987 10.987 0 015.003 16c0-6.08 4.947-11.027 11.013-11.027S27.04 9.92 27.04 16 22.08 26.934 16.003 26.934zm6.053-8.24c-.333-.16-1.947-.96-2.253-1.067-.307-.107-.52-.16-.747.16-.213.32-.84 1.067-1.04 1.28-.187.213-.387.24-.72.08-.333-.16-1.413-.52-2.693-1.667-.987-.88-1.667-1.973-1.853-2.307-.187-.333-.013-.507.147-.667.147-.147.333-.373.507-.56.16-.187.213-.32.32-.533.107-.213.053-.4-.027-.56-.08-.16-.747-1.787-1.013-2.44-.267-.64-.547-.547-.747-.56h-.64c-.213 0-.547.08-.84.4-.28.32-1.093 1.067-1.093 2.587 0 1.52 1.12 2.987 1.28 3.2.16.213 2.187 3.347 5.307 4.693.747.32 1.333.507 1.787.653.747.24 1.44.213 1.973.133.6-.093 1.853-.747 2.12-1.467.267-.72.267-1.333.187-1.467-.08-.133-.293-.213-.627-.373z"/>
-                </svg>
-              </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
-            </div>
-            <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
-              <div className="flex justify-between items-center mb-[2px]">
-                <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
-                  Comunidade WhatsApp
-                </h3>
-                <div className="flex items-center gap-1 shrink-0 ml-1">
-                  <CheckCheck className="w-[15px] h-[15px] text-[#4CAF50] stroke-[2.5]" />
-                  <Pin className="w-[12px] h-[12px] text-[#a0a0a0]" />
-                  <span className="text-[12px] text-[#a0a0a0]">{timeStr}</span>
-                </div>
-              </div>
-              <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
-                Comunidade oficial do WhatsApp Business!
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── 4º Telegram Business ── */}
-        {showCommunityChat && (
-          <div
-            onClick={() => navigate('/chat/comunidade')}
-            className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
-          >
-            <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-xs overflow-hidden">
-                <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[23px] h-[23px]">
+              <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-[#1e96c8] to-[#50a2e9] flex items-center justify-center shadow-xs overflow-hidden">
+                <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[26px] h-[26px]">
                   <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232" />
                   <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035" />
                   <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" />
                 </svg>
               </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
+              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#2481cc] rounded-full border-2 border-white dark:border-[#17212b] flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+              </div>
             </div>
-            <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
-              <div className="flex justify-between items-center mb-[2px]">
-                <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
-                  Telegram Business
-                </h3>
+
+            {/* Conteúdo */}
+            <div className="flex-1 min-w-0 py-0.5">
+              <div className="flex justify-between items-center mb-0.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
+                    Telegram Business Oficial
+                  </h3>
+                  {/* Verified Checkmark Badge Oficial */}
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#2481cc] text-white flex items-center justify-center text-[10px]">
+                    ✓
+                  </span>
+                </div>
                 <div className="flex items-center gap-1 shrink-0 ml-1">
-                  <CheckCheck className="w-[15px] h-[15px] text-[#4CAF50] stroke-[2.5]" />
-                  <Pin className="w-[12px] h-[12px] text-[#a0a0a0]" />
-                  <span className="text-[12px] text-[#a0a0a0]">{timeStr}</span>
+                  <Pin className="w-3.5 h-3.5 text-[#2481cc] fill-[#2481cc]" />
+                  <span className="text-[12px] text-[#2481cc] font-medium">{timeStr}</span>
                 </div>
               </div>
-              <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
-                Bem-vindo à comunidade oficial do Telegram Business!
+
+              <div className="flex items-center justify-between">
+                <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
+                  <span className="text-[#2481cc] font-medium">Equipe Telegram: </span>
+                  Bem-vindo à comunidade oficial de negócios e automações!
+                </p>
+                <span className="ml-2 bg-[#2481cc] text-white text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                  12
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── 2. PAVEL DUROV (CEO TELEGRAM) (PINNED #2) ── */}
+        {(activeFilter === 'all' || activeFilter === 'personal') && (
+          <div
+            onClick={() => navigate(`/chat/${PAVEL_DUROV_ID}?t=Pavel+Durov`)}
+            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
+          >
+            <div className="relative shrink-0">
+              <div className="w-13 h-13 rounded-full overflow-hidden shadow-xs bg-[#2481cc]/20 border border-white/40">
+                <img 
+                  src="/pavel_durov.jpg" 
+                  alt="Pavel Durov" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as any).src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop";
+                  }}
+                />
+              </div>
+              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#17212b]" />
+            </div>
+
+            <div className="flex-1 min-w-0 py-0.5">
+              <div className="flex justify-between items-center mb-0.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
+                    Pavel Durov
+                  </h3>
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#2481cc] text-white flex items-center justify-center text-[10px]">
+                    ✓
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-sm bg-[#8d54d9] text-white">
+                    CEO
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0 ml-1">
+                  <CheckCheck className="w-4 h-4 text-[#2481cc] stroke-[2.5]" />
+                  <span className="text-[12px] text-[#707579] dark:text-[#9eaab6]">14:15</span>
+                </div>
+              </div>
+
+              <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
+                Telegram Business agora disponível para todas as contas e canais.
               </p>
             </div>
           </div>
         )}
 
-        {/* ── 5º Bot de Pagamento e Assistente (Aparece em Todos e em Bots) ── */}
+        {/* ── 3. CANAL OFICIAL DE ANÚNCIOS TELEGRAM ── */}
+        {(activeFilter === 'all' || activeFilter === 'channels') && (
+          <div
+            onClick={() => navigate('/canal-oficial')}
+            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
+          >
+            <div className="relative shrink-0">
+              <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-[#0088cc] to-[#37aee2] flex items-center justify-center shadow-xs text-white">
+                <Megaphone className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0 py-0.5">
+              <div className="flex justify-between items-center mb-0.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
+                    Telegram News & Updates
+                  </h3>
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#2481cc] text-white flex items-center justify-center text-[10px]">
+                    ✓
+                  </span>
+                </div>
+                <span className="text-[12px] text-[#707579] dark:text-[#9eaab6]">Ontem</span>
+              </div>
+
+              <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
+                📢 Novo sistema de monetização por Telegram Stars e Mini Apps lançado oficialmente.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── 4. MENSAGENS SALVAS (SAVED MESSAGES) ── */}
+        {(activeFilter === 'all' || activeFilter === 'personal') && (
+          <div
+            onClick={() => {
+              if (outletContext?.openDrawer) outletContext.openDrawer();
+              else showToast('Abra Mensagens Salvas pelo menu lateral', 'info');
+            }}
+            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
+          >
+            <div className="relative shrink-0">
+              <div className="w-13 h-13 rounded-full bg-[#2481cc] flex items-center justify-center shadow-xs text-white">
+                <Bookmark className="w-6 h-6 fill-white" />
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0 py-0.5">
+              <div className="flex justify-between items-center mb-0.5">
+                <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
+                  Mensagens Salvas
+                </h3>
+                <span className="text-[12px] text-[#707579] dark:text-[#9eaab6]">10:40</span>
+              </div>
+
+              <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
+                Seu armazenamento em nuvem pessoal: notas, fotos e arquivos.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── 5. ASSISTENTE TELEGRAM BUSINESS BOT ── */}
         {(activeFilter === 'all' || activeFilter === 'bots') && (
           <div
             onClick={() => navigate('/bot-pay')}
-            className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
+            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
           >
             <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8e44ad] to-[#a55eea] flex items-center justify-center shadow-xs overflow-hidden text-white font-bold text-lg">
+              <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-[#8e44ad] to-[#a55eea] flex items-center justify-center shadow-xs text-white text-xl">
                 🤖
               </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
+              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#17212b]" />
             </div>
-            <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
-              <div className="flex justify-between items-center mb-[2px]">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
+
+            <div className="flex-1 min-w-0 py-0.5">
+              <div className="flex justify-between items-center mb-0.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
                     Telegram Business Bot
                   </h3>
-                  <span className="bg-[#eef2ff] text-[#4f46e5] text-[10px] font-bold px-1.5 py-0.5 rounded-sm">
+                  <span className="bg-[#eef2ff] dark:bg-[#2b5278] text-[#2481cc] text-[10px] font-bold px-1.5 py-0.2 rounded-sm">
                     BOT
                   </span>
                 </div>
-                <span className="text-[12px] text-[#a0a0a0]">{timeStr}</span>
+                <span className="text-[12px] text-[#707579] dark:text-[#9eaab6]">{timeStr}</span>
               </div>
-              <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
-                Assistente de inteligência e automação financeira ativo
+
+              <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
+                Automação de rentabilidade, tarefas diárias e resgates pronta para executar.
               </p>
             </div>
           </div>
         )}
 
-        {/* ── CONTACTS ── */}
+        {/* ── 6. LISTA DINÂMICA DE CONTATOS PRIVADOS ── */}
         {isLoading ? (
-          <div className="flex justify-center items-center p-8 mt-4">
-            <Loader2 className="w-6 h-6 text-[#25D366] animate-spin" />
+          <div className="flex flex-col items-center justify-center p-8 space-y-2">
+            <Loader2 className="w-7 h-7 text-[#2481cc] animate-spin" />
+            <span className="text-[13px] text-[#707579] dark:text-[#9eaab6]">Conectando aos chats...</span>
           </div>
-        ) : !hasResults && searchQuery ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <p className="text-[#8e8e93] text-[15px] mb-2">
-              Nenhum chat encontrado para "<strong>{searchQuery}</strong>"
-            </p>
-            <button
-              onClick={() => setSearchQuery("")}
-              className="text-[#229ED9] text-[14px] font-medium underline cursor-pointer hover:opacity-80"
-            >
-              Limpar pesquisa
-            </button>
-          </div>
-        ) : filteredContacts.length === 0 && !showCommunityChat && !searchQuery ? (
-          <div className="text-center py-10 px-6 text-[#a0a0a0] text-[14px]">
-            Nenhum contacto ainda.<br/>As suas ligações da equipa aparecerão aqui.
-          </div>
-        ) : (
+        ) : filteredContacts.length > 0 ? (
           filteredContacts.map((contact) => {
             const color = getUserColor(contact.telefone);
             const label = (contact.telefone || '').replace(/\D/g, '').slice(-2) || '?';
@@ -410,80 +510,78 @@ export default function ChatsList() {
             return (
               <div
                 key={contact.id}
-                onClick={() => navigate(`/chat/${contact.id}?t=${contact.telefone}`)}
-                className="flex items-center gap-3 px-3 py-2 hover:bg-[#f9f9f9] active:bg-[#f0f0f0] transition-colors cursor-pointer"
+                onClick={() => navigate(`/chat/${contact.id}?t=${encodeURIComponent(contact.telefone)}`)}
+                className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
               >
-                {/* Avatar (48px - Oficial Telegram) */}
+                {/* Avatar Oficial Telegram (52px) */}
                 <div className="relative shrink-0">
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[17px] font-bold shadow-xs"
+                    className="w-13 h-13 rounded-full flex items-center justify-center text-white text-[18px] font-bold shadow-xs"
                     style={{ backgroundColor: color }}
                   >
                     {label}
                   </div>
-                  {/* Online indicator */}
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#4CAF50] rounded-full border-2 border-white" />
+                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#17212b]" />
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0 py-1.5 border-b border-gray-100">
-                  <div className="flex justify-between items-center mb-[2px]">
-                    <h3 className="text-[15.5px] font-semibold text-[#111] truncate leading-tight">
+                {/* Conteúdo do Chat */}
+                <div className="flex-1 min-w-0 py-0.5">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
                       {formatSenderPhone(contact.telefone)}
                     </h3>
                     <div className="flex items-center gap-1 shrink-0 ml-1">
                       {contact.isMe && (
-                        <CheckCheck className="w-[15px] h-[15px] text-[#4CAF50] stroke-[2.5]" />
+                        <CheckCheck className="w-4 h-4 text-[#2481cc] stroke-[2.5]" />
                       )}
-                      <span className="text-[12px] text-[#a0a0a0]">
+                      <span className="text-[12px] text-[#707579] dark:text-[#9eaab6]">
                         {contact.lastMessageTime || timeStr}
                       </span>
                     </div>
                   </div>
-                  <p className="text-[13.5px] text-[#8e8e93] truncate leading-snug">
-                    {contact.lastMessage || "Toque para iniciar uma conversa privada..."}
+
+                  <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
+                    {contact.lastMessage || "Toque para abrir a conversa criptografada..."}
                   </p>
                 </div>
               </div>
             );
           })
+        ) : !searchQuery && activeFilter === 'personal' ? (
+          <div className="text-center py-12 px-6 text-[#707579] dark:text-[#9eaab6] text-[14px]">
+            Nenhum contato pessoal ainda.<br />
+            Seus contatos da equipe e afiliados aparecerão aqui.
+          </div>
+        ) : null}
+
+        {/* Feedback quando a busca não encontra nada */}
+        {searchQuery && filteredContacts.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <p className="text-[#707579] dark:text-[#9eaab6] text-[15px] mb-2">
+              Nenhum resultado encontrado para "<strong>{searchQuery}</strong>"
+            </p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="text-[#2481cc] text-[14px] font-semibold cursor-pointer"
+            >
+              Limpar busca
+            </button>
+          </div>
         )}
       </main>
 
-      {/* ── FAB (Floating Action Button) ── mobile only */}
+      {/* ── BOTÃO DE AÇÃO FLUTUANTE OFICIAL DO TELEGRAM (FAB LÁPIS) ── */}
       <button
-        onClick={() => navigate('/convite')}
-        className="md:hidden fixed bottom-[88px] right-4 w-[56px] h-[56px] bg-[#25D366] rounded-full shadow-[0_4px_20px_rgba(37,211,102,0.5)] flex items-center justify-center z-40 active:scale-95 transition-transform cursor-pointer"
-        aria-label="Novo Chat"
+        onClick={() => {
+          showToast('Iniciando novo chat...', 'info');
+          navigate('/chat-comunidade');
+        }}
+        className="fixed bottom-[74px] right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-tr from-[#1e96c8] to-[#50a2e9] text-white flex items-center justify-center shadow-[0_4px_16px_rgba(36,129,204,0.45)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+        title="Nova Conversa"
+        aria-label="Nova Conversa"
       >
-        <Plus className="w-6 h-6 text-white stroke-[2.5]" />
+        <Edit3 className="w-6 h-6 stroke-[2.2]" />
       </button>
-
-      </div>{/* end sidebar */}
-
-      {/* ── PAINEL DIREITO (apenas desktop) ── */}
-      <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#f1f3f4] h-screen">
-        <div className="flex flex-col items-center gap-4 select-none">
-          {/* Ícone Telegram grande */}
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-lg">
-            <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
-              <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232" />
-              <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035" />
-              <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" />
-            </svg>
-          </div>
-          <h2 className="text-[22px] font-bold text-[#202020]">Telegram Business</h2>
-          <p className="text-[14px] text-[#8e8e93] text-center max-w-[260px] leading-relaxed">
-            Selecione uma conversa na lista à esquerda para começar a conversar.
-          </p>
-          <button
-            onClick={() => navigate('/convite')}
-            className="mt-2 px-6 py-2.5 bg-[#25D366] text-white text-[14px] font-semibold rounded-full shadow hover:bg-[#20b558] transition-colors cursor-pointer"
-          >
-            + Novo Chat
-          </button>
-        </div>
-      </div>
 
     </div>
   );

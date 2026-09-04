@@ -23,12 +23,16 @@ import {
   Lock,
   LogOut,
   Camera,
+  Briefcase,
+  ChevronLeft,
+  Edit3,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { formatCurrency } from "../../lib/currency";
 import { useToast } from "../../components/Toast";
 import EditProfileModal from "./components/EditProfileModal";
+import AutoMessagesModal from "../../components/AutoMessagesModal";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -37,6 +41,7 @@ export default function Profile() {
 
   const [showLanguage, setShowLanguage] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showAutoMessages, setShowAutoMessages] = useState(false);
   const [balance, setBalance] = useState<number>(0);
   const [dailyIncome, setDailyIncome] = useState<number>(0);
   const [totalDeposits, setTotalDeposits] = useState<number>(0);
@@ -101,7 +106,9 @@ export default function Profile() {
           schema: 'public',
           table: 'sys_t500',
           filter: `id=eq.${user.id}`
-        }, () => { fetchData(); })
+        }, () => {
+          fetchData();
+        })
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
@@ -131,46 +138,77 @@ export default function Profile() {
   };
 
   return (
-    <div className="w-full min-h-[100dvh] bg-[#f1f1f2] font-sans text-black pb-28">
+    <div className="w-full min-h-[100dvh] bg-[#f0f2f5] dark:bg-[#0e1621] font-sans text-black pb-28">
 
-      {/* HEADER */}
-      <header className="w-full max-w-2xl mx-auto px-4 pt-4 pb-2 flex justify-between items-center relative z-10">
-        <button className="p-1 rounded-full active:opacity-50 transition-opacity" aria-label="QR Code">
-          <QrCode className="w-6 h-6 text-black" strokeWidth={2} />
-        </button>
-        <button className="p-1 rounded-full active:opacity-50 transition-opacity" aria-label="Mais opções">
-          <MoreVertical className="w-6 h-6 text-black" strokeWidth={2.5} />
-        </button>
+      {/* ── TOP BAR TELEGRAM WEB ── */}
+      <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-3 py-2.5 sticky top-0 z-30 flex justify-between items-center shadow-xs">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => navigate('/telegramBussiness')}
+            className="p-1 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer" 
+            aria-label="Voltar"
+          >
+            <ChevronLeft className="w-6 h-6 text-white stroke-[2.2]" />
+          </button>
+          <h1 className="text-[17px] font-semibold text-white tracking-tight">Definições</h1>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => setShowEditProfile(true)}
+            className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white" 
+            title="Editar Perfil"
+          >
+            <Edit3 className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => showToast('Código QR do Perfil Telegram', 'info')}
+            className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white" 
+            title="QR Code"
+          >
+            <QrCode className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => showToast('Mais opções', 'info')}
+            className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white" 
+            title="Mais Opções"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
-      {/* AVATAR & NAME */}
-      <section className="flex flex-col items-center mt-1 mb-5 px-4 max-w-2xl mx-auto">
+      {/* ── AVATAR & PERFIL TELEGRAM WEB ── */}
+      <section className="bg-white dark:bg-[#17212b] border-b border-gray-100 dark:border-[#202b36] pt-6 pb-5 px-4 flex flex-col items-center shadow-2xs mb-3">
         <div className="relative mb-3 cursor-pointer" onClick={() => setShowEditProfile(true)}>
           {avatarUrl ? (
             <img
               src={avatarUrl}
               alt={userName}
-              className="w-[96px] h-[96px] rounded-full object-cover shadow-sm ring-4 ring-white"
+              className="w-[96px] h-[96px] rounded-full object-cover shadow-sm ring-4 ring-[#2481cc]/20"
             />
           ) : (
-            <div className="w-[96px] h-[96px] rounded-full bg-gradient-to-br from-[#3390ec] to-[#1e6dc8] flex items-center justify-center shadow-sm ring-4 ring-white">
+            <div className="w-[96px] h-[96px] rounded-full bg-gradient-to-br from-[#3390ec] to-[#1e6dc8] flex items-center justify-center shadow-sm ring-4 ring-[#2481cc]/20">
               <span className="text-[38px] font-bold text-white">{firstName.charAt(0).toUpperCase()}</span>
             </div>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); setShowEditProfile(true); }}
-            className="absolute bottom-0 right-0 w-[28px] h-[28px] bg-[#25D366] rounded-full flex items-center justify-center border-2 border-white shadow-xs active:scale-90 transition-transform"
+            className="absolute bottom-0 right-0 w-[30px] h-[30px] bg-[#2481cc] rounded-full flex items-center justify-center border-2 border-white shadow-xs active:scale-90 transition-transform cursor-pointer"
             aria-label="Editar perfil"
           >
-            <Camera className="w-[13px] h-[13px] text-white fill-white" />
+            <Camera className="w-[14px] h-[14px] text-white fill-white" />
           </button>
         </div>
-        <h1 className="text-[22px] font-bold tracking-tight text-black mb-0.5">{userName}</h1>
+        <h2 className="text-[20px] font-bold tracking-tight text-black dark:text-white mb-0.5 text-center">{userName}</h2>
+        {phone && (
+          <p className="text-[13.5px] text-[#707579] dark:text-[#8e9aa5] font-normal mb-0.5">{phone}</p>
+        )}
         {userBio ? (
-          <p className="text-[13px] text-[#8e8e93] text-center max-w-[240px] mb-0.5">{userBio}</p>
+          <p className="text-[13px] text-[#707579] dark:text-[#8e9aa5] text-center max-w-[280px] mb-1">{userBio}</p>
         ) : null}
-        <p className="text-[14px] text-[#8e8e93] font-medium flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-[#25D366] inline-block"></span>
+        <p className="text-[13px] text-[#2481cc] font-medium flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#2481cc] inline-block"></span>
           online
         </p>
       </section>
@@ -214,7 +252,7 @@ export default function Profile() {
           {/* Saldo disponível */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
             <span className="text-[15px] font-medium text-[#8e8e93]">Saldo de Estrelas</span>
-            <span className="text-[16px] font-bold text-[#25D366]">{formatCurrency(balance, "KZ")}</span>
+            <span className="text-[16px] font-bold text-[#2481cc]">{formatCurrency(balance, "KZ")}</span>
           </div>
 
           {/* Lucro acumulado */}
@@ -271,7 +309,7 @@ export default function Profile() {
 
             <SettingsItem
               icon={<ShieldAlert className="w-5 h-5 text-white" />}
-              iconBg="bg-[#25D366]"
+              iconBg="bg-[#2481cc]"
               title="Redefinir Senha de Segurança"
               subtitle="Altere a sua senha de acesso"
               onClick={() => navigate("/alterar-senha")}
@@ -343,6 +381,14 @@ export default function Profile() {
             />
 
             <SettingsItem
+              icon={<Briefcase className="w-5 h-5 text-white" />}
+              iconBg="bg-[#2481cc]"
+              title="Mensagens Automáticas"
+              subtitle="Saudação, ausência e respostas rápidas"
+              onClick={() => setShowAutoMessages(true)}
+            />
+
+            <SettingsItem
               icon={<Store className="w-5 h-5 text-white" />}
               iconBg="bg-[#e95171]"
               title="Telegram Business"
@@ -363,7 +409,7 @@ export default function Profile() {
           {/* CARD 3: AJUDA & SUPORTE */}
           <div className="bg-white rounded-[18px] overflow-hidden shadow-2xs border border-gray-100">
             <div className="px-4 py-2 pt-3">
-              <span className="text-[13px] font-semibold text-[#00a884] tracking-wide">Ajuda</span>
+              <span className="text-[13px] font-semibold text-[#2481cc] tracking-wide">Ajuda</span>
             </div>
 
             <SettingsItem
@@ -427,20 +473,20 @@ export default function Profile() {
               {/* Traduzir Mensagens Card */}
               <div className="bg-white rounded-[18px] overflow-hidden shadow-2xs border border-gray-100">
                 <div className="px-4 pt-3 pb-1">
-                  <span className="text-[13px] font-semibold text-[#25D366]">Traduzir Mensagens</span>
+                  <span className="text-[13px] font-semibold text-[#2481cc]">Traduzir Mensagens</span>
                 </div>
                 <TranslateRow label="Mostrar o Botão Traduzir" defaultOn={true} />
                 <TranslateRow label="Traduzir Chats Inteiros" locked={true} />
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-[15px] text-black">Não Traduzir</span>
-                  <span className="text-[13px] font-medium text-[#25D366]">3 Idiomas</span>
+                  <span className="text-[13px] font-medium text-[#2481cc]">3 Idiomas</span>
                 </div>
               </div>
 
               {/* Lista de Idiomas */}
               <div className="bg-white rounded-[18px] overflow-hidden shadow-2xs border border-gray-100">
                 <div className="px-4 pt-3 pb-1">
-                  <span className="text-[13px] font-semibold text-[#25D366]">Idioma do Aplicativo</span>
+                  <span className="text-[13px] font-semibold text-[#2481cc]">Idioma do Aplicativo</span>
                 </div>
                 <LangRow label="Português (Brasil)" sub="Portuguese (Brazil)" code="pt" available />
                 <LangRow label="English" sub="English" code="en" available />
@@ -466,6 +512,12 @@ export default function Profile() {
           setUserBio(b);
           setAvatarUrl(av);
         }}
+      />
+
+      {/* MODAL MENSAGENS AUTOMÁTICAS TELEGRAM BUSINESS */}
+      <AutoMessagesModal
+        isOpen={showAutoMessages}
+        onClose={() => setShowAutoMessages(false)}
       />
 
     </div>
@@ -534,7 +586,7 @@ function TranslateRow({
         <button
           onClick={() => setOn(!on)}
           className={`w-[44px] h-[26px] rounded-full transition-colors relative cursor-pointer ${
-            on ? "bg-[#25D366]" : "bg-gray-300"
+            on ? "bg-[#2481cc]" : "bg-gray-300"
           }`}
         >
           <div
@@ -575,10 +627,10 @@ function LangRow({
     >
       <div
         className={`w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center mr-3.5 shrink-0 ${
-          isSelected ? "border-[#25D366]" : "border-gray-300"
+          isSelected ? "border-[#2481cc]" : "border-gray-300"
         }`}
       >
-        {isSelected && <div className="w-[10px] h-[10px] rounded-full bg-[#25D366]" />}
+        {isSelected && <div className="w-[10px] h-[10px] rounded-full bg-[#2481cc]" />}
       </div>
       <div className="flex flex-col flex-1">
         <span className="text-[15px] font-medium text-black leading-tight">{label}</span>

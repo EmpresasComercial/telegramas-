@@ -45,7 +45,7 @@ const BANNERS = [
     title: "Recompensas em Estrelas",
     subtitle: "Acompanhe suas estrelas e rendimentos diários no seu perfil",
     badge: "ESTRELAS",
-    badgeBg: "bg-[#25D366]",
+    badgeBg: "bg-[#2481cc]",
     actionText: "Ver Estrelas",
     link: "/perfil",
     icon: <TrendingUp className="w-4 h-4 text-white" />,

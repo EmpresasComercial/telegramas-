@@ -1,73 +1,64 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, HelpCircle, MessageSquareText, Headset, X } from 'lucide-react';
+import { MessageSquare, HelpCircle, X, Headphones, Send } from 'lucide-react';
 
 export default function FloatingSupport() {
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const menuOptions = [
-    { 
-      label: 'Comunidade Telegram', 
-      icon: <Send className="w-4 h-4 text-white -rotate-12 translate-x-[-0.5px] translate-y-[-0.5px]" strokeWidth={2.2} />, 
-      path: '/chat-comunidade',
-      gradient: 'from-[#0088CC] to-[#00A8E8]',
-      shadow: 'shadow-[0_3px_10px_rgba(0,136,204,0.35)]',
-      badgeColor: 'text-[#0088CC]'
+  const options = [
+    {
+      label: 'Atendimento Telegram',
+      icon: <Headphones className="w-4 h-4 text-white" />,
+      action: () => navigate('/telegramBussiness'),
+      gradient: 'from-[#1e96c8] to-[#50a2e9]',
+      shadow: 'shadow-[0_4px_12px_rgba(36,129,204,0.3)]',
     },
-    { 
-      label: 'FAQ & Ajuda', 
-      icon: <HelpCircle className="w-4 h-4 text-white" strokeWidth={2.2} />, 
-      path: '/help-faq',
-      gradient: 'from-[#F59E0B] to-[#EA580C]',
-      shadow: 'shadow-[0_3px_10px_rgba(234,88,12,0.35)]',
-      badgeColor: 'text-[#EA580C]'
+    {
+      label: 'Comunidade Oficial',
+      icon: <MessageSquare className="w-4 h-4 text-white" />,
+      action: () => navigate('/chat-comunidade'),
+      gradient: 'from-[#0088cc] to-[#37aee2]',
+      shadow: 'shadow-[0_4px_12px_rgba(0,136,204,0.3)]',
     },
-    { 
-      label: 'Feedback & Opinião', 
-      icon: <MessageSquareText className="w-4 h-4 text-white" strokeWidth={2.2} />, 
-      path: '/suporte/feedback',
-      gradient: 'from-[#FE384F] to-[#E02038]',
-      shadow: 'shadow-[0_3px_10px_rgba(254,56,79,0.35)]',
-      badgeColor: 'text-[#FE384F]'
-    }
+    {
+      label: 'Perguntas Frequentes (FAQ)',
+      icon: <HelpCircle className="w-4 h-4 text-white" />,
+      action: () => navigate('/help-faq'),
+      gradient: 'from-[#8d54d9] to-[#a55eea]',
+      shadow: 'shadow-[0_4px_12px_rgba(141,84,217,0.3)]',
+    },
   ];
 
   return (
-    <div className="fixed bottom-20 right-4 z-[60] flex flex-col items-end select-none">
-      {/* Backdrop suave para fechar ao tocar fora */}
-      {isOpen && (
-        <div 
-          onClick={() => setIsOpen(false)}
-          className="fixed inset-0 z-0 bg-black/15 transition-opacity backdrop-blur-[1px]"
-        />
-      )}
-
-      {/* Itens do Menu com cores temáticas e gradiente */}
+    <div className="fixed bottom-[74px] right-4 z-40 flex flex-col items-end">
+      {/* Menu com as opções */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 15, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 15, scale: 0.9 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="flex flex-col items-end space-y-3 mb-3 z-10"
+            transition={{ duration: 0.18 }}
+            className="flex flex-col items-end gap-2.5 mb-3"
           >
-            {menuOptions.map((option, index) => (
+            {options.map((option, idx) => (
               <motion.button
-                key={option.path}
-                initial={{ opacity: 0, x: 14 }}
+                key={option.label}
+                type="button"
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 14 }}
-                transition={{ delay: index * 0.04 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.15, delay: idx * 0.04 }}
                 onClick={() => {
-                  navigate(option.path);
                   setIsOpen(false);
+                  option.action();
                 }}
-                className="flex items-center gap-2.5 group cursor-pointer focus:outline-none"
+                className="flex items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <span className="bg-white/95 backdrop-blur-sm text-[#202020] text-[12px] font-medium px-3 py-1.5 rounded-none shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-100 group-hover:bg-[#FE384F] group-hover:text-white transition-all">
+                {/* Rótulo da Opção */}
+                <span className="bg-white/95 dark:bg-[#17212b]/95 backdrop-blur-sm text-[#202020] dark:text-white text-[12px] font-medium px-3 py-1.5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-100 dark:border-gray-800 transition-all">
                   {option.label}
                 </span>
 
@@ -80,13 +71,13 @@ export default function FloatingSupport() {
         )}
       </AnimatePresence>
 
-      {/* Botão Flutuante Principal */}
+      {/* Botão Flutuante Principal Oficial Telegram */}
       <motion.button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         whileTap={{ scale: 0.92 }}
-        className="z-10 w-11 h-11 rounded-full bg-gradient-to-tr from-[#25D366] to-[#2BE570] hover:brightness-105 active:brightness-95 text-white shadow-[0_4px_16px_rgba(37,211,102,0.4)] flex items-center justify-center cursor-pointer transition-all focus:outline-none"
-        aria-label="Atendimento WhatsApp"
+        className="z-10 w-11 h-11 rounded-full bg-gradient-to-tr from-[#1e96c8] to-[#50a2e9] hover:brightness-105 active:brightness-95 text-white shadow-[0_4px_16px_rgba(36,129,204,0.45)] flex items-center justify-center cursor-pointer transition-all focus:outline-none"
+        aria-label="Atendimento Telegram"
       >
         <motion.div
           animate={{ rotate: isOpen ? 90 : 0 }}
@@ -96,8 +87,10 @@ export default function FloatingSupport() {
           {isOpen ? (
             <X className="w-5 h-5 stroke-[2.4]" />
           ) : (
-            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+            <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[20px] h-[20px]">
+              <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232" />
+              <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035" />
+              <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" />
             </svg>
           )}
         </motion.div>

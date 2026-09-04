@@ -202,33 +202,37 @@ export function OperationsPageSkeleton() {
  */
 export function InvitePageSkeleton() {
   return (
-    <div className="w-full min-h-screen bg-[#FAFAFA] pb-24 font-sans">
-      {/* Top Banner Skeleton */}
-      <div className="bg-gradient-to-br from-[#D32F2F] via-[#C62828] to-[#B71C1C] pt-7 pb-16 px-5">
-        <div className="flex items-center justify-between max-w-[430px] mx-auto">
-          <Skeleton className="w-8 h-8 opacity-40" rounded="rounded-full" />
-          <Skeleton className="w-28 h-5 opacity-40" />
-          <div className="w-8" />
-        </div>
+    <div className="w-full min-h-screen bg-[#f1f1f2] dark:bg-[#0e1621] pb-24 font-sans">
+      {/* Top Header Skeleton Telegram */}
+      <div className="w-full px-4 pt-4 pb-3 flex items-center gap-3">
+        <Skeleton className="w-6 h-6" rounded="rounded-full" />
+        <Skeleton className="w-36 h-6" />
       </div>
 
-      <div className="max-w-[430px] mx-auto px-4 -mt-8 space-y-3.5">
+      <div className="w-full px-4 space-y-3.5 pt-2">
+        {/* Top Illustration Skeleton */}
+        <div className="flex flex-col items-center justify-center py-4 space-y-2">
+          <Skeleton className="w-20 h-20" rounded="rounded-full" />
+          <Skeleton className="w-44 h-5" />
+          <Skeleton className="w-60 h-3.5" />
+        </div>
+
         {/* Card Código de Convite */}
-        <div className="bg-white rounded-[8px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-gray-100 space-y-3">
+        <div className="bg-white dark:bg-[#17212b] p-4 shadow-sm space-y-3">
           <Skeleton className="w-28 h-3.5" />
-          <Skeleton className="w-full h-12" rounded="rounded-[6px]" />
-          <Skeleton className="w-full h-10" rounded="rounded-[6px]" />
+          <Skeleton className="w-full h-12" />
+          <Skeleton className="w-full h-10" />
         </div>
 
         {/* Tabs de Níveis */}
         <div className="flex gap-2">
-          <Skeleton className="flex-1 h-10" rounded="rounded-[8px]" />
-          <Skeleton className="flex-1 h-10" rounded="rounded-[8px]" />
-          <Skeleton className="flex-1 h-10" rounded="rounded-[8px]" />
+          <Skeleton className="flex-1 h-10" />
+          <Skeleton className="flex-1 h-10" />
+          <Skeleton className="flex-1 h-10" />
         </div>
 
         {/* Lista de Membros */}
-        <div className="bg-white rounded-[8px] divide-y divide-gray-100 border border-gray-100">
+        <div className="bg-white dark:bg-[#17212b] divide-y divide-gray-100 dark:divide-gray-800">
           {[...Array(4)].map((_, i) => (
             <SkeletonRow key={i} />
           ))}
@@ -260,7 +264,7 @@ export function HistoryPageSkeleton() {
       {/* Lista de Registros */}
       <div className="max-w-[430px] mx-auto px-4 pt-4 space-y-2.5">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="bg-white rounded-[8px] p-4 border border-gray-100 space-y-2.5 shadow-sm">
+          <div key={i} className="bg-white p-4 rounded-[8px] border border-gray-100 shadow-sm space-y-2">
             <div className="flex justify-between items-center">
               <Skeleton className="w-28 h-4" />
               <Skeleton className="w-20 h-4" />
@@ -281,32 +285,31 @@ export function HistoryPageSkeleton() {
  */
 export function AccountSettingsSkeleton() {
   return (
-    <div className="w-full min-h-screen bg-[#FAFAFA] pb-28 font-sans">
-      <div className="bg-gradient-to-br from-[#D32F2F] via-[#C62828] to-[#B71C1C] pt-7 pb-16 px-5">
-        <div className="flex items-center justify-between max-w-[430px] mx-auto">
-          <Skeleton className="w-8 h-8 opacity-40" rounded="rounded-full" />
-          <Skeleton className="w-32 h-4 opacity-40" />
-          <div className="w-8" />
+    <div className="w-full min-h-screen bg-[#f1f1f2] dark:bg-[#0e1621] pb-28 font-sans">
+      <div className="w-full bg-[#2481cc] dark:bg-[#17212b] pt-6 pb-10 px-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="w-7 h-7 opacity-50" rounded="rounded-full" />
+          <Skeleton className="w-32 h-5 opacity-50" />
+          <div className="w-7" />
         </div>
       </div>
 
-      <div className="max-w-[430px] mx-auto px-4 -mt-8 space-y-3.5">
-        <div className="bg-white rounded-[8px] p-4 border border-gray-100 shadow-sm flex items-center space-x-3.5">
-          <Skeleton className="w-[30px] h-[30px]" rounded="rounded-[7px]" />
-          <Skeleton className="w-32 h-4" />
+      <div className="w-full px-4 -mt-6 space-y-3.5">
+        <div className="bg-white dark:bg-[#17212b] p-4 shadow-sm flex items-center space-x-3.5">
+          <Skeleton className="w-12 h-12" rounded="rounded-full" />
+          <Skeleton className="w-36 h-4" />
         </div>
 
-        <div className="bg-white rounded-[8px] divide-y divide-gray-100 border border-gray-100 shadow-sm">
+        <div className="bg-white dark:bg-[#17212b] divide-y divide-gray-100 dark:divide-gray-800 shadow-sm">
           <SkeletonRow />
           <SkeletonRow />
           <SkeletonRow />
         </div>
 
-        <div className="bg-white rounded-[8px] p-4 border border-gray-100 shadow-sm">
-          <Skeleton className="w-full h-8" rounded="rounded-[6px]" />
+        <div className="bg-white dark:bg-[#17212b] p-4 shadow-sm">
+          <Skeleton className="w-full h-10" />
         </div>
       </div>
     </div>
   );
 }
-

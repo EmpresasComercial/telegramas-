@@ -495,63 +495,56 @@ export default function CommunityChat() {
   };
 
   return (
-    <div className="w-full h-[100dvh] bg-[#9bb88a] font-sans antialiased text-[#202020] select-none flex flex-col items-center overflow-hidden relative">
+    <div className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none flex flex-col items-center overflow-hidden relative tg-wallpaper transition-colors">
       
-      {/* Background Telegram Doodle Pattern Overlay */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-25"
-        style={{
-          backgroundImage: `radial-gradient(#5a7a49 1px, transparent 1px), radial-gradient(#5a7a49 1px, transparent 1px)`,
-          backgroundSize: '24px 24px',
-          backgroundPosition: '0 0, 12px 12px'
-        }}
-      />
+      {/* ── HEADER NATIVO DO TELEGRAM ── */}
+      <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-2 py-2 sticky top-0 z-40 flex items-center justify-between shadow-xs select-none">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <button 
+            onClick={() => navigate('/telegramBussiness')} 
+            className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer shrink-0"
+            aria-label="Voltar aos chats"
+          >
+            <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
+          </button>
 
-      {/* FLOATING TELEGRAM CAPSULE HEADER */}
-      <header className="w-full max-w-[480px] px-3 pt-3 pb-2 sticky top-0 z-30 flex items-center justify-between">
-        {/* Back Button */}
-        <button 
-          onClick={() => navigate('/telegramBussiness')} 
-          className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-[#202020] active:scale-90 transition-transform cursor-pointer shrink-0"
-          aria-label="Voltar"
-        >
-          <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
-        </button>
-
-        {/* Center Capsule Pill */}
-        <div 
-          onClick={() => setShowInfo(true)}
-          className="rounded-full bg-white shadow-md py-1.5 px-3 flex items-center gap-2.5 flex-1 mx-2 cursor-pointer active:scale-[0.99] transition-transform min-w-0"
-        >
-          {/* Static Clean Telegram Avatar */}
-          <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-xs overflow-hidden">
-              <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[18px] h-[18px]">
+          <div 
+            onClick={() => setShowInfo(true)}
+            className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-xs overflow-hidden shrink-0 border border-white/30">
+              <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[20px] h-[20px]">
                 <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232"/>
                 <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035"/>
                 <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258"/>
               </svg>
             </div>
-          </div>
 
-          <div className="flex flex-col min-w-0 flex-1">
-            <h1 className="text-[14.5px] font-bold text-[#202020] tracking-tight truncate leading-tight">
-              Telegram Business
-            </h1>
-            <span className="text-[11.5px] text-[#8e8e93] font-normal leading-tight">
-              54 281 membros
-            </span>
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex items-center gap-1">
+                <h1 className="text-[15.5px] font-semibold text-white tracking-tight truncate leading-tight">
+                  Telegram Business Oficial
+                </h1>
+                <span className="w-3.5 h-3.5 rounded-full bg-white text-[#2481cc] flex items-center justify-center text-[8px] font-black shrink-0">
+                  ✓
+                </span>
+              </div>
+              <span className="text-[12px] text-white/80 font-normal leading-tight">
+                54 281 membros, 1 420 online
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* More Actions Button */}
-        <button 
-          onClick={() => setShowInfo(true)} 
-          className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-[#202020] active:scale-90 transition-transform cursor-pointer shrink-0"
-          aria-label="Mais informações"
-        >
-          <MoreVertical className="w-5 h-5 text-gray-700" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => setShowInfo(true)} 
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+            aria-label="Mais informações"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       {/* CHAT MESSAGES AREA */}
@@ -730,10 +723,10 @@ export default function CommunityChat() {
                 initial={{ height: 0, opacity: 0 }} 
                 animate={{ height: "auto", opacity: 1 }} 
                 exit={{ height: 0, opacity: 0 }}
-                className="bg-white/95 backdrop-blur-md border-l-[3px] border-[#25D366] rounded-[14px] px-3 py-1.5 shadow-md flex justify-between items-center"
+                className="bg-white/95 backdrop-blur-md border-l-[3px] border-[#2481cc] rounded-[14px] px-3 py-1.5 shadow-md flex justify-between items-center"
               >
                 <div className="truncate flex-1">
-                  <p className="text-[11px] font-bold text-[#25D366]">
+                  <p className="text-[11px] font-bold text-[#2481cc]">
                     A responder a {formatSenderPhone(replyTo.perfis_mcpn?.telefone || "Membro")}
                   </p>
                   <p className="text-[11px] text-[#777777] truncate italic">
@@ -822,7 +815,7 @@ export default function CommunityChat() {
               type="button"
               onClick={handleSend}
               disabled={isSending}
-              className="w-[46px] h-[46px] rounded-full bg-[#25D366] text-white flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_2px_8px_rgba(37,211,102,0.4)] cursor-pointer"
+              className="w-[46px] h-[46px] rounded-full bg-[#2481cc] hover:bg-[#1f72b5] text-white flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_2px_10px_rgba(36,129,204,0.4)] cursor-pointer"
               title="Enviar"
             >
               {(publicInput.trim() || imagePreview) ? (
