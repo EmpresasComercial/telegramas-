@@ -645,8 +645,8 @@ export default function CommunityChat() {
   ] : [];
 
   return (
-    <div className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none flex flex-col items-center overflow-hidden relative tg-wallpaper transition-colors">
-      <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-2 py-2 sticky top-0 z-40 flex items-center justify-between shadow-xs select-none">
+    <div className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none flex flex-col items-stretch overflow-hidden relative tg-wallpaper transition-colors">
+      <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-3 sm:px-6 py-2 sticky top-0 z-40 flex items-center justify-between shadow-xs select-none">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <button 
             onClick={() => navigate('/telegramBussiness')} 
@@ -657,7 +657,7 @@ export default function CommunityChat() {
           </button>
 
           <div 
-            onClick={() => setShowInfo(true)}
+            onClick={() => setShowInfo(true)} 
             className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#1e96c8] to-[#37aee2] flex items-center justify-center shadow-xs overflow-hidden shrink-0 border border-white/30">
@@ -698,7 +698,7 @@ export default function CommunityChat() {
       <main 
         ref={scrollRef} 
         onScroll={handleScroll}
-        className="w-full max-w-[480px] flex-1 overflow-y-auto no-scrollbar px-3 pt-2 pb-24 space-y-2 relative scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="w-full flex-1 overflow-y-auto no-scrollbar px-3 sm:px-6 md:px-10 lg:px-16 pt-2 pb-24 space-y-2.5 relative scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {publicMessages.map((m, i) => {
           const isMe = m.uid_emissor === user?.id;

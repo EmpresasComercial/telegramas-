@@ -312,10 +312,10 @@ export default function PrivateChat() {
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none flex flex-col items-center overflow-hidden relative tg-wallpaper transition-colors">
+    <div className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none flex flex-col items-stretch overflow-hidden relative tg-wallpaper transition-colors">
 
       {/* ── HEADER ── */}
-      <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-2 py-2 sticky top-0 z-40 flex items-center justify-between shadow-xs select-none">
+      <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-3 sm:px-6 py-2 sticky top-0 z-40 flex items-center justify-between shadow-xs select-none">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <button
             onClick={() => navigate('/telegramBussiness')}
@@ -373,10 +373,10 @@ export default function PrivateChat() {
         </div>
       </header>
 
-      {/* ── ÁREA DE MENSAGENS ── */}
+      {/* ── ÁREA DE MENSAGENS TELEGRAM (LARGURA TOTAL FLUIDA) ── */}
       <main
         ref={scrollRef}
-        className="w-full max-w-[650px] flex-1 overflow-y-auto no-scrollbar px-3 pt-4 pb-24 space-y-2 relative scroll-smooth"
+        className="w-full flex-1 overflow-y-auto no-scrollbar px-3 sm:px-6 md:px-10 lg:px-16 pt-4 pb-24 space-y-2.5 relative scroll-smooth"
         onClick={() => contextMenu && closeContextMenu()}
       >
         {isLoading && messages.length === 0 && (
@@ -414,7 +414,7 @@ export default function PrivateChat() {
                   onClick={(e) => { e.stopPropagation(); openContextMenu(e, m, isMe); }}
                   onTouchStart={handleTouchStart}
                   onTouchEnd={(e) => handleTouchEnd(e, m, isMe)}
-                  className={`max-w-[82%] px-3.5 py-2 text-[#111827] dark:text-[#f3f4f6] shadow-[0_1px_2px_rgba(16,35,47,0.15)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none ${
+                  className={`max-w-[85%] sm:max-w-[70%] md:max-w-[580px] px-3.5 py-2 text-[#111827] dark:text-[#f3f4f6] shadow-[0_1px_2px_rgba(16,35,47,0.15)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none ${
                     isMe
                       ? 'bg-[#effdde] dark:bg-[#2b5278] rounded-[16px] rounded-br-[4px]'
                       : 'bg-white dark:bg-[#182533] rounded-[16px] rounded-bl-[4px]'
@@ -543,8 +543,8 @@ export default function PrivateChat() {
 
       {/* ── REPLY PREVIEW BAR ── */}
       {replyTo && (
-        <div className="fixed bottom-[65px] left-0 right-0 z-40 flex justify-center px-2">
-          <div className="w-full max-w-[650px] bg-white dark:bg-[#17212b] border-t-2 border-[#2481cc] rounded-t-xl px-4 py-2.5 flex items-center gap-3 shadow-lg">
+        <div className="fixed bottom-[65px] left-0 right-0 z-40 flex justify-center px-2 sm:px-6">
+          <div className="w-full max-w-[1000px] bg-white dark:bg-[#17212b] border-t-2 border-[#2481cc] rounded-t-xl px-4 py-2.5 flex items-center gap-3 shadow-lg">
             <div className="w-[3px] h-full bg-[#2481cc] rounded-full self-stretch" />
             <div className="flex-1 min-w-0">
               <span className="text-[11.5px] font-bold text-[#2481cc] block">Respondendo a</span>
@@ -559,8 +559,8 @@ export default function PrivateChat() {
 
       {/* ── QUICK HINTS ── */}
       {showQuickHints && (
-        <div className="fixed bottom-[65px] left-0 right-0 flex justify-center px-3 z-40 animate-in slide-in-from-bottom-2">
-          <div className="w-full max-w-[650px] bg-white dark:bg-[#17212b] rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 p-2 space-y-1">
+        <div className="fixed bottom-[65px] left-0 right-0 flex justify-center px-2 sm:px-6 z-40 animate-in slide-in-from-bottom-2">
+          <div className="w-full max-w-[1000px] bg-white dark:bg-[#17212b] rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 p-2 space-y-1">
             <div className="flex items-center justify-between px-2 py-1 text-[11.5px] font-semibold text-[#2481cc] uppercase">
               <span className="flex items-center gap-1"><Zap className="w-3.5 h-3.5" /> Respostas Rápidas (Telegram Business)</span>
               <button onClick={() => setShowQuickHints(false)} className="text-gray-400 hover:text-black dark:hover:text-white">✕</button>
@@ -580,8 +580,8 @@ export default function PrivateChat() {
       )}
 
       {/* ── BARRA DE MENSAGEM ── */}
-      <div className="fixed bottom-0 left-0 right-0 p-2 z-40 flex justify-center bg-white/90 dark:bg-[#17212b]/90 backdrop-blur-sm border-t border-gray-200/50 dark:border-[#202b36]">
-        <div className="w-full max-w-[650px] flex items-end gap-2">
+      <div className="fixed bottom-0 left-0 right-0 p-2 sm:p-3 z-40 flex justify-center bg-white/90 dark:bg-[#17212b]/90 backdrop-blur-sm border-t border-gray-200/50 dark:border-[#202b36]">
+        <div className="w-full max-w-[1000px] flex items-end gap-2 px-1 sm:px-4">
           <div className="flex-1 bg-white dark:bg-[#202b36] rounded-[24px] shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center px-3.5 py-1 min-h-[46px] border border-gray-200 dark:border-gray-700">
             <button
               type="button"
