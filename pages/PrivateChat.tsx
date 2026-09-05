@@ -92,10 +92,22 @@ export default function PrivateChat() {
     });
   };
 
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
   // ── Fetch Messages ────────────────────────────────────────────────────
   const isFetchingRef = useRef(false);
   const fetchMessages = async (isInitial = false) => {
     if (!user || !contactId) return;
+    if (!isUUID(contactId)) {
+      if (localKey) {
+        try {
+          const cached = localStorage.getItem(localKey);
+          if (cached) setMessages(JSON.parse(cached));
+        } catch {}
+      }
+      if (isInitial) setIsLoading(false);
+      return;
+    }
     if (isFetchingRef.current && !isInitial) return;
     isFetchingRef.current = true;
     try {
@@ -276,6 +288,16 @@ export default function PrivateChat() {
         setMessages(prev => [...prev, autoReply]);
         scrollToBottom();
       }, 900);
+    }
+
+    if (!isUUID(contactId)) {
+      if (localKey) {
+        try {
+          const current = [...messages, newMsg];
+          localStorage.setItem(localKey, JSON.stringify(current));
+        } catch {}
+      }
+      return;
     }
 
     try {

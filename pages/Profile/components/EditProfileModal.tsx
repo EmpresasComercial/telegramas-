@@ -76,8 +76,9 @@ export default function EditProfileModal({
         if (!upErr) {
           const { data: { publicUrl } } = supabase.storage.from("user-avatars").getPublicUrl(path);
           finalAvatarUrl = publicUrl;
-        } else if (avatarPreview) {
-          finalAvatarUrl = avatarPreview;
+        } else {
+          console.error("Erro no upload do avatar:", upErr);
+          showToast("Aviso: Não foi possível salvar a imagem no servidor.", "error");
         }
       }
 
