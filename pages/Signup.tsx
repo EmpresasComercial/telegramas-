@@ -1,19 +1,17 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { useToast } from '../components/Toast';
-import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/device';
 import { subscribeToPushNotifications } from '../lib/pushNotifications';
-import { Loader2, Search, X, Check, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Loader2, Search, X, Check, ArrowLeft, ChevronDown, Pencil } from 'lucide-react';
 import { COUNTRIES, Country } from '../lib/countries';
 
 export default function Signup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
-  const { t } = useLanguage();
 
   // Step state: 'phone' | 'verification'
   const [step, setStep] = useState<'phone' | 'verification'>('phone');
@@ -21,8 +19,7 @@ export default function Signup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [formData, setFormData] = useState({ phone: '', inviteCode: '' });
-  const [pin, setPin] = useState<string[]>(['', '', '', '', '', '']);
-  const pinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [verificationCode, setVerificationCode] = useState('');
 
   // Modal states
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
@@ -65,44 +62,11 @@ export default function Signup() {
     setStep('verification');
   };
 
-  // PIN Input handlers
-  const handlePinChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1);
-    const newPin = [...pin];
-    newPin[index] = digit;
-    setPin(newPin);
-
-    if (digit && index < 5) {
-      pinInputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handlePinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !pin[index] && index > 0) {
-      pinInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePinPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pastedData) {
-      const newPin = ['', '', '', '', '', ''];
-      for (let i = 0; i < pastedData.length; i++) {
-        newPin[i] = pastedData[i];
-      }
-      setPin(newPin);
-      const nextIndex = Math.min(pastedData.length, 5);
-      pinInputRefs.current[nextIndex]?.focus();
-    }
-  };
-
   // Execute complete registration
   const executeRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
-    const enteredPin = pin.join('');
-    if (enteredPin.length < 6) {
-      showToast('Ops! Por favor introduza os 6 dígitos do código de verificação.', 'error');
+    if (!verificationCode || verificationCode.length < 4) {
+      showToast('Ops! Por favor introduza o código de verificação.', 'error');
       return;
     }
     if (!formData.inviteCode || formData.inviteCode.length !== 4) {
@@ -191,24 +155,24 @@ export default function Signup() {
       </div>
 
       <main className="w-full max-w-[360px] flex flex-col items-center">
-        {/* Official Telegram Logo */}
-        <div className="mb-6 flex items-center justify-center">
-          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[120px] h-[120px]">
-            <defs>
-              <linearGradient id="tgOfficialGrad" x1=".667" x2=".417" y1=".167" y2=".75">
-                <stop offset="0" stopColor="#37aee2"/>
-                <stop offset="1" stopColor="#1e96c8"/>
-              </linearGradient>
-            </defs>
-            <circle cx="120" cy="120" r="120" fill="url(#tgOfficialGrad)"/>
-            <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232"/>
-            <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035"/>
-            <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258"/>
-          </svg>
-        </div>
-
         {step === 'phone' ? (
           <>
+            {/* Official Telegram Logo */}
+            <div className="mb-6 flex items-center justify-center">
+              <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[120px] h-[120px]">
+                <defs>
+                  <linearGradient id="tgOfficialGrad" x1=".667" x2=".417" y1=".167" y2=".75">
+                    <stop offset="0" stopColor="#37aee2"/>
+                    <stop offset="1" stopColor="#1e96c8"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="120" cy="120" r="120" fill="url(#tgOfficialGrad)"/>
+                <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232"/>
+                <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035"/>
+                <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258"/>
+              </svg>
+            </div>
+
             <h1 className="text-[30px] font-semibold text-center mb-2 tracking-tight text-black">Telegram</h1>
             
             <p className="text-[15px] text-[#707579] text-center mb-8 leading-snug max-w-[320px]">
@@ -284,50 +248,81 @@ export default function Signup() {
             </form>
           </>
         ) : (
-          /* STEP 2: VERIFICATION & PIN SCREEN */
+          /* STEP 2: OFFICIAL TELEGRAM VERIFICATION SCREEN DESIGN */
           <form onSubmit={executeRegistration} className="w-full flex flex-col items-center">
-            <h1 className="text-[28px] font-semibold text-center mb-2 tracking-tight text-black">Código de Verificação</h1>
-            
-            <p className="text-[15px] text-[#707579] text-center mb-6 leading-snug max-w-[320px]">
-              Foi enviada uma mensagem de verificação para o número{' '}
-              <strong className="text-black font-semibold">
-                {selectedCountry.dial_code} {formData.phone.replace(/(\d{3})(?=\d)/g, '$1 ')}
-              </strong>
-              .<br />Introduza os 6 dígitos abaixo e o seu código de convite para concluir o cadastro.
-            </p>
-
-            {/* 6 PIN Boxes */}
-            <div className="flex justify-between gap-2 w-full my-4">
-              {pin.map((digit, idx) => (
-                <input
-                  key={idx}
-                  ref={el => { pinInputRefs.current[idx] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={e => handlePinChange(idx, e.target.value)}
-                  onKeyDown={e => handlePinKeyDown(idx, e)}
-                  onPaste={handlePinPaste}
-                  autoFocus={idx === 0}
-                  className="w-12 h-14 bg-white rounded-[12px] border border-[#c8c7cc] focus:border-[#3390ec] text-center text-[22px] font-semibold text-black outline-none transition-all shadow-sm"
-                />
-              ))}
+            {/* Cute Telegram Monkey SVG Illustration */}
+            <div className="mb-6 flex items-center justify-center">
+              <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" className="w-[120px] h-[120px]">
+                {/* Monkey ears */}
+                <circle cx="28" cy="80" r="22" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
+                <circle cx="28" cy="80" r="13" fill="#f8c8a0"/>
+                <circle cx="132" cy="80" r="22" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
+                <circle cx="132" cy="80" r="13" fill="#f8c8a0"/>
+                {/* Head base */}
+                <ellipse cx="80" cy="84" rx="54" ry="46" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
+                {/* Inner light cream face shape */}
+                <path d="M 40 86 C 40 58, 60 52, 80 66 C 100 52, 120 58, 120 86 C 120 114, 96 122, 80 122 C 64 122, 40 114, 40 86 Z" fill="#fce5cd" stroke="#5d4037" strokeWidth="3"/>
+                {/* Eyes */}
+                <ellipse cx="62" cy="82" rx="6.5" ry="9" fill="#212121"/>
+                <circle cx="64" cy="79" r="2.5" fill="#ffffff"/>
+                <ellipse cx="98" cy="82" rx="6.5" ry="9" fill="#212121"/>
+                <circle cx="100" cy="79" r="2.5" fill="#ffffff"/>
+                {/* Nose */}
+                <ellipse cx="80" cy="95" rx="7" ry="4.5" fill="#b08557"/>
+                <circle cx="77.5" cy="95.5" r="1.8" fill="#5d4037"/>
+                <circle cx="82.5" cy="95.5" r="1.8" fill="#5d4037"/>
+                {/* Smile */}
+                <path d="M 72 104 Q 80 112 88 104" fill="none" stroke="#5d4037" strokeWidth="3.5" strokeLinecap="round"/>
+              </svg>
             </div>
 
-            {/* Invite Code Field (4 characters - Floating Label) */}
-            <div className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mt-3 mb-6">
-              <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
-                Código de Convite (4 caracteres)
+            {/* Phone Number Display with Pencil Icon to Edit */}
+            <div 
+              className="flex items-center justify-center gap-2 mb-2 cursor-pointer group hover:opacity-80 transition-opacity"
+              onClick={() => setStep('phone')}
+              title="Clique para editar o número"
+            >
+              <h2 className="text-[28px] font-bold text-black tracking-tight">
+                {selectedCountry.dial_code} {formData.phone.replace(/(\d{3})(?=\d)/g, '$1 ')}
+              </h2>
+              <Pencil className="w-5 h-5 text-[#707579] group-hover:text-[#3390ec] transition-colors shrink-0" />
+            </div>
+
+            <p className="text-[14px] text-[#707579] text-center mb-8 leading-snug max-w-[300px]">
+              Enviámos o código de verificação para o seu número de telefone.
+            </p>
+
+            {/* Verification Code Floating Input Box */}
+            <div className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
+              <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
+                Code / Código
+              </label>
+              <input
+                name="verificationCode"
+                type="text"
+                inputMode="numeric"
+                placeholder=""
+                maxLength={6}
+                className="flex-1 h-full bg-transparent outline-none text-[18px] text-black font-medium tracking-widest text-center"
+                value={verificationCode}
+                onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                autoFocus
+              />
+            </div>
+
+            {/* Invite Code Floating Input Box (4 Characters) */}
+            <div className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-6">
+              <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
+                Invite Code / Código de Convite (4 caracteres)
               </label>
               <input
                 name="inviteCode"
                 type="text"
                 placeholder="Ex: aB3c"
-                className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-mono tracking-widest uppercase"
+                maxLength={4}
+                className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-mono tracking-widest uppercase text-center"
                 value={formData.inviteCode}
                 onChange={handleChange}
-                maxLength={4}
               />
             </div>
 
