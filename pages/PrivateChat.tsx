@@ -93,8 +93,11 @@ export default function PrivateChat() {
   };
 
   // ── Fetch Messages ────────────────────────────────────────────────────
+  const isFetchingRef = useRef(false);
   const fetchMessages = async (isInitial = false) => {
     if (!user || !contactId) return;
+    if (isFetchingRef.current && !isInitial) return;
+    isFetchingRef.current = true;
     try {
       const { data, error } = await (supabase as any)
         .from('sys_t110')
@@ -117,6 +120,7 @@ export default function PrivateChat() {
     } catch {
       // silent
     } finally {
+      isFetchingRef.current = false;
       if (isInitial) setIsLoading(false);
     }
   };
@@ -128,7 +132,7 @@ export default function PrivateChat() {
     fetchMessages(true);
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchMessages(false);
-    }, 2500);
+    }, 3500);
     return () => clearInterval(interval);
   }, [user, contactId]);
 

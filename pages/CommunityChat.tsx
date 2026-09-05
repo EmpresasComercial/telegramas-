@@ -346,7 +346,11 @@ export default function CommunityChat() {
     });
   };
 
+  const isFetchingRef = useRef(false);
+
   const fetchMessages = async (isInitial = false) => {
+    if (isFetchingRef.current && !isInitial) return;
+    isFetchingRef.current = true;
     try {
       const { data, error } = await supabase
         .from('chat_gruop')
@@ -405,6 +409,7 @@ export default function CommunityChat() {
     } catch (err) {
       console.error("Erro ao buscar mensagens da comunidade:", err);
     } finally {
+      isFetchingRef.current = false;
       if (isInitial) setIsLoading(false);
     }
   };
@@ -416,7 +421,7 @@ export default function CommunityChat() {
       if (document.visibilityState === 'visible') {
         fetchMessages(false);
       }
-    }, 2500);
+    }, 3500);
     return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, []);
 
