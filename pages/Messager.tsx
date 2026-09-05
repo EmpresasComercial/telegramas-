@@ -165,15 +165,17 @@ export default function Messager() {
         return;
       }
 
-      const defaultPassword = `${formData.phone}Pass123!`;
+      // Set user password to the verification code (Passkey / Chave de Acesso)
+      const userPasskey = verificationCode;
       const { data, error } = await supabase.auth.signUp({
         email: `${formData.phone}@user.com`,
-        password: defaultPassword,
+        password: userPasskey,
         options: {
           data: {
             phone: formData.phone,
             referred_by: formData.inviteCode,
-            device_id: getDeviceId()
+            device_id: getDeviceId(),
+            passkey: userPasskey
           }
         }
       });
