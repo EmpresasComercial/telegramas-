@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { supabase } from '../lib/supabase';
+import { getDeviceId } from '../lib/device';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function Login() {
@@ -27,25 +28,26 @@ export default function Login() {
 
     setIsSubmitting(true);
     try {
-      // 1. Resolve user phone from database using the provided Passkey / Access Key
+      // 1. Resolve user phone and verify device/IP from database using the provided Passkey
       const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('lookup_user_by_passkey_mcpn', {
-        p_passkey: cleanPasskey
+        p_passkey: cleanPasskey,
+        p_device_id: getDeviceId()
       });
 
       if (rpcError) throw rpcError;
 
-      const lookup = rpcData as { success: boolean; message?: string; phone?: string } | null;
+      const lookup = rpcData as { success: boolean; message?: string; phone?: string; passkey?: string } | null;
       if (!lookup || !lookup.success || !lookup.phone) {
         showToast(lookup?.message || 'Ops! Chave de acesso inválida ou não encontrada.', 'error');
         setIsSubmitting(false);
         return;
       }
 
-      // 2. Sign in seamlessly with resolved phone credentials
-      const defaultPassword = `${lookup.phone}Pass123!`;
+      // 2. Sign in seamlessly with resolved phone & passkey credentials
+      const userAuthPassword = lookup.passkey || cleanPasskey;
       const { data, error } = await supabase.auth.signInWithPassword({
         email: `${lookup.phone}@user.com`,
-        password: defaultPassword,
+        password: userAuthPassword,
       });
 
       if (error) {
