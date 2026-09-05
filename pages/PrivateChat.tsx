@@ -291,11 +291,13 @@ export default function PrivateChat() {
         .insert([payload]);
       if (error) {
         console.error('[PrivateChat] Erro insert sys_t110:', error.code, error.message, error.details, error.hint);
+        showToast(`Erro ao enviar: ${error.message}`, 'error');
       } else {
         console.log('[PrivateChat] Mensagem inserida com sucesso');
       }
     } catch (err: any) {
       console.warn('[PrivateChat] Excepção ao enviar:', err?.message || err);
+      showToast(`Erro ao enviar: ${err?.message || 'Falha na conexão'}`, 'error');
     }
   };
 

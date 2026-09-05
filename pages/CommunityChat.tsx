@@ -539,7 +539,8 @@ export default function CommunityChat() {
     } catch (err: any) { 
       console.error("Erro ao enviar mensagem na comunidade:", err);
       setPublicMessages(prev => prev.filter(m => m.id !== tempId));
-      showToast("Erro ao enviar mensagem.", "error"); 
+      const errorMsg = err?.message || err?.error_description || "Erro ao enviar mensagem.";
+      showToast(`Erro ao enviar: ${errorMsg}`, "error"); 
     } finally { 
       setIsSending(false); 
     }
