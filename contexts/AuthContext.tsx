@@ -26,9 +26,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 5000);
 
     supabase.auth.getSession()
-      .then(({ data }) => {
-        setSession(data.session);
-        if (data.session && 'Notification' in window && Notification.permission === 'granted') {
+      .then(async ({ data }) => {
+        let currentSession = data.session;
+        // Se o token salvo no localStorage ainda for o token antigo pesado (>5KB com base64)
+        if (currentSession?.access_token && currentSession.access_token.length > 5000) {
+          console.warn("Token antigo detectado com metadados pesados. Renovando sessão automaticamente...");
+          const { data: refData, error: refErr } = await supabase.auth.refreshSession();
+          if (!refErr && refData?.session) {
+            currentSession = refData.session;
+          } else {
+            await supabase.auth.signOut();
+            currentSession = null;
+          }
+        }
+        setSession(currentSession);
+        if (currentSession && 'Notification' in window && Notification.permission === 'granted') {
           subscribeToPushNotifications();
         }
       })

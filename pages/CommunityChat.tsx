@@ -161,6 +161,15 @@ function getUserColor(str: string): string {
   return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
 }
 
+const formatSenderPhone = (p?: string | null) => {
+  if (!p) return 'Contacto';
+  const clean = p.replace(/^\+?244\s*/, '').trim();
+  if (/^\d{9}$/.test(clean)) {
+    return `+244 ${clean.slice(0, 3)} *** ${clean.slice(6)}`;
+  }
+  return p;
+};
+
 const phoneCache: Record<string, string> = {};
 
 const GROUP_MEMBERS = [
@@ -231,7 +240,7 @@ const GROUP_MEMBERS = [
   }
 ];
 
-const COMMUNITY_QUICK_REACTIONS = ['❤️', '🫡', '🤷‍♂️', '👍', '👎', '🔥', '🥰', '🎉', '👏', '😂', '😮', '😢'];
+const COMMUNITY_QUICK_REACTIONS = ['❤️', '🤷‍♂️', '👍', '👎', '🔥', '🥰', '🎉', '👏', '😂', '😮', '😢'];
 
 export default function CommunityChat() {
   const navigate = useNavigate();
@@ -367,20 +376,30 @@ export default function CommunityChat() {
             .in('id', uncachedIds);
           if (profiles) {
             profiles.forEach((p: any) => {
-              phoneCache[p.id] = p.nome_exibicao || p.telefone || "Membro";
+              phoneCache[p.id] = p.nome_exibicao || p.telefone || "Telefone Desconhecido";
             });
           }
         }
 
         const dataWithPhones = data.map((m: any) => ({
           ...m,
-          perfis_mcpn: { telefone: phoneCache[m.uid_emissor] || "Telefone Desconhecido" }
+          perfil: { 
+            telefone: phoneCache[m.uid_emissor] || "Telefone Desconhecido",
+            nome_exibicao: phoneCache[m.uid_emissor] || "Membro"
+          }
         }));
 
         const sorted = dataWithPhones.reverse();
         setPublicMessages(prev => {
+          const withoutTemp = prev.filter(m => {
+            if (typeof m.id === 'number' && m.id > 1000000000000) {
+              return !sorted.some((s: any) => s.uid_emissor === m.uid_emissor && s.mensagem === m.mensagem);
+            }
+            return true;
+          });
+
           const msgMap = new Map();
-          prev.forEach(m => msgMap.set(m.id, m));
+          withoutTemp.forEach(m => msgMap.set(m.id, m));
           sorted.forEach((m: any) => msgMap.set(m.id, m));
           const result = Array.from(msgMap.values()).sort((a, b) =>
             new Date(a.data_registrada).getTime() - new Date(b.data_registrada).getTime()
@@ -393,7 +412,8 @@ export default function CommunityChat() {
                 prev[i]?.id !== result[i]?.id ||
                 prev[i]?.mensagem !== result[i]?.mensagem ||
                 JSON.stringify(prev[i]?.detalhes) !== JSON.stringify(result[i]?.detalhes) ||
-                prev[i]?.perfis_mcpn?.telefone !== result[i]?.perfis_mcpn?.telefone
+                prev[i]?.perfil?.telefone !== result[i]?.perfil?.telefone ||
+                prev[i]?.perfil?.nome_exibicao !== result[i]?.perfil?.nome_exibicao
               ) {
                 unchanged = false;
                 break;
@@ -407,7 +427,7 @@ export default function CommunityChat() {
         if (isInitial) scrollToBottom("auto");
       }
     } catch (err) {
-      console.error("Erro ao buscar mensagens da comunidade:", err);
+      console.error("Não foi possivél carregar mensagens, por favor atualize a pagina", err);
     } finally {
       isFetchingRef.current = false;
       if (isInitial) setIsLoading(false);
@@ -444,13 +464,25 @@ export default function CommunityChat() {
                 .eq('id', data.uid_emissor)
                 .maybeSingle();
               if (prof) {
-                tel = prof.nome_exibicao || prof.telefone || "Membro";
+                tel = prof.nome_exibicao || prof.telefone || "Telefone Desconhecido";
                 phoneCache[data.uid_emissor] = tel;
               }
             }
-            const dataWithPhone = { ...data, perfis_mcpn: { telefone: tel || "Membro" } };
+            const dataWithPhone = { 
+              ...data, 
+              perfil: { 
+                telefone: tel || "Telefone Desconhecido",
+                nome_exibicao: tel || "Membro"
+              } 
+            };
             setPublicMessages((c) => {
-              const msgMap = new Map(c.map(m => [m.id, m]));
+              const withoutTemp = c.filter(m => !(
+                typeof m.id === 'number' &&
+                m.id > 1000000000000 &&
+                m.uid_emissor === data.uid_emissor &&
+                m.mensagem === data.mensagem
+              ));
+              const msgMap = new Map(withoutTemp.map(m => [m.id, m]));
               msgMap.set(data.id, dataWithPhone);
               return Array.from(msgMap.values()).sort((a, b) => 
                 new Date(a.data_registrada).getTime() - new Date(b.data_registrada).getTime()
@@ -497,7 +529,7 @@ export default function CommunityChat() {
     const tempReply = replyTo;
     const detalhes: Record<string, any> = {};
     if (tempImg) { detalhes.imagem_url = tempImg; detalhes.tipo_midia = 'imagem'; }
-    if (tempReply) { detalhes.resposta_para_id = tempReply.id; detalhes.reply = { id: tempReply.id, text: tempReply.mensagem, sender: tempReply.perfis_mcpn?.telefone || '' }; }
+    if (tempReply) { detalhes.resposta_para_id = tempReply.id; detalhes.reply = { id: tempReply.id, text: tempReply.mensagem, sender: tempReply.perfil?.nome_exibicao || tempReply.perfil?.telefone || '' }; }
 
     setPublicInput("");
     setImagePreview(null);
@@ -515,7 +547,7 @@ export default function CommunityChat() {
       mensagem: tempMsg || "",
       detalhes,
       data_registrada: new Date().toISOString(),
-      perfis_mcpn: { telefone: "Eu" }
+      perfil: { telefone: "Eu", nome_exibicao: "Eu" }
     };
     setPublicMessages(prev => [...prev, optimisticMessage]);
     scrollToBottom();
@@ -528,18 +560,31 @@ export default function CommunityChat() {
         detalhes,
       };
       console.log('[CommunityChat] Enviando para chat_gruop:', payload);
-      const { error } = await supabase.from("chat_gruop").insert([payload]);
+      const { data: insertedMsg, error } = await supabase
+        .from("chat_gruop")
+        .insert([payload])
+        .select()
+        .single();
 
       if (error) {
         console.error('[CommunityChat] Erro insert:', error.code, error.message, error.details, error.hint);
         throw error;
       }
+      if (insertedMsg) {
+        setPublicMessages(prev => prev.map(m => m.id === tempId ? {
+          ...insertedMsg,
+          perfil: { 
+            telefone: phoneCache[user.id] || "Eu",
+            nome_exibicao: phoneCache[user.id] || "Eu"
+          }
+        } : m));
+      }
       console.log('[CommunityChat] Mensagem inserida com sucesso');
       scrollToBottom();
     } catch (err: any) { 
-      console.error("Erro ao enviar mensagem na comunidade:", err);
+      console.error("Ops! mensagem não enviada", err);
       setPublicMessages(prev => prev.filter(m => m.id !== tempId));
-      const errorMsg = err?.message || err?.error_description || "Erro ao enviar mensagem.";
+      const errorMsg = err?.message || err?.error_description || "Ops! mensagem não enviada";
       showToast(`Erro ao enviar: ${errorMsg}`, "error"); 
     } finally { 
       setIsSending(false); 
@@ -713,9 +758,11 @@ export default function CommunityChat() {
       >
         {publicMessages.map((m, i) => {
           const isMe = m.uid_emissor === user?.id;
-          const phone = m.perfis_mcpn?.telefone || "Utilizador";
+          const displayName = isMe 
+            ? "Eu" 
+            : (m.perfil?.nome_exibicao || formatSenderPhone(m.perfil?.telefone));
           const showDate = i === 0 || formatDateLabel(m.data_registrada) !== formatDateLabel(publicMessages[i-1].data_registrada);
-          const authorColor = getUserColor(phone);
+          const authorColor = getUserColor(displayName);
 
           const parsedData: any = (m.detalhes && typeof m.detalhes === 'object') ? m.detalhes : {};
           const reply = parsedData.reply;
@@ -741,7 +788,7 @@ export default function CommunityChat() {
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-bold shrink-0 mb-0.5 shadow-xs overflow-hidden"
                     style={{ backgroundColor: authorColor }}
                   >
-                    {phone.slice(-2)}
+                    {displayName.slice(0, 2).toUpperCase()}
                   </div>
                 )}
 
@@ -767,7 +814,7 @@ export default function CommunityChat() {
                       className="text-[13px] font-bold mb-0.5 cursor-pointer truncate"
                       style={{ color: authorColor }}
                     >
-                      {phone}
+                      {displayName}
                     </p>
                   )}
 
@@ -856,7 +903,7 @@ export default function CommunityChat() {
               >
                 <div className="truncate flex-1">
                   <p className="text-[11px] font-bold text-[#2481cc]">
-                    A responder a {formatSenderPhone(replyTo.perfis_mcpn?.telefone || "Membro")}
+                    A responder a {replyTo.perfil?.nome_exibicao || formatSenderPhone(replyTo.perfil?.telefone)}
                   </p>
                   <p className="text-[11px] text-[#777777] truncate italic">
                     <TranslatedMessage text={replyTo.mensagem} language={language} renderFormatted={(t: string) => t || 'Foto'} />

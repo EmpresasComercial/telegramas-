@@ -120,8 +120,14 @@ export default function PrivateChat() {
 
       if (!error && data) {
         setMessages(prev => {
+          const withoutTemp = prev.filter(m => {
+            if (typeof m.id === 'string' && m.id.startsWith('local_')) {
+              return !data.some((d: any) => d.remetente_id === m.remetente_id && d.mensagem === m.mensagem);
+            }
+            return true;
+          });
           const msgMap = new Map<string, any>();
-          prev.forEach(m => msgMap.set(String(m.id), m));
+          withoutTemp.forEach(m => msgMap.set(String(m.id), m));
           data.forEach((m: any) => msgMap.set(String(m.id), m));
           return Array.from(msgMap.values()).sort(
             (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -308,14 +314,19 @@ export default function PrivateChat() {
         detalhes: { lida: false }
       };
       console.log('[PrivateChat] Enviando para sys_t110:', payload);
-      const { error } = await (supabase as any)
+      const { data: inserted, error } = await (supabase as any)
         .from('sys_t110')
-        .insert([payload]);
+        .insert([payload])
+        .select()
+        .single();
       if (error) {
         console.error('[PrivateChat] Erro insert sys_t110:', error.code, error.message, error.details, error.hint);
         showToast(`Erro ao enviar: ${error.message}`, 'error');
       } else {
         console.log('[PrivateChat] Mensagem inserida com sucesso');
+        if (inserted) {
+          setMessages(prev => prev.map(m => m.id === tempId ? inserted : m));
+        }
       }
     } catch (err: any) {
       console.warn('[PrivateChat] Excepção ao enviar:', err?.message || err);
