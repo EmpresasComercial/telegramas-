@@ -137,13 +137,12 @@ export default function PrivateChat() {
     if (!contactId || contactId.startsWith('pavel')) return;
     (async () => {
       try {
-        const { data } = await (supabase as any)
-          .schema('api')
-          .from('profiles')
-          .select('phone')
+        const { data } = await supabase
+          .from('sys_t500')
+          .select('telefone, nome_exibicao')
           .eq('id', contactId)
-          .single();
-        if (data?.phone) setContactDisplayName(data.phone);
+          .maybeSingle();
+        if (data) setContactDisplayName(data.nome_exibicao || data.telefone);
       } catch {}
     })();
   }, [contactId]);
@@ -276,16 +275,23 @@ export default function PrivateChat() {
     }
 
     try {
-      const { data, error } = await (supabase as any)
+      const payload = {
+        remetente_id: user.id,
+        destinatario_id: contactId,
+        mensagem: msg,
+        detalhes: { lida: false }
+      };
+      console.log('[PrivateChat] Enviando para sys_t110:', payload);
+      const { error } = await (supabase as any)
         .from('sys_t110')
-        .insert([{ remetente_id: user.id, destinatario_id: contactId, mensagem: msg, detalhes: { lida: false } }])
-        .select()
-        .single();
-      if (!error && data) {
-        setMessages(prev => prev.map(m => m.id === tempId ? data : m));
+        .insert([payload]);
+      if (error) {
+        console.error('[PrivateChat] Erro insert sys_t110:', error.code, error.message, error.details, error.hint);
+      } else {
+        console.log('[PrivateChat] Mensagem inserida com sucesso');
       }
     } catch (err: any) {
-      console.warn('Mensagem salva localmente:', err?.message || err);
+      console.warn('[PrivateChat] Excepção ao enviar:', err?.message || err);
     }
   };
 

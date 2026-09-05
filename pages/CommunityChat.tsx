@@ -358,13 +358,12 @@ export default function CommunityChat() {
         const uncachedIds = Array.from(new Set(data.map((m: any) => m.uid_emissor).filter((id: string) => id && !phoneCache[id])));
         if (uncachedIds.length > 0) {
           const { data: profiles } = await supabase
-            .schema('api')
-            .from('profiles')
-            .select('id, phone')
+            .from('sys_t500')
+            .select('id, telefone, nome_exibicao')
             .in('id', uncachedIds);
           if (profiles) {
             profiles.forEach((p: any) => {
-              phoneCache[p.id] = p.phone || "Membro";
+              phoneCache[p.id] = p.nome_exibicao || p.telefone || "Membro";
             });
           }
         }
@@ -435,13 +434,12 @@ export default function CommunityChat() {
             let tel = phoneCache[data.uid_emissor] || null;
             if (!tel && data.uid_emissor) {
               const { data: prof } = await supabase
-                .schema('api')
-                .from('profiles')
-                .select('phone')
+                .from('sys_t500')
+                .select('telefone, nome_exibicao')
                 .eq('id', data.uid_emissor)
                 .maybeSingle();
-              if (prof?.phone) {
-                tel = prof.phone;
+              if (prof) {
+                tel = prof.nome_exibicao || prof.telefone || "Membro";
                 phoneCache[data.uid_emissor] = tel;
               }
             }
@@ -519,23 +517,28 @@ export default function CommunityChat() {
 
     setIsSending(true);
     try {
-      const { data, error } = await supabase.from("chat_gruop").insert([{
+      const payload = {
         uid_emissor: user.id,
         mensagem: tempMsg || " ",
         detalhes,
-      }]).select().single();
+      };
+      console.log('[CommunityChat] Enviando para chat_gruop:', payload);
+      const { error } = await supabase.from("chat_gruop").insert([payload]);
 
-      if (error) throw error;
-      if (data) {
-        setPublicMessages(prev => prev.map(m => m.id === tempId ? { ...data, perfis_mcpn: { telefone: "Eu" } } : m));
+      if (error) {
+        console.error('[CommunityChat] Erro insert:', error.code, error.message, error.details, error.hint);
+        throw error;
       }
+      console.log('[CommunityChat] Mensagem inserida com sucesso');
       scrollToBottom();
     } catch (err: any) { 
       console.error("Erro ao enviar mensagem na comunidade:", err);
+      setPublicMessages(prev => prev.filter(m => m.id !== tempId));
       showToast("Erro ao enviar mensagem.", "error"); 
     } finally { 
       setIsSending(false); 
     }
+
   };
 
   const handleToggleReaction = async (messageId: number, emoji: string) => {
