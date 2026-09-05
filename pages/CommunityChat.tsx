@@ -24,7 +24,11 @@ import {
   LogOut,
   QrCode,
   UserPlus,
-  Check
+  Check,
+  Reply,
+  Copy,
+  Trash2,
+  ChevronRight
 } from 'lucide-react';
 
 const FORBIDDEN_WORDS = Array.from(new Set([
@@ -227,15 +231,7 @@ const GROUP_MEMBERS = [
   }
 ];
 
-const EMOJIS = [
-  { char: "👍", label: "Gosto" },
-  { char: "❤️", label: "Adoro" },
-  { char: "🔥", label: "Fogo" },
-  { char: "😂", label: "Riso" },
-  { char: "😮", label: "Surpresa" },
-  { char: "😢", label: "Tristeza" },
-  { char: "🙏", label: "Grato" }
-];
+const COMMUNITY_QUICK_REACTIONS = ['❤️', '🫡', '🤷‍♂️', '👍', '👎', '🔥', '🥰', '🎉', '👏', '😂', '😮', '😢'];
 
 export default function CommunityChat() {
   const navigate = useNavigate();
@@ -258,6 +254,45 @@ export default function CommunityChat() {
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [reactionMenuId, setReactionMenuId] = useState<number | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // ── Context Menu Telegram ──
+  const [contextMenu, setContextMenu] = useState<{ message: any; isMe: boolean } | null>(null);
+  const [showAllReactions, setShowAllReactions] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, m: any, isMe: boolean) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    const diffX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const diffY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const duration = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+
+    if (diffX < 12 && diffY < 12 && duration < 600) {
+      e.preventDefault();
+      setContextMenu({ message: m, isMe });
+      setShowAllReactions(false);
+    }
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(null);
+    setShowAllReactions(false);
+  };
+
+  const handleDeleteMessage = async (msgId: number) => {
+    try {
+      await supabase.from('chat_gruop').delete().eq('id', msgId);
+    } catch {}
+    setPublicMessages(prev => prev.filter(m => m.id !== msgId));
+    showToast('Mensagem apagada', 'info');
+    closeContextMenu();
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -568,6 +603,47 @@ export default function CommunityChat() {
     }
   };
 
+  // ── Ações do Menu de Contexto Telegram ──
+  const menuActions = contextMenu ? [
+    { 
+      icon: Reply, 
+      label: 'Responder', 
+      onClick: () => { 
+        setReplyTo(contextMenu.message); 
+        closeContextMenu(); 
+        setTimeout(() => inputRef.current?.focus(), 100); 
+      }, 
+      color: '#2481cc' 
+    },
+    { 
+      icon: Copy, 
+      label: 'Copiar', 
+      onClick: () => { 
+        navigator.clipboard.writeText(contextMenu.message.mensagem || '').catch(() => {}); 
+        showToast('Mensagem copiada!', 'success'); 
+        closeContextMenu(); 
+      }, 
+      color: '#555' 
+    },
+    ...(contextMenu.isMe ? [{ 
+      icon: Pencil, 
+      label: 'Editar', 
+      onClick: () => { 
+        setPublicInput(contextMenu.message.mensagem || ''); 
+        closeContextMenu(); 
+        setTimeout(() => inputRef.current?.focus(), 100); 
+      }, 
+      color: '#555' 
+    }] : []),
+    ...(contextMenu.isMe ? [{ 
+      icon: Trash2, 
+      label: 'Apagar', 
+      onClick: () => handleDeleteMessage(contextMenu.message.id), 
+      color: '#e53e3e',
+      subLabel: 'Autoexcluirá em 31 dias'
+    }] : [])
+  ] : [];
+
   return (
     <div className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none flex flex-col items-center overflow-hidden relative tg-wallpaper transition-colors">
       <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-2 py-2 sticky top-0 z-40 flex items-center justify-between shadow-xs select-none">
@@ -658,38 +734,22 @@ export default function CommunityChat() {
                   </div>
                 )}
 
-                <AnimatePresence>
-                  {reactionMenuId === m.id && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                      animate={{ opacity: 1, scale: 1, y: -42 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className={`absolute z-[100] bg-white rounded-full px-2 py-1 flex gap-1 shadow-lg border border-gray-200 ${isMe ? 'right-0' : 'left-9'}`}
-                    >
-                      {EMOJIS.map(e => (
-                        <button 
-                          key={e.char} 
-                          onClick={() => handleToggleReaction(m.id, e.char)} 
-                          className="w-7 h-7 flex items-center justify-center hover:bg-gray-100 rounded-full transition-all active:scale-125 text-[16px] cursor-pointer"
-                        >
-                          {e.char}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
                 <div
-                  onPointerDown={() => handleLongPressStart(m.id)}
-                  onPointerUp={handleLongPressEnd}
-                  onPointerLeave={handleLongPressEnd}
-                  onDoubleClick={() => setReplyTo(m)}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setContextMenu({ message: m, isMe }); 
+                    setShowAllReactions(false); 
+                  }}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={(e) => handleTouchEnd(e, m, isMe)}
                   className={cn(
-                    "max-w-[82%] px-3.5 py-2 text-[#202020] shadow-[0_1px_2px_rgba(0,0,0,0.06)] relative select-text",
+                    "max-w-[82%] px-3.5 py-2 text-[#202020] shadow-[0_1px_2px_rgba(0,0,0,0.06)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none",
                     isMe 
                       ? "bg-[#dcf8c6] rounded-[18px] rounded-br-[4px]" 
-                      : "bg-white rounded-[18px] rounded-bl-[4px]"
+                      : "bg-white rounded-[18px] rounded-bl-[4px]",
+                    contextMenu?.message.id === m.id && "brightness-90 scale-[0.985]"
                   )}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                 >
                   {!isMe && (
                     <p 
@@ -1125,6 +1185,106 @@ export default function CommunityChat() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── CONTEXT MENU OVERLAY TELEGRAM NATIVO ── */}
+      {contextMenu && (
+        <div
+          className="fixed inset-0 z-[200] flex flex-col justify-end items-center px-4 pb-6 bg-black/50 backdrop-blur-xs transition-opacity"
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+          onClick={closeContextMenu}
+        >
+          <div
+            className="w-full max-w-[325px] flex flex-col gap-2 select-none"
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              animation: 'slideUpMenu 0.18s cubic-bezier(0.16, 1, 0.3, 1) both',
+              touchAction: 'manipulation'
+            }}
+          >
+            {/* ── Barra Flutuante de Reações Telegram ── */}
+            <div className="bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-xl px-2.5 py-2 flex items-center justify-between border border-gray-100 dark:border-white/10">
+              {(showAllReactions ? COMMUNITY_QUICK_REACTIONS : COMMUNITY_QUICK_REACTIONS.slice(0, 7)).map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => {
+                    handleToggleReaction(contextMenu.message.id, emoji);
+                    showToast(`Reação ${emoji} adicionada!`, 'success');
+                    closeContextMenu();
+                  }}
+                  className="w-9 h-9 flex items-center justify-center text-[24px] leading-none active:scale-130 transition-transform hover:scale-110 rounded-full select-none cursor-pointer"
+                  style={{ touchAction: 'manipulation' }}
+                  title={`Reagir com ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setShowAllReactions(!showAllReactions)}
+                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-[#3a3a3a] flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200 active:scale-90 transition-transform cursor-pointer"
+                style={{ touchAction: 'manipulation' }}
+                title="Mais reações"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* ── Lista de Ações Essenciais ── */}
+            <div className="bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-white/10">
+              {menuActions.map((action, idx) => (
+                <React.Fragment key={action.label}>
+                  <button
+                    type="button"
+                    onClick={action.onClick}
+                    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-[#333] active:bg-gray-100 dark:active:bg-[#3a3a3a] transition-colors cursor-pointer select-none text-left"
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <action.icon
+                        className="w-5 h-5 shrink-0"
+                        style={{ color: action.color }}
+                      />
+                      <div>
+                        <span
+                          className="text-[15px] font-semibold block leading-tight text-gray-900 dark:text-gray-100"
+                          style={{ color: action.color === '#e53e3e' ? '#e53e3e' : undefined }}
+                        >
+                          {action.label}
+                        </span>
+                        {action.subLabel && (
+                          <span className="text-[11px] text-gray-400 block mt-0.5">{action.subLabel}</span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                  {idx < menuActions.length - 1 && (
+                    <div className="h-px bg-gray-100 dark:bg-[#383838] mx-4" />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Botão Cancelar */}
+            <button
+              type="button"
+              onClick={closeContextMenu}
+              className="w-full bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-lg py-3 text-[15.5px] font-semibold text-[#2481cc] hover:bg-gray-50 dark:hover:bg-[#333] active:scale-[0.99] transition-all cursor-pointer border border-gray-100 dark:border-white/10 select-none text-center"
+              style={{ touchAction: 'manipulation' }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Animações CSS injetadas ── */}
+      <style>{`
+        @keyframes slideUpMenu {
+          from { opacity: 0; transform: translateY(18px) scale(0.96); }
+          to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        }
+      `}</style>
     </div>
   );
 }
