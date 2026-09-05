@@ -32,7 +32,8 @@ interface TelegramDrawerProps {
 
 export default function TelegramDrawer({ isOpen, onClose, onOpenAutoMessages }: TelegramDrawerProps) {
   const navigate = useNavigate();
-  const { session, user } = useAuth();
+  const { session } = useAuth();
+  const user = session?.user;
   const { showToast } = useToast();
 
   const [userName, setUserName] = useState('Utilizador Telegram');

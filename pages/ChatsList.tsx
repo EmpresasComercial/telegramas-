@@ -35,12 +35,95 @@ export default function ChatsList() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [communityLastMessage, setCommunityLastMessage] = useState<{
+    text: string;
+    sender: string;
+    time: string;
+    isMe: boolean;
+  }>({
+    text: "Bem-vindo à comunidade oficial de negócios e automações!",
+    sender: "Equipe Telegram",
+    time: "Hoje",
+    isMe: false
+  });
   
   type ChatFolder = 'all' | 'personal' | 'groups' | 'channels' | 'bots' | 'unread';
   const [activeFilter, setActiveFilter] = useState<ChatFolder>('all');
 
-  // ID fixo para Pavel Durov (CEO)
   const PAVEL_DUROV_ID = 'pavel-durov-ceo-00000000000000001';
+
+  const formatSenderPhone = (p: string) => {
+    if (!p) return 'Contacto';
+    const clean = p.replace(/^\+?244\s*/, '').trim();
+    if (/^\d{9}$/.test(clean)) {
+      return `+244 ${clean.slice(0, 3)} *** ${clean.slice(6)}`;
+    }
+    return p;
+  };
+
+  useEffect(() => {
+    const fetchCommunityLastMessage = async () => {
+      try {
+        const { data: latestMsg } = await supabase
+          .from('chat_gruop')
+          .select('mensagem, detalhes, data_registrada, uid_emissor')
+          .order('data_registrada', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestMsg) {
+          let senderLabel = "Membro";
+          if (user && latestMsg.uid_emissor === user.id) {
+            senderLabel = "Você";
+          } else {
+            const { data: prof } = await supabase
+              .from('sys_t500')
+              .select('nome_exibicao, telefone')
+              .eq('id', latestMsg.uid_emissor)
+              .maybeSingle();
+            if (prof?.nome_exibicao) {
+              senderLabel = prof.nome_exibicao;
+            } else if (prof?.telefone) {
+              senderLabel = formatSenderPhone(prof.telefone);
+            }
+          }
+
+          const parsedData: any = (latestMsg.detalhes && typeof latestMsg.detalhes === 'object') ? latestMsg.detalhes : {};
+          const text = latestMsg.mensagem || (parsedData.imagem_url ? "📷 Foto" : "Mensagem");
+          const msgDate = new Date(latestMsg.data_registrada);
+          const now = new Date();
+          const isToday = msgDate.toDateString() === now.toDateString();
+          const time = isToday
+            ? msgDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+            : msgDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+
+          setCommunityLastMessage({
+            text,
+            sender: senderLabel,
+            time,
+            isMe: user ? latestMsg.uid_emissor === user.id : false
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao carregar última mensagem da comunidade:', err);
+      }
+    };
+
+    fetchCommunityLastMessage();
+
+    const commChannel = supabase.channel('chatslist_community_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_gruop' }, () => {
+        fetchCommunityLastMessage();
+      })
+      .subscribe();
+
+    const poll = setInterval(fetchCommunityLastMessage, 5000);
+
+    return () => {
+      supabase.removeChannel(commChannel);
+      clearInterval(poll);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -82,7 +165,6 @@ export default function ChatsList() {
           }
         }
 
-        // Busca a última mensagem de cada conversa privada
         try {
           const { data: lastMsgs } = await (supabase as any)
             .from('sys_t110')
@@ -100,6 +182,7 @@ export default function ChatsList() {
                     ...existing,
                     lastMessage: msg.mensagem,
                     lastMessageTime: new Date(msg.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+                    lastMessageTimestamp: msg.created_at,
                     isMe: msg.remetente_id === user.id
                   });
                 }
@@ -108,7 +191,13 @@ export default function ChatsList() {
           }
         } catch {}
 
-        setContacts(Array.from(uniqueContacts.values()));
+        const sorted = Array.from(uniqueContacts.values()).sort((a: any, b: any) => {
+          const timeA = a.lastMessageTimestamp ? new Date(a.lastMessageTimestamp).getTime() : 0;
+          const timeB = b.lastMessageTimestamp ? new Date(b.lastMessageTimestamp).getTime() : 0;
+          return timeB - timeA;
+        });
+
+        setContacts(sorted);
       } catch (e) {
         console.error(e);
       } finally {
@@ -117,16 +206,17 @@ export default function ChatsList() {
     };
 
     fetchContacts();
-  }, [user]);
 
-  const formatSenderPhone = (p: string) => {
-    if (!p) return 'Contacto';
-    const clean = p.replace(/^\+?244\s*/, '').trim();
-    if (/^\d{9}$/.test(clean)) {
-      return `+244 ${clean.slice(0, 3)} *** ${clean.slice(6)}`;
-    }
-    return p;
-  };
+    const contactChannel = supabase.channel('chatslist_contacts_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sys_t110' }, () => {
+        fetchContacts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(contactChannel);
+    };
+  }, [user]);
 
   const getUserColor = (str: string) => {
     const colors = ["#229ED9", "#E56555", "#8E44AD", "#27AE60", "#D35400", "#16A085", "#C0392B", "#2980B9", "#F39C12", "#7F8C8D"];
@@ -332,24 +422,26 @@ export default function ChatsList() {
                     Telegram Business Oficial
                   </h3>
                   {/* Verified Checkmark Badge Oficial */}
-                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#2481cc] text-white flex items-center justify-center text-[10px]">
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#25D366] text-white flex items-center justify-center text-[10px] font-bold shadow-2xs">
                     ✓
                   </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-1">
+                  {communityLastMessage.isMe && (
+                    <CheckCheck className="w-4 h-4 text-[#2481cc] stroke-[2.5]" />
+                  )}
                   <Pin className="w-3.5 h-3.5 text-[#2481cc] fill-[#2481cc]" />
-                  <span className="text-[12px] text-[#2481cc] font-medium">{timeStr}</span>
+                  <span className="text-[12px] text-[#2481cc] font-medium">
+                    {communityLastMessage.time}
+                  </span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between">
                 <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
-                  <span className="text-[#2481cc] font-medium">Equipe Telegram: </span>
-                  Bem-vindo à comunidade oficial de negócios e automações!
+                  <span className="text-[#2481cc] font-medium">{communityLastMessage.sender}: </span>
+                  {communityLastMessage.text}
                 </p>
-                <span className="ml-2 bg-[#2481cc] text-white text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0">
-                  12
-                </span>
               </div>
             </div>
           </div>
@@ -381,7 +473,7 @@ export default function ChatsList() {
                   <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
                     Pavel Durov
                   </h3>
-                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#2481cc] text-white flex items-center justify-center text-[10px]">
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#25D366] text-white flex items-center justify-center text-[10px] font-bold">
                     ✓
                   </span>
                   <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-sm bg-[#8d54d9] text-white">
@@ -419,7 +511,7 @@ export default function ChatsList() {
                   <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
                     Telegram News & Updates
                   </h3>
-                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#2481cc] text-white flex items-center justify-center text-[10px]">
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#25D366] text-white flex items-center justify-center text-[10px] font-bold">
                     ✓
                   </span>
                 </div>

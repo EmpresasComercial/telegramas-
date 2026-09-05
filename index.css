@@ -97,8 +97,8 @@ html, body, * {
    ══════════════════════════════════════════════════════════════════ */
 
 /* 1. Botões a nível global (sem arredondamento) */
-button,
-[role="button"],
+button:not([class*="rounded-full"]):not(.rounded-full),
+[role="button"]:not([class*="rounded-full"]):not(.rounded-full),
 input[type="button"],
 input[type="submit"],
 input[type="reset"],
@@ -112,8 +112,8 @@ input,
 textarea,
 select,
 .input-field,
-div:has(> input),
-div:has(> textarea) {
+div:has(> input):not([class*="rounded-full"]),
+div:has(> textarea):not([class*="rounded-full"]) {
   border-radius: 0px !important;
 }
 
@@ -148,14 +148,15 @@ div[class*="rounded-[24px]"] {
   border-radius: 0px !important;
 }
 
-/* 5. AVATARES DEVEM SER 100% REDONDOS (Regra explícita prioritária) */
+/* 5. AVATARES E BOTÕES REDONDOS DEVEM SER 100% REDONDOS (Regra explícita prioritária) */
 .avatar,
 [data-avatar],
 img[class*="rounded-full"],
 [class*="rounded-full"] img,
-div[class*="rounded-full"][class*="w-"],
-div[class*="rounded-full"][class*="h-"],
-span[class*="rounded-full"][class*="w-"],
+div[class*="rounded-full"],
+button[class*="rounded-full"],
+button.rounded-full,
+span[class*="rounded-full"],
 div[class*="rounded-full"]:has(img),
 div[class*="rounded-full"]:has(svg),
 .avatar-circle {
