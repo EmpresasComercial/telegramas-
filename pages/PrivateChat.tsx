@@ -15,10 +15,6 @@ import {
   Zap,
   Reply,
   Copy,
-  Link,
-  ImageDown,
-  Forward,
-  Pin,
   Pencil,
   Trash2,
   X,
@@ -44,8 +40,8 @@ interface ContextMenu {
   isMe: boolean;
 }
 
-// ── Constantes de Emojis ───────────────────────────────────────────────
-const QUICK_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🔥', '🎉', '👎'];
+// ── Constantes de Emojis Oficiais Telegram ────────────────────────────
+const QUICK_REACTIONS = ['❤️', '🫡', '🤷‍♂️', '👍', '👎', '🔥', '🥰', '🎉', '👏', '😂', '😮', '😢'];
 
 // ── Componente Principal ───────────────────────────────────────────────
 export default function PrivateChat() {
@@ -217,14 +213,26 @@ export default function PrivateChat() {
     }
   };
 
-  const handlePin = () => {
-    showToast('Mensagem fixada no topo!', 'success');
-    closeContextMenu();
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
   };
 
-  const handleForward = () => {
-    showToast('Selecione o destinatário para encaminhar', 'info');
-    closeContextMenu();
+  const handleTouchEnd = (e: React.TouchEvent, message: Message, isMe: boolean) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    const diffX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const diffY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const duration = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+
+    // Se o dedo moveu menos de 12px e durou menos de 600ms, é um toque/tap genuíno
+    if (diffX < 12 && diffY < 12 && duration < 600) {
+      e.preventDefault();
+      openContextMenu(e, message, isMe);
+    }
   };
 
   // ── Send Message ──────────────────────────────────────────────────────
@@ -298,10 +306,6 @@ export default function PrivateChat() {
   const menuActions = contextMenu ? [
     { icon: Reply, label: 'Responder', onClick: handleReply, color: '#2481cc' },
     { icon: Copy, label: 'Copiar', onClick: handleCopy, color: '#555' },
-    { icon: Link, label: 'Copiar Link', onClick: () => { showToast('Link copiado!', 'success'); closeContextMenu(); }, color: '#555' },
-    { icon: ImageDown, label: 'Salvar na Galeria', onClick: () => { showToast('Salvo na galeria!', 'success'); closeContextMenu(); }, color: '#555' },
-    { icon: Forward, label: 'Encaminhar', onClick: handleForward, color: '#555' },
-    { icon: Pin, label: 'Fixar', onClick: handlePin, color: '#555' },
     ...(contextMenu.isMe ? [{ icon: Pencil, label: 'Editar', onClick: () => { showToast('Edição em breve', 'info'); closeContextMenu(); }, color: '#555' }] : []),
     { icon: Trash2, label: 'Apagar', onClick: handleDelete, color: '#e53e3e', subLabel: 'Autoexcluirá em 31 dias' },
   ] : [];
@@ -405,17 +409,19 @@ export default function PrivateChat() {
                   </div>
                 )}
 
-                {/* Balão da mensagem */}
+                {/* Balão da mensagem com detecção de toque instantânea */}
                 <div
                   onClick={(e) => { e.stopPropagation(); openContextMenu(e, m, isMe); }}
-                  className={`max-w-[82%] px-3.5 py-2 text-[#111827] dark:text-[#f3f4f6] shadow-[0_1px_2px_rgba(16,35,47,0.15)] relative select-text cursor-pointer active:brightness-95 transition-all ${
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={(e) => handleTouchEnd(e, m, isMe)}
+                  className={`max-w-[82%] px-3.5 py-2 text-[#111827] dark:text-[#f3f4f6] shadow-[0_1px_2px_rgba(16,35,47,0.15)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none ${
                     isMe
                       ? 'bg-[#effdde] dark:bg-[#2b5278] rounded-[16px] rounded-br-[4px]'
                       : 'bg-white dark:bg-[#182533] rounded-[16px] rounded-bl-[4px]'
-                  } ${contextMenu?.message.id === m.id ? 'brightness-90 scale-[0.99]' : ''}`}
-                  style={{ touchAction: 'manipulation' }}
+                  } ${contextMenu?.message.id === m.id ? 'brightness-90 scale-[0.985]' : ''}`}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <div className="relative">
+                  <div className="relative pointer-events-none">
                     {!isMe && (
                       <span
                         className="text-[12px] font-bold block mb-0.5"
@@ -446,78 +452,95 @@ export default function PrivateChat() {
         <div className="h-2" />
       </main>
 
-      {/* ── CONTEXT MENU OVERLAY ── */}
+      {/* ── CONTEXT MENU OVERLAY (TELEGRAM NATIVO) ── */}
       {contextMenu && (
         <>
-          {/* Fundo escurecido com blur */}
+          {/* Fundo escurecido com blur com fechamento rápido ao toque */}
           <div
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]"
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[3px] transition-opacity cursor-pointer"
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
             onClick={closeContextMenu}
+            onTouchEnd={closeContextMenu}
           />
 
-          {/* Menu flutuante */}
+          {/* Menu flutuante ultra sensível */}
           <div
             ref={menuRef}
-            className="fixed z-[60] left-1/2 -translate-x-1/2 bottom-[10%] w-[92vw] max-w-[360px]"
-            style={{ animation: 'contextMenuIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both' }}
+            className="fixed z-[60] left-1/2 -translate-x-1/2 bottom-[8%] w-[90vw] max-w-[340px]"
+            style={{ 
+              animation: 'contextMenuIn 0.16s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+              touchAction: 'manipulation'
+            }}
           >
-            {/* ── Linha de Reações ── */}
-            <div className="bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-2xl mb-2 px-3 py-2.5 flex items-center justify-between">
+            {/* ── Barra Flutuante de Reações Telegram ── */}
+            <div className="bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.25)] mb-2 px-2.5 py-2 flex items-center justify-between border border-gray-100 dark:border-white/5">
               {(showAllReactions ? QUICK_REACTIONS : QUICK_REACTIONS.slice(0, 7)).map((emoji) => (
                 <button
                   key={emoji}
+                  type="button"
                   onClick={() => handleReaction(emoji)}
-                  className="text-[26px] leading-none active:scale-125 transition-transform hover:scale-110 p-0.5 rounded-full"
-                  style={{ animation: 'reactionIn 0.15s ease both' }}
+                  onTouchEnd={(e) => { e.stopPropagation(); handleReaction(emoji); }}
+                  className="w-10 h-10 flex items-center justify-center text-[26px] leading-none active:scale-130 transition-transform hover:scale-110 rounded-full select-none cursor-pointer"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                  title={`Reagir com ${emoji}`}
                 >
                   {emoji}
                 </button>
               ))}
               <button
+                type="button"
                 onClick={() => setShowAllReactions(!showAllReactions)}
-                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3a3a3a] flex items-center justify-center text-gray-500 dark:text-gray-300 hover:bg-gray-200 active:scale-90 transition-transform"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3a3a3a] flex items-center justify-center text-gray-500 dark:text-gray-300 hover:bg-gray-200 active:scale-90 transition-transform cursor-pointer"
+                style={{ touchAction: 'manipulation' }}
+                title="Mais reações"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            {/* ── Lista de Ações ── */}
-            <div className="bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-2xl overflow-hidden">
+            {/* ── Lista de Ações Essenciais ── */}
+            <div className="bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.25)] overflow-hidden border border-gray-100 dark:border-white/5">
               {menuActions.map((action, idx) => (
                 <React.Fragment key={action.label}>
                   <button
+                    type="button"
                     onClick={action.onClick}
-                    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-[#333] active:bg-gray-100 dark:active:bg-[#3a3a3a] transition-colors"
+                    onTouchEnd={(e) => { e.stopPropagation(); action.onClick(); }}
+                    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-[#333] active:bg-gray-100 dark:active:bg-[#3a3a3a] transition-colors cursor-pointer select-none"
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3.5">
                       <action.icon
                         className="w-5 h-5 shrink-0"
                         style={{ color: action.color }}
                       />
                       <div className="text-left">
                         <span
-                          className="text-[15px] font-normal block"
-                          style={{ color: action.color === '#e53e3e' ? '#e53e3e' : 'inherit' }}
+                          className="text-[15.5px] font-medium block leading-tight text-gray-800 dark:text-gray-100"
+                          style={{ color: action.color === '#e53e3e' ? '#e53e3e' : undefined }}
                         >
                           {action.label}
                         </span>
                         {action.subLabel && (
-                          <span className="text-[11px] text-gray-400">{action.subLabel}</span>
+                          <span className="text-[11.5px] text-gray-400 block mt-0.5">{action.subLabel}</span>
                         )}
                       </div>
                     </div>
                   </button>
                   {idx < menuActions.length - 1 && (
-                    <div className="h-px bg-gray-100 dark:bg-[#3a3a3a] mx-4" />
+                    <div className="h-px bg-gray-100 dark:bg-[#383838] mx-4" />
                   )}
                 </React.Fragment>
               ))}
             </div>
 
-            {/* Botão fechar */}
+            {/* Botão Cancelar */}
             <button
+              type="button"
               onClick={closeContextMenu}
-              className="mt-2 w-full bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-2xl py-3.5 text-[15px] font-medium text-[#2481cc] hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
+              onTouchEnd={(e) => { e.stopPropagation(); closeContextMenu(); }}
+              className="mt-2 w-full bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-lg py-3.5 text-[15.5px] font-semibold text-[#2481cc] hover:bg-gray-50 dark:hover:bg-[#333] active:scale-[0.99] transition-all cursor-pointer border border-gray-100 dark:border-white/5 select-none"
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
             >
               Cancelar
             </button>
