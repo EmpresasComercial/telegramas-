@@ -139,13 +139,16 @@ aside[class*="rounded"],
 section[class*="rounded"],
 main[class*="rounded"],
 form[class*="rounded"],
-div[class*="rounded-xl"]:not([class*="w-"]):not([class*="h-"]),
-div[class*="rounded-2xl"]:not([class*="w-"]):not([class*="h-"]),
-div[class*="rounded-[16px]"],
-div[class*="rounded-[18px]"],
-div[class*="rounded-[20px]"],
-div[class*="rounded-[24px]"] {
+div[class*="rounded-xl"]:not([class*="w-"]):not([class*="h-"]):not(.tg-bubble),
+div[class*="rounded-2xl"]:not([class*="w-"]):not([class*="h-"]):not(.tg-bubble),
+div[class*="rounded-[20px]"]:not(.tg-bubble),
+div[class*="rounded-[24px]"]:not(.tg-bubble) {
   border-radius: 0px !important;
+}
+
+/* BALÕES DE CHAT — cantos curvos sempre preservados */
+.tg-bubble {
+  border-radius: 18px !important;
 }
 
 /* 5. AVATARES E BOTÕES REDONDOS DEVEM SER 100% REDONDOS (Regra explícita prioritária) */

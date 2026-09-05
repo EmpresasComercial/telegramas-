@@ -414,10 +414,10 @@ export default function PrivateChat() {
                   onClick={(e) => { e.stopPropagation(); openContextMenu(e, m, isMe); }}
                   onTouchStart={handleTouchStart}
                   onTouchEnd={(e) => handleTouchEnd(e, m, isMe)}
-                  className={`max-w-[85%] sm:max-w-[70%] md:max-w-[580px] px-3.5 py-2 text-[#111827] dark:text-[#f3f4f6] shadow-[0_1px_2px_rgba(16,35,47,0.15)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none ${
+                  className={`tg-bubble max-w-[85%] sm:max-w-[70%] md:max-w-[580px] px-3.5 py-2 text-[#111827] dark:text-[#f3f4f6] shadow-[0_1px_2px_rgba(16,35,47,0.15)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none rounded-[18px] ${
                     isMe
-                      ? 'bg-[#effdde] dark:bg-[#2b5278] rounded-[16px] rounded-br-[4px]'
-                      : 'bg-white dark:bg-[#182533] rounded-[16px] rounded-bl-[4px]'
+                      ? 'bg-[#effdde] dark:bg-[#2b5278]'
+                      : 'bg-white dark:bg-[#182533]'
                   } ${contextMenu?.message.id === m.id ? 'brightness-90 scale-[0.985]' : ''}`}
                   style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                 >

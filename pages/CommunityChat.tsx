@@ -743,10 +743,10 @@ export default function CommunityChat() {
                   onTouchStart={handleTouchStart}
                   onTouchEnd={(e) => handleTouchEnd(e, m, isMe)}
                   className={cn(
-                    "max-w-[82%] px-3.5 py-2 text-[#202020] shadow-[0_1px_2px_rgba(0,0,0,0.06)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none",
+                    "tg-bubble max-w-[82%] px-3.5 py-2 text-[#202020] shadow-[0_1px_2px_rgba(0,0,0,0.06)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none rounded-[18px]",
                     isMe 
-                      ? "bg-[#dcf8c6] rounded-[18px] rounded-br-[4px]" 
-                      : "bg-white rounded-[18px] rounded-bl-[4px]",
+                      ? "bg-[#dcf8c6]" 
+                      : "bg-white",
                     contextMenu?.message.id === m.id && "brightness-90 scale-[0.985]"
                   )}
                   style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
