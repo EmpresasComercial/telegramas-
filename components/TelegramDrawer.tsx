@@ -92,7 +92,7 @@ export default function TelegramDrawer({ isOpen, onClose, onOpenAutoMessages }: 
   };
 
   const handleCopyInvite = () => {
-    const inviteLink = `${window.location.origin}/cadastro?join=${user?.id?.slice(0, 8) || 'vip'}`;
+    const inviteLink = `${window.location.origin}/messager?join=${user?.id?.slice(0, 8) || 'vip'}`;
     navigator.clipboard.writeText(inviteLink).then(() => {
       showToast('Link de convite oficial copiado!', 'success');
     }).catch(() => {

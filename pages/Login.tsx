@@ -11,45 +11,48 @@ export default function Login() {
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ phone: '', password: '' });
+  const [showPasskey, setShowPasskey] = useState(false);
+  const [passkey, setPasskey] = useState('');
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const sanitized = name === 'phone'
-      ? value.replace(/\D/g, '').slice(0, 9)
-      : value.trim();
-    setFormData(prev => ({ ...prev, [name]: sanitized }));
-  }, []);
-
-  const togglePassword = useCallback(() => setShowPassword(v => !v), []);
+  const togglePasskey = useCallback(() => setShowPasskey(v => !v), []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.phone || formData.phone.length !== 9) {
-      showToast(t('auth.phone_error_length'), 'error');
-      return;
-    }
-    if (!formData.password) {
-      showToast(t('auth.password_error_empty'), 'error');
+    const cleanPasskey = passkey.trim();
+    if (!cleanPasskey) {
+      showToast('Ops! Por favor introduza a sua chave de acesso.', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      // 1. Resolve user phone from database using the provided Passkey / Access Key
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('lookup_user_by_passkey_mcpn', {
+        p_passkey: cleanPasskey
+      });
+
+      if (rpcError) throw rpcError;
+
+      const lookup = rpcData as { success: boolean; message?: string; phone?: string } | null;
+      if (!lookup || !lookup.success || !lookup.phone) {
+        showToast(lookup?.message || 'Ops! Chave de acesso inválida ou não encontrada.', 'error');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2. Sign in seamlessly with resolved phone credentials
+      const defaultPassword = `${lookup.phone}Pass123!`;
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: `${formData.phone}@user.com`,
-        password: formData.password,
+        email: `${lookup.phone}@user.com`,
+        password: defaultPassword,
       });
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          showToast('Celular ou senha incorretos.', 'error');
-        } else if (error.message.includes('Email not confirmed')) {
-          showToast('Por favor, confirme sua conta antes de fazer login.', 'error');
+          showToast('Ops! Credenciais inválidas para esta chave de acesso.', 'error');
         } else {
-          showToast(error.message, 'error');
+          throw error;
         }
         return;
       }
@@ -58,10 +61,10 @@ export default function Login() {
         showToast('Login realizado com sucesso!', 'success');
         navigate('/home');
       } else {
-        showToast('Nao foi possivel iniciar sessao. Verifique os seus dados.', 'error');
+        showToast('Não foi possível iniciar sessão. Verifique a sua chave.', 'error');
       }
-    } catch {
-      showToast('Falhou, verifique a conexao.', 'error');
+    } catch (err: any) {
+      showToast(err.message || 'Ops! Ocorreu uma falha na conexão. Tente novamente.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -75,9 +78,9 @@ export default function Login() {
       </div>
 
       <main className="w-full max-w-[400px] px-4 flex flex-col items-center mt-2">
-        {/* Logo Telegram */}
-        <div className="mb-5 flex items-center justify-center">
-          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[100px] h-[100px]">
+        {/* Official Telegram Logo */}
+        <div className="mb-6 flex items-center justify-center">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[120px] h-[120px]">
             <defs>
               <linearGradient id="tgLoginGrad" x1=".667" x2=".417" y1=".167" y2=".75">
                 <stop offset="0" stopColor="#37aee2"/>
@@ -91,63 +94,44 @@ export default function Login() {
           </svg>
         </div>
 
-        <h1 className="text-[28px] font-bold mb-2 text-center tracking-tight">
-          Telegram Business
+        <h1 className="text-[30px] font-semibold mb-2 text-center tracking-tight text-black">
+          Telegram
         </h1>
 
-        <p className="text-[15px] text-[#8e8e93] text-center mb-8 leading-snug">
-          Por favor, confirme o código do seu país<br />e digite o seu número de telefone.
+        <p className="text-[15px] text-[#707579] text-center mb-8 leading-snug max-w-[320px]">
+          Por favor, introduza a sua Chave de Acesso para entrar na sua conta.
         </p>
 
-        <form onSubmit={handleSubmit} className="w-full flex flex-col">
-          {/* Campos agrupados estilo iOS */}
-          <div className="w-full border-y border-[#c8c7cc] bg-white">
-            {/* Campo telefone */}
-            <div className="flex items-center h-[50px] px-4 border-b border-[#c8c7cc] relative">
-              <span className="text-[17px] text-black mr-2 min-w-[45px] border-r border-[#c8c7cc] leading-[30px] pr-2">
-                +244
-              </span>
-              <input
-                name="phone"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder={t('auth.phone_placeholder')}
-                className="flex-1 h-full bg-transparent outline-none text-[17px] text-black placeholder:text-[#c8c7cc]"
-                value={formData.phone}
-                onChange={handleChange}
-                maxLength={9}
-                autoFocus
-              />
-            </div>
-
-            {/* Campo senha */}
-            <div className="flex items-center h-[50px] px-4 relative">
-              <input
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                placeholder={t('auth.password_placeholder')}
-                className="flex-1 h-full bg-transparent outline-none text-[17px] text-black placeholder:text-[#c8c7cc] pr-10"
-                value={formData.password}
-                onChange={handleChange}
-              />
-              <button
-                type="button"
-                onClick={togglePassword}
-                className="absolute right-4 text-[#c8c7cc] active:scale-95 transition-transform"
-                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
+        <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
+          {/* Single Input Field: Passkey / Chave de Acesso */}
+          <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-6">
+            <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+              Passkey / Chave de Acesso
+            </label>
+            <input
+              name="passkey"
+              type={showPasskey ? 'text' : 'password'}
+              placeholder="Digite a sua chave de acesso"
+              className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-normal pr-10"
+              value={passkey}
+              onChange={(e) => setPasskey(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={togglePasskey}
+              className="absolute right-4 text-[#707579] hover:text-[#3390ec] active:scale-95 transition-transform"
+              aria-label={showPasskey ? 'Ocultar chave' : 'Mostrar chave'}
+            >
+              {showPasskey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
           </div>
 
-          {/* Botão Login — pill shape azul Telegram */}
+          {/* Botão Entrar — azul Telegram oficial */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-[52px] rounded-[16px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-medium text-[17px] transition-all disabled:opacity-50 flex items-center justify-center mt-6 shadow-sm"
+            className="w-full h-[52px] rounded-[20px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center shadow-sm"
           >
             {isSubmitting
               ? <Loader2 className="animate-spin h-5 w-5 text-white" />
@@ -156,9 +140,9 @@ export default function Login() {
           </button>
 
           {/* Link para cadastro */}
-          <p className="text-[15px] text-[#8e8e93] text-center mt-5">
+          <p className="text-[15px] text-[#707579] text-center mt-6">
             {t('auth.no_account')}{' '}
-            <Link to="/cadastro" className="text-[#3390ec] font-medium hover:underline">
+            <Link to="/messager" className="text-[#3390ec] font-semibold hover:underline uppercase text-[14px] tracking-wider ml-1">
               {t('auth.signup_button')}
             </Link>
           </p>

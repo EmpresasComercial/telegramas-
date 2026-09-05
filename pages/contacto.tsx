@@ -26,7 +26,7 @@ export default function Invite() {
   const [copied, setCopied] = useState(false);
 
   // Formatted display link like Telegram invite link (e.g. t.me/+...)
-  const rawInviteLink = `${baseUrl}/cadastro?join=${inviteCode}`;
+  const rawInviteLink = `${baseUrl}/messager?join=${inviteCode}`;
   const displayTelegramLink = `t.me/+${inviteCode || 'rnPOVJAb'}`;
 
   useEffect(() => {

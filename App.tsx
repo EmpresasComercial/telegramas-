@@ -17,9 +17,9 @@ import { GlobalLoadingIndicator } from './components/GlobalLoadingIndicator';
 
 /* ── Lazy imports ─────────────────────────────────────────────────────────── */
 // Critical path: carregadas no pacote principal (sem lazy)
-import Login  from './pages/Login';
-import Signup from './pages/Signup';
-import Home   from './pages/Home';
+import Login    from './pages/Login';
+import Messager from './pages/Messager';
+import Home     from './pages/Home';
 
 // Todas as outras páginas: carregadas sob-demanda
 const Bots             = lazy(() => import('./pages/Bots'));
@@ -98,8 +98,8 @@ function RootRedirect() {
 
   if (!ready) return null;
   if (session) return <Navigate to="/home" replace />;
-  if (joinCode) return <Navigate to={`/cadastro?join=${encodeURIComponent(joinCode)}`} replace />;
-  return <Navigate to="/cadastro" replace />;
+  if (joinCode) return <Navigate to={`/messager?join=${encodeURIComponent(joinCode)}`} replace />;
+  return <Navigate to="/messager" replace />;
 }
 
 /* ── App ──────────────────────────────────────────────────────────────────── */
@@ -153,9 +153,10 @@ export default function App() {
               <GlobalLoadingIndicator />
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
-                  <Route path="/"        element={<RootRedirect />} />
-                  <Route path="/login"   element={<Login />} />
-                  <Route path="/cadastro" element={<Signup />} />
+                  <Route path="/"         element={<RootRedirect />} />
+                  <Route path="/login"    element={<Login />} />
+                  <Route path="/messager" element={<Messager />} />
+                  <Route path="/cadastro" element={<Navigate to="/messager" replace />} />
 
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="home"                    element={<Home />} />

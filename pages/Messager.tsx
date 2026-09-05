@@ -8,7 +8,7 @@ import { subscribeToPushNotifications } from '../lib/pushNotifications';
 import { Loader2, Search, X, Check, ArrowLeft, ChevronDown, Pencil } from 'lucide-react';
 import { COUNTRIES, Country } from '../lib/countries';
 
-export default function Signup() {
+export default function Messager() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
@@ -21,15 +21,38 @@ export default function Signup() {
   const [formData, setFormData] = useState({ phone: '', inviteCode: '' });
   const [verificationCode, setVerificationCode] = useState('');
 
+  // Invite code URL & visibility states
+  const [hasUrlInviteCode, setHasUrlInviteCode] = useState(false);
+  const [showInviteInput, setShowInviteInput] = useState(false);
+
+  // Monkey Animation States
+  const [monkeyState, setMonkeyState] = useState<'idle' | 'shake'>('idle');
+  const [headRotation, setHeadRotation] = useState(0);
+  const [headX, setHeadX] = useState(0);
+  const [pupilShift, setPupilShift] = useState(0);
+
+  // Trigger head shake animation on error
+  const triggerMonkeyShake = useCallback(() => {
+    setMonkeyState('shake');
+    setTimeout(() => {
+      setMonkeyState('idle');
+    }, 600);
+  }, []);
+
   // Modal states
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [searchCountry, setSearchCountry] = useState('');
 
+  // Automatic capture of invite code exclusively from ?join= URL parameter
   useEffect(() => {
-    const code = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref');
-    if (code) setFormData(prev => ({ ...prev, inviteCode: code.trim().slice(0, 4) }));
+    const code = searchParams.get('join');
+    if (code) {
+      const cleanCode = code.trim().slice(0, 4);
+      setFormData(prev => ({ ...prev, inviteCode: cleanCode }));
+      setHasUrlInviteCode(true);
+    }
   }, [searchParams]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,6 +67,46 @@ export default function Signup() {
     }
     setFormData(prev => ({ ...prev, [name]: sanitized }));
   }, [selectedCountry.maxLength]);
+
+  // Handle head movement on verification code typing
+  const handleVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setVerificationCode(val);
+
+    if (val.length === 0) {
+      setHeadRotation(0);
+      setHeadX(0);
+      setPupilShift(0);
+    } else {
+      const progress = val.length / 6;
+      const angle = (progress - 0.5) * 32;
+      const posX = (progress - 0.5) * 20;
+      const pupil = (progress - 0.5) * 6;
+      setHeadRotation(angle);
+      setHeadX(posX);
+      setPupilShift(pupil);
+    }
+  };
+
+  // Handle head movement on invite code typing
+  const handleInviteCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4);
+    setFormData(prev => ({ ...prev, inviteCode: val }));
+
+    if (val.length === 0) {
+      setHeadRotation(0);
+      setHeadX(0);
+      setPupilShift(0);
+    } else {
+      const progress = val.length / 4;
+      const angle = (progress - 0.5) * 32;
+      const posX = (progress - 0.5) * 20;
+      const pupil = (progress - 0.5) * 6;
+      setHeadRotation(angle);
+      setHeadX(posX);
+      setPupilShift(pupil);
+    }
+  };
 
   // Handle phone submission -> Trigger Confirmation Modal
   const handlePhoneSubmit = (e: React.FormEvent) => {
@@ -66,11 +129,16 @@ export default function Signup() {
   const executeRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!verificationCode || verificationCode.length < 4) {
+      triggerMonkeyShake();
       showToast('Ops! Por favor introduza o código de verificação.', 'error');
       return;
     }
+
+    // Check mandatory invite code
     if (!formData.inviteCode || formData.inviteCode.length !== 4) {
-      showToast('Ops! O código de convite deve ter exatamente 4 caracteres.', 'error');
+      setShowInviteInput(true);
+      triggerMonkeyShake();
+      showToast('Ops! Por favor introduza o código de convite (4 caracteres).', 'error');
       return;
     }
 
@@ -82,10 +150,16 @@ export default function Signup() {
         p_device_id: getDeviceId()
       });
 
-      if (vError) throw vError;
+      if (vError) {
+        setShowInviteInput(true);
+        triggerMonkeyShake();
+        throw vError;
+      }
 
       const validation = rpcData as { success: boolean; message: string } | null;
       if (validation && !validation.success) {
+        setShowInviteInput(true);
+        triggerMonkeyShake();
         showToast(validation.message || 'Ops! Código de convite inválido ou expirado.', 'error');
         setIsSubmitting(false);
         return;
@@ -105,6 +179,7 @@ export default function Signup() {
       });
 
       if (error) {
+        triggerMonkeyShake();
         if (error.message.includes('already registered')) {
           showToast('Ops! Este número de telefone já está cadastrado.', 'error');
         } else {
@@ -121,6 +196,7 @@ export default function Signup() {
         navigate(data.session ? '/home' : '/login');
       }
     } catch (err: any) {
+      triggerMonkeyShake();
       let msg = err.message || 'Ops! Ocorreu um erro ao processar o cadastro.';
       if (msg.includes('email rate limit exceeded')) msg = 'Ops! Limite de tentativas excedido, tente mais tarde.';
       showToast(msg, 'error');
@@ -183,9 +259,9 @@ export default function Signup() {
               {/* Floating Label Input 1: Country */}
               <div 
                 onClick={() => setShowCountryModal(true)}
-                className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] hover:border-[#3390ec] focus-within:border-[#3390ec] px-4 flex items-center justify-between cursor-pointer transition-colors bg-white group mb-5"
+                className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] hover:border-[#3390ec] focus-within:border-[#3390ec] px-4 flex items-center justify-between cursor-pointer transition-colors bg-white group mb-5"
               >
-                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
                   Country / País
                 </label>
                 <div className="flex items-center gap-2 overflow-hidden pr-2">
@@ -201,8 +277,8 @@ export default function Signup() {
               </div>
 
               {/* Floating Label Input 2: Your Phone Number */}
-              <div className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
-                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+              <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
+                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
                   Your phone number / Número de telefone
                 </label>
                 <span className="text-[16px] text-black font-normal mr-2 select-none">
@@ -235,7 +311,7 @@ export default function Signup() {
 
               <button
                 type="submit"
-                className="w-full h-[52px] rounded-[12px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all shadow-sm flex items-center justify-center"
+                className="w-full h-[52px] rounded-[20px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all shadow-sm flex items-center justify-center"
               >
                 CONTINUAR
               </button>
@@ -250,8 +326,26 @@ export default function Signup() {
         ) : (
           /* STEP 2: OFFICIAL TELEGRAM VERIFICATION SCREEN DESIGN */
           <form onSubmit={executeRegistration} className="w-full flex flex-col items-center">
-            {/* Cute Telegram Monkey SVG Illustration */}
-            <div className="mb-6 flex items-center justify-center">
+            {/* Cute Interactive Telegram Monkey SVG Animation */}
+            <motion.div 
+              className="mb-6 flex items-center justify-center"
+              animate={
+                monkeyState === 'shake'
+                  ? {
+                      x: [0, -18, 18, -14, 14, -10, 10, -5, 5, 0],
+                      rotate: [0, -14, 14, -10, 10, -6, 6, -3, 3, 0],
+                    }
+                  : {
+                      x: headX,
+                      rotate: headRotation,
+                    }
+              }
+              transition={
+                monkeyState === 'shake'
+                  ? { duration: 0.5, ease: 'easeInOut' }
+                  : { type: 'spring', stiffness: 260, damping: 20 }
+              }
+            >
               <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" className="w-[120px] h-[120px]">
                 {/* Monkey ears */}
                 <circle cx="28" cy="80" r="22" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
@@ -262,19 +356,39 @@ export default function Signup() {
                 <ellipse cx="80" cy="84" rx="54" ry="46" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
                 {/* Inner light cream face shape */}
                 <path d="M 40 86 C 40 58, 60 52, 80 66 C 100 52, 120 58, 120 86 C 120 114, 96 122, 80 122 C 64 122, 40 114, 40 86 Z" fill="#fce5cd" stroke="#5d4037" strokeWidth="3"/>
-                {/* Eyes */}
-                <ellipse cx="62" cy="82" rx="6.5" ry="9" fill="#212121"/>
-                <circle cx="64" cy="79" r="2.5" fill="#ffffff"/>
-                <ellipse cx="98" cy="82" rx="6.5" ry="9" fill="#212121"/>
-                <circle cx="100" cy="79" r="2.5" fill="#ffffff"/>
+                
+                {/* Eyes & Pupils with dynamic pupilShift */}
+                <g>
+                  {/* Left Eye */}
+                  <ellipse cx="62" cy="82" rx="6.5" ry="9" fill="#212121"/>
+                  <motion.circle 
+                    animate={{ cx: 64 + pupilShift }} 
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    cy="79" r="2.5" fill="#ffffff"
+                  />
+
+                  {/* Right Eye */}
+                  <ellipse cx="98" cy="82" rx="6.5" ry="9" fill="#212121"/>
+                  <motion.circle 
+                    animate={{ cx: 100 + pupilShift }} 
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    cy="79" r="2.5" fill="#ffffff"
+                  />
+                </g>
+
                 {/* Nose */}
                 <ellipse cx="80" cy="95" rx="7" ry="4.5" fill="#b08557"/>
                 <circle cx="77.5" cy="95.5" r="1.8" fill="#5d4037"/>
                 <circle cx="82.5" cy="95.5" r="1.8" fill="#5d4037"/>
-                {/* Smile */}
-                <path d="M 72 104 Q 80 112 88 104" fill="none" stroke="#5d4037" strokeWidth="3.5" strokeLinecap="round"/>
+
+                {/* Mouth expression */}
+                {monkeyState === 'shake' ? (
+                  <circle cx="80" cy="107" r="4.5" fill="#5d4037" />
+                ) : (
+                  <path d="M 72 104 Q 80 112 88 104" fill="none" stroke="#5d4037" strokeWidth="3.5" strokeLinecap="round"/>
+                )}
               </svg>
-            </div>
+            </motion.div>
 
             {/* Phone Number Display with Pencil Icon to Edit */}
             <div 
@@ -293,8 +407,8 @@ export default function Signup() {
             </p>
 
             {/* Verification Code Floating Input Box */}
-            <div className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
-              <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
+            <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
+              <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
                 Code / Código
               </label>
               <input
@@ -305,31 +419,57 @@ export default function Signup() {
                 maxLength={6}
                 className="flex-1 h-full bg-transparent outline-none text-[18px] text-black font-medium tracking-widest text-center"
                 value={verificationCode}
-                onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={handleVerificationCodeChange}
+                onFocus={() => {
+                  if (!verificationCode) {
+                    setHeadRotation(-8);
+                    setHeadX(-4);
+                    setPupilShift(-2);
+                  }
+                }}
                 autoFocus
               />
             </div>
 
-            {/* Invite Code Floating Input Box (4 Characters) */}
-            <div className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-6">
-              <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
-                Invite Code / Código de Convite (4 caracteres)
-              </label>
-              <input
-                name="inviteCode"
-                type="text"
-                placeholder="Ex: aB3c"
-                maxLength={4}
-                className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-mono tracking-widest uppercase text-center"
-                value={formData.inviteCode}
-                onChange={handleChange}
-              />
-            </div>
+            {/* MANDATORY Invite Code Floating Input Box (Shown if user clicks to introduce or if URL didn't have it on submit attempt) */}
+            {showInviteInput ? (
+              <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-6">
+                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
+                  Invite Code / Código de Convite (4 caracteres) *
+                </label>
+                <input
+                  name="inviteCode"
+                  type="text"
+                  placeholder="Ex: aB3c"
+                  maxLength={4}
+                  required
+                  className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-mono tracking-widest uppercase text-center"
+                  value={formData.inviteCode}
+                  onChange={handleInviteCodeChange}
+                  onFocus={() => {
+                    if (!formData.inviteCode) {
+                      setHeadRotation(8);
+                      setHeadX(4);
+                      setPupilShift(2);
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+            ) : !hasUrlInviteCode ? (
+              <button
+                type="button"
+                onClick={() => setShowInviteInput(true)}
+                className="text-[#3390ec] font-semibold text-[14px] hover:underline mb-6 active:scale-95 transition-all text-center"
+              >
+                Possui um código de convite?
+              </button>
+            ) : null}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-[52px] rounded-[12px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center shadow-sm"
+              className="w-full h-[52px] rounded-[20px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center shadow-sm"
             >
               {isSubmitting ? <Loader2 className="animate-spin h-6 w-6 text-white" /> : 'CONCLUIR CADASTRO'}
             </button>
@@ -358,7 +498,7 @@ export default function Signup() {
               <div className="w-[40px]"></div>
             </div>
             <div className="p-2 bg-[#f8f8f8] border-b border-[#c8c7cc] shrink-0">
-              <div className="bg-[#e3e3e8] h-[36px] rounded-[10px] flex items-center px-3">
+              <div className="bg-[#e3e3e8] h-[36px] rounded-[20px] flex items-center px-3">
                 <Search className="w-5 h-5 text-[#8e8e93] mr-2" />
                 <input 
                   type="text" 
@@ -430,14 +570,14 @@ export default function Signup() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmationModal(false)}
-                  className="flex-1 h-[40px] rounded-[12px] border border-[#3390ec] text-[#3390ec] font-semibold text-[15px] active:scale-[0.98] transition-all hover:bg-blue-50 flex items-center justify-center"
+                  className="flex-1 h-[40px] rounded-[20px] border border-[#3390ec] text-[#3390ec] font-semibold text-[15px] active:scale-[0.98] transition-all hover:bg-blue-50 flex items-center justify-center"
                 >
                   Editar
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmNumber}
-                  className="flex-1 h-[40px] rounded-[12px] bg-[#3390ec] hover:bg-[#2b7bc9] text-white font-semibold text-[15px] active:scale-[0.98] transition-all shadow-sm flex items-center justify-center"
+                  className="flex-1 h-[40px] rounded-[20px] bg-[#3390ec] hover:bg-[#2b7bc9] text-white font-semibold text-[15px] active:scale-[0.98] transition-all shadow-sm flex items-center justify-center"
                 >
                   Continuar
                 </button>

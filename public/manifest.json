@@ -17,7 +17,7 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/cadastro",
+  "start_url": "/messager",
   "scope": "/",
   "background_color": "#F2F2F2",
   "theme_color": "#FE384F",
