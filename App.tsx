@@ -94,11 +94,11 @@ function PageSkeleton() {
 function RootRedirect() {
   const { session, ready } = useAuth();
   const [searchParams] = useSearchParams();
-  const joinCode = searchParams.get('join');
+  const joinCode = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref');
 
   if (!ready) return null;
   if (session) return <Navigate to="/home" replace />;
-  if (joinCode) return <Navigate to={`/cadastro?join=${joinCode}`} replace />;
+  if (joinCode) return <Navigate to={`/cadastro?join=${encodeURIComponent(joinCode)}`} replace />;
   return <Navigate to="/cadastro" replace />;
 }
 

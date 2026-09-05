@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { LanguageSelector } from '../components/LanguageSelector';
 import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/device';
 import { subscribeToPushNotifications } from '../lib/pushNotifications';
-import { Eye, EyeOff, Loader2, Download, Bell, X, ShieldCheck, Search, Check } from 'lucide-react';
+import { Loader2, Search, X, Check, ArrowLeft, ChevronDown } from 'lucide-react';
 import { COUNTRIES, Country } from '../lib/countries';
 
 export default function Signup() {
@@ -16,60 +15,24 @@ export default function Signup() {
   const { showToast } = useToast();
   const { t } = useLanguage();
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ phone: '', inviteCode: '', password: '' });
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  // Step state: 'phone' | 'verification'
+  const [step, setStep] = useState<'phone' | 'verification'>('phone');
 
-  // New states for Telegram layout
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
+  const [formData, setFormData] = useState({ phone: '', inviteCode: '' });
+  const [pin, setPin] = useState<string[]>(['', '', '', '', '', '']);
+  const pinInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Modal states
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
   const [showCountryModal, setShowCountryModal] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [searchCountry, setSearchCountry] = useState('');
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      (window as any).deferredPwaPrompt = e;
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-
-    if ((window as any).deferredPwaPrompt) {
-      setDeferredPrompt((window as any).deferredPwaPrompt);
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
-  }, []);
-
-  const handleInstallPWA = async () => {
-    const promptEvent = deferredPrompt || (window as any).deferredPwaPrompt;
-    if (promptEvent) {
-      try {
-        await promptEvent.prompt();
-        const choiceResult = await promptEvent.userChoice;
-        if (choiceResult?.outcome === 'accepted') {
-          showToast('Instalando aplicativo...', 'success');
-        }
-        setDeferredPrompt(null);
-        (window as any).deferredPwaPrompt = null;
-      } catch (err) {
-        console.error('Erro ao acionar prompt PWA:', err);
-      }
-    } else {
-      if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
-        showToast('Aplicativo já instalado no dispositivo!', 'success');
-      } else {
-        showToast('Iniciando instalação do aplicativo...', 'info');
-      }
-    }
-  };
-
-  useEffect(() => {
     const code = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref');
-    if (code) setFormData(prev => ({ ...prev, inviteCode: code.toUpperCase() }));
+    if (code) setFormData(prev => ({ ...prev, inviteCode: code.trim().slice(0, 4) }));
   }, [searchParams]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,54 +41,80 @@ export default function Signup() {
     if (name === 'phone') {
       sanitized = value.replace(/\D/g, '').slice(0, selectedCountry.maxLength);
     } else if (name === 'inviteCode') {
-      sanitized = value.replace(/\D/g, '').slice(0, 10);
+      sanitized = value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4);
     } else {
       sanitized = value.trim();
     }
     setFormData(prev => ({ ...prev, [name]: sanitized }));
   }, [selectedCountry.maxLength]);
 
-  const togglePassword = useCallback(() => setShowPassword(v => !v), []);
-
-  const validateForm = () => {
-    if (!formData.phone || formData.phone.length < Math.max(7, selectedCountry.maxLength - 2)) {
-      showToast(t('auth.phone_error_length'), 'error');
-      return false;
-    }
-    if (formData.password.length < 8) {
-      showToast(t('auth.password_error_length'), 'error');
-      return false;
-    }
-    if (!formData.inviteCode || formData.inviteCode.length !== 10) {
-      showToast(t('auth.invite_error_length'), 'error');
-      return false;
-    }
-    return true;
-  };
-
+  // Handle phone submission -> Trigger Confirmation Modal
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const minLen = Math.max(6, selectedCountry.maxLength - 2);
     if (!formData.phone || formData.phone.length < minLen) {
-      showToast(`Por favor insira um número válido (${selectedCountry.maxLength} dígitos para ${selectedCountry.name})`, 'error');
+      showToast(`Ops! Por favor insira um número de telefone válido (${selectedCountry.maxLength} dígitos).`, 'error');
       return;
     }
-    setShowPasswordModal(true);
+    setShowConfirmationModal(true);
   };
 
-  const handleRegisterClick = (e: React.FormEvent) => {
+  // Confirm phone number -> Advance to Verification Screen
+  const handleConfirmNumber = () => {
+    setShowConfirmationModal(false);
+    setStep('verification');
+  };
+
+  // PIN Input handlers
+  const handlePinChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newPin = [...pin];
+    newPin[index] = digit;
+    setPin(newPin);
+
+    if (digit && index < 5) {
+      pinInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      pinInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePinPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    if (!validateForm()) return;
-    setShowPasswordModal(false);
-    executeRegistration();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pastedData) {
+      const newPin = ['', '', '', '', '', ''];
+      for (let i = 0; i < pastedData.length; i++) {
+        newPin[i] = pastedData[i];
+      }
+      setPin(newPin);
+      const nextIndex = Math.min(pastedData.length, 5);
+      pinInputRefs.current[nextIndex]?.focus();
+    }
   };
 
-  const executeRegistration = async () => {
+  // Execute complete registration
+  const executeRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const enteredPin = pin.join('');
+    if (enteredPin.length < 6) {
+      showToast('Ops! Por favor introduza os 6 dígitos do código de verificação.', 'error');
+      return;
+    }
+    if (!formData.inviteCode || formData.inviteCode.length !== 4) {
+      showToast('Ops! O código de convite deve ter exatamente 4 caracteres.', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { data: rpcData, error: vError } = await supabase.rpc('secure_registration_mcpn', {
         p_phone: formData.phone,
-        p_invite_code: formData.inviteCode.toUpperCase(),
+        p_invite_code: formData.inviteCode,
         p_device_id: getDeviceId()
       });
 
@@ -133,18 +122,19 @@ export default function Signup() {
 
       const validation = rpcData as { success: boolean; message: string } | null;
       if (validation && !validation.success) {
-        showToast(validation.message || 'Código de convite inválido', 'error');
+        showToast(validation.message || 'Ops! Código de convite inválido ou expirado.', 'error');
         setIsSubmitting(false);
         return;
       }
 
+      const defaultPassword = `${formData.phone}Pass123!`;
       const { data, error } = await supabase.auth.signUp({
         email: `${formData.phone}@user.com`,
-        password: formData.password,
+        password: defaultPassword,
         options: {
           data: {
             phone: formData.phone,
-            referred_by: formData.inviteCode.toUpperCase(),
+            referred_by: formData.inviteCode,
             device_id: getDeviceId()
           }
         }
@@ -152,7 +142,7 @@ export default function Signup() {
 
       if (error) {
         if (error.message.includes('already registered')) {
-          showToast(t('auth.phone_error_exists') || 'Celular registrado.', 'error');
+          showToast('Ops! Este número de telefone já está cadastrado.', 'error');
         } else {
           throw error;
         }
@@ -163,12 +153,12 @@ export default function Signup() {
         if ('Notification' in window && Notification.permission === 'granted') {
           subscribeToPushNotifications().catch(() => {});
         }
-        showToast(t('auth.signup_success') || (data.session ? 'Registrado!' : 'Conta criada! Faça login.'), 'success');
+        showToast(data.session ? 'Tudo pronto! Cadastro concluído.' : 'Conta criada com sucesso! Faça login.', 'success');
         navigate(data.session ? '/home' : '/login');
       }
     } catch (err: any) {
-      let msg = err.message || 'Falhou, tente novamente';
-      if (msg.includes('email rate limit exceeded')) msg = 'Limite de tentativas excedido, tente outra hora';
+      let msg = err.message || 'Ops! Ocorreu um erro ao processar o cadastro.';
+      if (msg.includes('email rate limit exceeded')) msg = 'Ops! Limite de tentativas excedido, tente mais tarde.';
       showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
@@ -184,81 +174,172 @@ export default function Signup() {
   }, [searchCountry]);
 
   return (
-    <div className="w-full min-h-screen bg-white pb-12 font-sans antialiased text-black select-none flex flex-col items-center">
-      {/* Header section */}
-      <div className="w-full max-w-[400px] flex justify-end p-4">
-        <LanguageSelector />
+    <div className="w-full min-h-screen bg-white pb-12 font-sans antialiased text-black select-none flex flex-col items-center justify-center p-4">
+      {/* Top Header Back Button */}
+      <div className="w-full max-w-[360px] flex items-center justify-between mb-2">
+        {step === 'verification' ? (
+          <button 
+            onClick={() => setStep('phone')}
+            className="flex items-center text-[#3390ec] font-medium text-[16px] hover:opacity-80 active:scale-95 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5 mr-1" />
+            Voltar
+          </button>
+        ) : (
+          <div className="h-6"></div>
+        )}
       </div>
 
-      <main className="w-full max-w-[400px] px-4 flex flex-col items-center mt-2">
-        {/* Logo Telegram */}
-        <div className="mb-5 flex items-center justify-center">
-          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[100px] h-[100px]">
+      <main className="w-full max-w-[360px] flex flex-col items-center">
+        {/* Official Telegram Logo */}
+        <div className="mb-6 flex items-center justify-center">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[120px] h-[120px]">
             <defs>
-              <linearGradient id="tgSignupGrad" x1=".667" x2=".417" y1=".167" y2=".75">
+              <linearGradient id="tgOfficialGrad" x1=".667" x2=".417" y1=".167" y2=".75">
                 <stop offset="0" stopColor="#37aee2"/>
                 <stop offset="1" stopColor="#1e96c8"/>
               </linearGradient>
             </defs>
-            <circle cx="120" cy="120" r="120" fill="url(#tgSignupGrad)"/>
+            <circle cx="120" cy="120" r="120" fill="url(#tgOfficialGrad)"/>
             <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232"/>
             <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035"/>
             <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258"/>
           </svg>
         </div>
 
-        <h1 className="text-[28px] font-bold mb-2 text-center tracking-tight">Telegram Business</h1>
-        
-        <p className="text-[15px] text-[#8e8e93] text-center mb-8 leading-snug">
-          Por favor, confirme o código do seu país e digite o seu número de telefone.<br />
-          ou <Link to="/login" className="text-[#3390ec] hover:underline">inicie sessão com Passkey &gt;</Link>
-        </p>
+        {step === 'phone' ? (
+          <>
+            <h1 className="text-[30px] font-semibold text-center mb-2 tracking-tight text-black">Telegram</h1>
+            
+            <p className="text-[15px] text-[#707579] text-center mb-8 leading-snug max-w-[320px]">
+              Por favor, confirme o código do seu país e digite o seu número de telefone.
+            </p>
 
-        <form onSubmit={handlePhoneSubmit} className="w-full flex flex-col">
-          <div className="w-full border-y border-[#c8c7cc] bg-white">
-            <div 
-              className="flex items-center justify-between h-[50px] px-4 border-b border-[#c8c7cc] cursor-pointer active:bg-gray-50"
-              onClick={() => setShowCountryModal(true)}
-            >
-
-              <div className="flex items-center gap-2">
-                <img
-                  src={`https://flagcdn.com/w40/${selectedCountry.code.toLowerCase()}.png`}
-                  alt={selectedCountry.name}
-                  className="w-7 h-auto rounded-sm object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-                <span className="text-[#3390ec] text-[17px]">{selectedCountry.name}</span>
+            <form onSubmit={handlePhoneSubmit} className="w-full flex flex-col items-center">
+              {/* Floating Label Input 1: Country */}
+              <div 
+                onClick={() => setShowCountryModal(true)}
+                className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] hover:border-[#3390ec] focus-within:border-[#3390ec] px-4 flex items-center justify-between cursor-pointer transition-colors bg-white group mb-5"
+              >
+                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+                  Country / País
+                </label>
+                <div className="flex items-center gap-2 overflow-hidden pr-2">
+                  <img
+                    src={`https://flagcdn.com/w40/${selectedCountry.code.toLowerCase()}.png`}
+                    alt={selectedCountry.name}
+                    className="w-6 h-auto rounded-sm object-cover shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <span className="text-[16px] text-black font-normal truncate">{selectedCountry.name}</span>
+                </div>
+                <ChevronDown className="w-5 h-5 text-[#a2acb4] group-hover:text-[#3390ec] transition-colors shrink-0" />
               </div>
-              <div className="text-[#c8c7cc] font-bold text-[18px]">&gt;</div>
+
+              {/* Floating Label Input 2: Your Phone Number */}
+              <div className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
+                <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+                  Your phone number / Número de telefone
+                </label>
+                <span className="text-[16px] text-black font-normal mr-2 select-none">
+                  {selectedCountry.dial_code}
+                </span>
+                <input
+                  name="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder=""
+                  className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-normal"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  maxLength={selectedCountry.maxLength}
+                  autoFocus
+                />
+              </div>
+
+              {/* Checkbox: Keep me signed in */}
+              <label className="flex items-center gap-3 cursor-pointer select-none self-start mb-6">
+                <input 
+                  type="checkbox" 
+                  checked={keepSignedIn} 
+                  onChange={(e) => setKeepSignedIn(e.target.checked)}
+                  className="w-5 h-5 rounded-[4px] accent-[#3390ec] cursor-pointer"
+                />
+                <span className="text-[15px] text-[#000000] font-normal">Manter sessão iniciada</span>
+              </label>
+
+              <button
+                type="submit"
+                className="w-full h-[52px] rounded-[12px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all shadow-sm flex items-center justify-center"
+              >
+                CONTINUAR
+              </button>
+
+              <div className="flex flex-col items-center gap-3 mt-8 w-full">
+                <Link to="/login" className="text-[#3390ec] font-semibold text-[14px] uppercase tracking-wider hover:underline text-center">
+                  LOG IN WITH PASSKEY
+                </Link>
+              </div>
+            </form>
+          </>
+        ) : (
+          /* STEP 2: VERIFICATION & PIN SCREEN */
+          <form onSubmit={executeRegistration} className="w-full flex flex-col items-center">
+            <h1 className="text-[28px] font-semibold text-center mb-2 tracking-tight text-black">Código de Verificação</h1>
+            
+            <p className="text-[15px] text-[#707579] text-center mb-6 leading-snug max-w-[320px]">
+              Foi enviada uma mensagem de verificação para o número{' '}
+              <strong className="text-black font-semibold">
+                {selectedCountry.dial_code} {formData.phone.replace(/(\d{3})(?=\d)/g, '$1 ')}
+              </strong>
+              .<br />Introduza os 6 dígitos abaixo e o seu código de convite para concluir o cadastro.
+            </p>
+
+            {/* 6 PIN Boxes */}
+            <div className="flex justify-between gap-2 w-full my-4">
+              {pin.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={el => { pinInputRefs.current[idx] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={e => handlePinChange(idx, e.target.value)}
+                  onKeyDown={e => handlePinKeyDown(idx, e)}
+                  onPaste={handlePinPaste}
+                  autoFocus={idx === 0}
+                  className="w-12 h-14 bg-white rounded-[12px] border border-[#c8c7cc] focus:border-[#3390ec] text-center text-[22px] font-semibold text-black outline-none transition-all shadow-sm"
+                />
+              ))}
             </div>
 
-            <div className="flex items-center h-[50px] px-4 relative">
-              <span className="text-[17px] text-black mr-2 min-w-[45px] border-r border-[#c8c7cc] leading-[30px] pr-2">
-                {selectedCountry.dial_code}
-              </span>
+            {/* Invite Code Field (4 characters - Floating Label) */}
+            <div className="relative w-full h-[54px] rounded-[12px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mt-3 mb-6">
+              <label className="absolute -top-2.5 left-3 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+                Código de Convite (4 caracteres)
+              </label>
               <input
-                name="phone"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder={`${'0'.repeat(selectedCountry.maxLength)} dígitos`}
-                className="flex-1 h-full bg-transparent outline-none text-[17px] text-black placeholder:text-[#c8c7cc]"
-                value={formData.phone}
+                name="inviteCode"
+                type="text"
+                placeholder="Ex: aB3c"
+                className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-mono tracking-widest uppercase"
+                value={formData.inviteCode}
                 onChange={handleChange}
-                maxLength={selectedCountry.maxLength}
-                autoFocus
+                maxLength={4}
               />
             </div>
-          </div>
 
-          <button
-            type="submit"
-            className="w-full h-[52px] rounded-[16px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-medium text-[17px] transition-all disabled:opacity-50 flex items-center justify-center mt-6 shadow-sm"
-          >
-            Continue
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-[52px] rounded-[12px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center shadow-sm"
+            >
+              {isSubmitting ? <Loader2 className="animate-spin h-6 w-6 text-white" /> : 'CONCLUIR CADASTRO'}
+            </button>
+          </form>
+        )}
       </main>
 
       {/* MODAL DE PAÍSES */}
@@ -276,9 +357,9 @@ export default function Signup() {
                 onClick={() => setShowCountryModal(false)}
                 className="text-[#3390ec] text-[17px] font-medium"
               >
-                Back
+                Voltar
               </button>
-              <h2 className="flex-1 text-center text-[17px] font-semibold">Choose a country</h2>
+              <h2 className="flex-1 text-center text-[17px] font-semibold">Escolha um país</h2>
               <div className="w-[40px]"></div>
             </div>
             <div className="p-2 bg-[#f8f8f8] border-b border-[#c8c7cc] shrink-0">
@@ -286,7 +367,7 @@ export default function Signup() {
                 <Search className="w-5 h-5 text-[#8e8e93] mr-2" />
                 <input 
                   type="text" 
-                  placeholder="Search" 
+                  placeholder="Pesquisar" 
                   className="bg-transparent outline-none flex-1 text-[16px] text-black"
                   value={searchCountry}
                   onChange={(e) => setSearchCountry(e.target.value)}
@@ -322,76 +403,54 @@ export default function Signup() {
                 </div>
               ))}
               {filteredCountries.length === 0 && (
-                <div className="p-8 text-center text-[#8e8e93]">No countries found</div>
+                <div className="p-8 text-center text-[#8e8e93]">Nenhum país encontrado</div>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* MODAL CONFIRMAÇÃO + SENHA */}
+      {/* MODAL DE CONFIRMAÇÃO DO NÚMERO */}
       <AnimatePresence>
-        {showPasswordModal && (
+        {showConfirmationModal && (
           <div
             className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 p-4"
-            onClick={(e) => e.target === e.currentTarget && setShowPasswordModal(false)}
+            onClick={(e) => e.target === e.currentTarget && setShowConfirmationModal(false)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: 'tween', ease: 'easeOut', duration: 0.2 }}
-              className="bg-white w-full max-w-[360px] rounded-[24px] overflow-hidden select-none font-sans antialiased shadow-xl pb-4"
+              className="bg-white w-full max-w-[340px] rounded-[24px] overflow-hidden select-none font-sans antialiased shadow-xl p-6 flex flex-col items-center text-center"
             >
-              <div className="pt-8 pb-4 px-6 text-center">
-                <h2 className="text-[32px] font-bold text-black mb-2 tracking-tight">
-                  {selectedCountry.dial_code} {formData.phone.replace(/(\d{3})(?=\d)/g, '$1 ')}
-                </h2>
-                <p className="text-[17px] text-[#202020] font-normal mb-4">
-                  Is this the correct number?
-                </p>
-                <button 
-                  onClick={() => setShowPasswordModal(false)}
-                  className="text-[#3390ec] text-[17px] font-medium"
+              <h2 className="text-[28px] font-bold text-black mb-2 tracking-tight">
+                {selectedCountry.dial_code} {formData.phone.replace(/(\d{3})(?=\d)/g, '$1 ')}
+              </h2>
+              <p className="text-[16px] text-[#505050] font-normal mb-6">
+                Este é o número correto?
+              </p>
+
+              <div className="flex w-full gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmationModal(false)}
+                  className="flex-1 h-[40px] rounded-[12px] border border-[#3390ec] text-[#3390ec] font-semibold text-[15px] active:scale-[0.98] transition-all hover:bg-blue-50 flex items-center justify-center"
                 >
-                  Edit
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmNumber}
+                  className="flex-1 h-[40px] rounded-[12px] bg-[#3390ec] hover:bg-[#2b7bc9] text-white font-semibold text-[15px] active:scale-[0.98] transition-all shadow-sm flex items-center justify-center"
+                >
+                  Continuar
                 </button>
               </div>
-
-              <form onSubmit={handleRegisterClick} className="px-6 flex flex-col gap-4">
-                <div className="bg-[#f0f0f0] rounded-[14px] h-[50px] px-4 flex items-center relative">
-                  <input
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    placeholder={t('auth.password_placeholder')}
-                    className="flex-1 h-full bg-transparent outline-none text-[17px] text-black placeholder:text-[#8e8e93] pr-10"
-                    value={formData.password}
-                    onChange={handleChange}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={togglePassword}
-                    className="absolute right-4 text-[#8e8e93] active:scale-95 transition-transform"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full h-[54px] rounded-[16px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[17px] transition-all disabled:opacity-50 flex items-center justify-center shadow-sm"
-                >
-                  {isSubmitting ? <Loader2 className="animate-spin h-6 w-6 text-white" /> : "Continue"}
-                </button>
-              </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
