@@ -358,12 +358,13 @@ export default function CommunityChat() {
         const uncachedIds = Array.from(new Set(data.map((m: any) => m.uid_emissor).filter((id: string) => id && !phoneCache[id])));
         if (uncachedIds.length > 0) {
           const { data: profiles } = await supabase
-            .from('sys_t500')
-            .select('id, telefone')
+            .schema('api')
+            .from('profiles')
+            .select('id, phone')
             .in('id', uncachedIds);
           if (profiles) {
             profiles.forEach((p: any) => {
-              phoneCache[p.id] = p.telefone || "Telefone Desconhecido";
+              phoneCache[p.id] = p.phone || "Membro";
             });
           }
         }
@@ -422,7 +423,7 @@ export default function CommunityChat() {
 
   useEffect(() => {
     if (!user) return;
-    const channel = supabase.channel("addbank_telegram_chat_realtime")
+    const channel = supabase.channel("tg_community_chat_realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_gruop" }, async (payload) => {
         if (payload.eventType === "DELETE") {
           setPublicMessages(prev => prev.filter(m => m.id !== payload.old.id));
@@ -434,16 +435,17 @@ export default function CommunityChat() {
             let tel = phoneCache[data.uid_emissor] || null;
             if (!tel && data.uid_emissor) {
               const { data: prof } = await supabase
-                .from('sys_t500')
-                .select('telefone')
+                .schema('api')
+                .from('profiles')
+                .select('phone')
                 .eq('id', data.uid_emissor)
                 .maybeSingle();
-              if (prof?.telefone) {
-                tel = prof.telefone;
+              if (prof?.phone) {
+                tel = prof.phone;
                 phoneCache[data.uid_emissor] = tel;
               }
             }
-            const dataWithPhone = { ...data, perfis_mcpn: { telefone: tel || "Telefone Desconhecido" } };
+            const dataWithPhone = { ...data, perfis_mcpn: { telefone: tel || "Membro" } };
             setPublicMessages((c) => {
               const msgMap = new Map(c.map(m => [m.id, m]));
               msgMap.set(data.id, dataWithPhone);
@@ -519,7 +521,7 @@ export default function CommunityChat() {
     try {
       const { data, error } = await supabase.from("chat_gruop").insert([{
         uid_emissor: user.id,
-        mensagem: tempMsg || "",
+        mensagem: tempMsg || " ",
         detalhes,
       }]).select().single();
 

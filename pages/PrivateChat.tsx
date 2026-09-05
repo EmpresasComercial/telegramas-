@@ -138,11 +138,12 @@ export default function PrivateChat() {
     (async () => {
       try {
         const { data } = await (supabase as any)
-          .from('sys_t500')
-          .select('telefone')
+          .schema('api')
+          .from('profiles')
+          .select('phone')
           .eq('id', contactId)
           .single();
-        if (data?.telefone) setContactDisplayName(data.telefone);
+        if (data?.phone) setContactDisplayName(data.phone);
       } catch {}
     })();
   }, [contactId]);
