@@ -525,68 +525,6 @@ export default function ChatsList() {
           </div>
         )}
 
-        {/* ── 4. MENSAGENS SALVAS (SAVED MESSAGES) ── */}
-        {(activeFilter === 'all' || activeFilter === 'personal') && (
-          <div
-            onClick={() => {
-              if (outletContext?.openDrawer) outletContext.openDrawer();
-              else showToast('Abra Mensagens Salvas pelo menu lateral', 'info');
-            }}
-            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
-          >
-            <div className="relative shrink-0">
-              <div className="w-13 h-13 rounded-full bg-[#2481cc] flex items-center justify-center shadow-xs text-white">
-                <Bookmark className="w-6 h-6 fill-white" />
-              </div>
-            </div>
-
-            <div className="flex-1 min-w-0 py-0.5">
-              <div className="flex justify-between items-center mb-0.5">
-                <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
-                  Mensagens Salvas
-                </h3>
-                <span className="text-[12px] text-[#707579] dark:text-[#9eaab6]">10:40</span>
-              </div>
-
-              <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
-                Seu armazenamento em nuvem pessoal: notas, fotos e arquivos.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── 5. ASSISTENTE TELEGRAM BUSINESS BOT ── */}
-        {(activeFilter === 'all' || activeFilter === 'bots') && (
-          <div
-            onClick={() => navigate('/bot-pay')}
-            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
-          >
-            <div className="relative shrink-0">
-              <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-[#8e44ad] to-[#a55eea] flex items-center justify-center shadow-xs text-white text-xl">
-                🤖
-              </div>
-              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#17212b]" />
-            </div>
-
-            <div className="flex-1 min-w-0 py-0.5">
-              <div className="flex justify-between items-center mb-0.5">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
-                    Telegram Business Bot
-                  </h3>
-                  <span className="bg-[#eef2ff] dark:bg-[#2b5278] text-[#2481cc] text-[10px] font-bold px-1.5 py-0.2 rounded-sm">
-                    BOT
-                  </span>
-                </div>
-                <span className="text-[12px] text-[#707579] dark:text-[#9eaab6]">{timeStr}</span>
-              </div>
-
-              <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
-                Automação de rentabilidade, tarefas diárias e resgates pronta para executar.
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* ── 6. LISTA DINÂMICA DE CONTATOS PRIVADOS ── */}
         {isLoading ? (
