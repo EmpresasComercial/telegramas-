@@ -17,12 +17,18 @@ export default function Login() {
 
   const togglePasskey = useCallback(() => setShowPasskey(v => !v), []);
 
+  // Restrict input to numeric digits, max 6
+  const handlePasskeyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setPasskey(val);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const cleanPasskey = passkey.trim();
-    if (!cleanPasskey) {
-      showToast('Ops! Por favor introduza a sua chave de acesso.', 'error');
+    if (!cleanPasskey || cleanPasskey.length !== 6) {
+      showToast('Ops! A Chave de Acesso deve ter exactamente 6 dígitos numéricos.', 'error');
       return;
     }
 
@@ -100,23 +106,28 @@ export default function Login() {
           Telegram
         </h1>
 
-        <p className="text-[15px] text-[#707579] text-center mb-8 leading-snug max-w-[320px]">
-          Por favor, introduza a sua Chave de Acesso para entrar na sua conta.
+        <p className="text-[15px] text-[#707579] text-center mb-2 leading-snug max-w-[320px]">
+          Introduza a sua Chave de Acesso de 6 dígitos para entrar.
+        </p>
+        <p className="text-[12px] text-[#a2acb4] text-center mb-6 leading-snug max-w-[300px]">
+          5 dígitos do meio do seu nº de telefone + 1 dígito escolhido por si
         </p>
 
         <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
-          {/* Single Input Field: Passkey / Chave de Acesso */}
+          {/* Single Input Field: 6-digit compound Passkey */}
           <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-6">
             <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
-              Passkey / Chave de Acesso
+              Chave de Acesso (6 dígitos)
             </label>
             <input
               name="passkey"
               type={showPasskey ? 'text' : 'password'}
-              placeholder="Digite a sua chave de acesso"
-              className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-normal pr-10"
+              inputMode="numeric"
+              placeholder="••••••"
+              maxLength={6}
+              className="flex-1 h-full bg-transparent outline-none text-[22px] text-black font-bold tracking-widest text-center pr-10"
               value={passkey}
-              onChange={(e) => setPasskey(e.target.value)}
+              onChange={handlePasskeyChange}
               autoFocus
             />
             <button

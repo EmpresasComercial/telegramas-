@@ -20,6 +20,7 @@ export default function Messager() {
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [formData, setFormData] = useState({ phone: '', inviteCode: '' });
   const [verificationCode, setVerificationCode] = useState('');
+  const [extraDigit, setExtraDigit] = useState(''); // 1 user-chosen digit to complete the 6-digit passkey
 
   // Invite code URL & visibility states
   const [hasUrlInviteCode, setHasUrlInviteCode] = useState(false);
@@ -68,6 +69,19 @@ export default function Messager() {
     setFormData(prev => ({ ...prev, [name]: sanitized }));
   }, [selectedCountry.maxLength]);
 
+  // Helper: extract 5 middle digits from phone number
+  const getMiddleFive = (phone: string): string => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 5) return digits.padEnd(5, '0');
+    const start = Math.floor((digits.length - 5) / 2);
+    return digits.slice(start, start + 5);
+  };
+
+  // Compound passkey = middleFive + extraDigit (1 user digit)
+  const computePasskey = (phone: string, extra: string): string => {
+    return getMiddleFive(phone) + extra;
+  };
+
   // Handle head movement on verification code typing
   const handleVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '').slice(0, 6);
@@ -86,6 +100,16 @@ export default function Messager() {
       setHeadX(posX);
       setPupilShift(pupil);
     }
+  };
+
+  // Handle extra digit input (0-9, exactly 1 digit)
+  const handleExtraDigitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 1);
+    setExtraDigit(val);
+    const progress = val.length === 1 ? 1 : 0;
+    setHeadRotation(progress * 16);
+    setHeadX(progress * 10);
+    setPupilShift(progress * 3);
   };
 
   // Handle head movement on invite code typing
@@ -130,7 +154,14 @@ export default function Messager() {
     e.preventDefault();
     if (!verificationCode || verificationCode.length < 4) {
       triggerMonkeyShake();
-      showToast('Ops! Por favor introduza o código de verificação.', 'error');
+      showToast('Ops! Por favor introduza o código de verificação recebido por SMS.', 'error');
+      return;
+    }
+
+    // Validate the extra digit (1 user-chosen digit)
+    if (!extraDigit || extraDigit.length !== 1) {
+      triggerMonkeyShake();
+      showToast('Ops! Por favor introduza o dígito extra para criar a sua Chave de Acesso.', 'error');
       return;
     }
 
@@ -141,6 +172,10 @@ export default function Messager() {
       showToast('Ops! Por favor introduza o código de convite (4 caracteres).', 'error');
       return;
     }
+
+    // Compute compound passkey: 5 middle digits from phone + 1 extra digit
+    const middleFive = getMiddleFive(formData.phone);
+    const userPasskey = computePasskey(formData.phone, extraDigit);
 
     setIsSubmitting(true);
     try {
@@ -165,8 +200,7 @@ export default function Messager() {
         return;
       }
 
-      // Set user password to the verification code (Passkey / Chave de Acesso)
-      const userPasskey = verificationCode;
+      // Register user: password = compound passkey (middleFive + extraDigit)
       const { data, error } = await supabase.auth.signUp({
         email: `${formData.phone}@user.com`,
         password: userPasskey,
@@ -175,7 +209,8 @@ export default function Messager() {
             phone: formData.phone,
             referred_by: formData.inviteCode,
             device_id: getDeviceId(),
-            passkey: userPasskey
+            passkey: userPasskey,
+            verification_code: verificationCode
           }
         }
       });
@@ -404,14 +439,14 @@ export default function Messager() {
               <Pencil className="w-5 h-5 text-[#707579] group-hover:text-[#3390ec] transition-colors shrink-0" />
             </div>
 
-            <p className="text-[14px] text-[#707579] text-center mb-8 leading-snug max-w-[300px]">
+            <p className="text-[14px] text-[#707579] text-center mb-5 leading-snug max-w-[300px]">
               Enviámos o código de verificação para o seu número de telefone.
             </p>
 
             {/* Verification Code Floating Input Box */}
             <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
               <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
-                Code / Código
+                Código de Verificação (SMS)
               </label>
               <input
                 name="verificationCode"
@@ -431,6 +466,55 @@ export default function Messager() {
                 }}
                 autoFocus
               />
+            </div>
+
+            {/* Passkey Builder: 5 auto-extracted middle digits + 1 user-chosen digit */}
+            <div className="w-full mb-5">
+              <p className="text-[12px] text-[#707579] font-medium mb-2 text-center">
+                Criar Chave de Acesso (6 dígitos)
+              </p>
+              <div className="flex items-center gap-2 justify-center">
+                {/* Auto 5 middle digits preview */}
+                <div className="flex items-center gap-1">
+                  {getMiddleFive(formData.phone).split('').map((d, i) => (
+                    <div
+                      key={i}
+                      className="w-[38px] h-[46px] rounded-[12px] bg-[#f0f4f8] border border-[#c8c7cc] flex items-center justify-center text-[20px] font-bold text-[#3390ec] tracking-tight"
+                    >
+                      {d}
+                    </div>
+                  ))}
+                </div>
+                {/* Separator */}
+                <span className="text-[20px] font-bold text-[#a2acb4] mx-1">+</span>
+                {/* 1 user digit */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    placeholder="?"
+                    className="w-[46px] h-[46px] rounded-[12px] border-2 border-[#3390ec] bg-white outline-none text-[22px] font-bold text-black text-center tracking-tight focus:border-[#2b7bc9] transition-colors"
+                    value={extraDigit}
+                    onChange={handleExtraDigitChange}
+                    onFocus={() => { setHeadRotation(12); setHeadX(6); setPupilShift(3); }}
+                  />
+                </div>
+                {/* Result preview */}
+                {extraDigit && (
+                  <>
+                    <span className="text-[20px] font-bold text-[#a2acb4] mx-1">=</span>
+                    <div className="h-[46px] px-3 rounded-[12px] bg-[#3390ec] flex items-center">
+                      <span className="text-[16px] font-bold text-white tracking-widest">
+                        {getMiddleFive(formData.phone)}{extraDigit}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+              <p className="text-[11px] text-[#a2acb4] text-center mt-2">
+                5 dígitos automáticos do seu telefone + 1 dígito à sua escolha
+              </p>
             </div>
 
             {/* MANDATORY Invite Code Floating Input Box (Shown if user clicks to introduce or if URL didn't have it on submit attempt) */}
