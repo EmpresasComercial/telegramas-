@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Camera, Loader2, ShieldCheck, BanknoteIcon } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Camera, Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/Toast';
 import { formatCurrency } from '../lib/currency';
@@ -143,26 +143,6 @@ export default function PayMoney() {
 
   const formattedAmount = amount ? formatCurrency(Number(amount), 'KZ') : '0,00 Kz';
 
-  const DetailRow = ({ label, value, field }: { label: string; value: string; field: string }) => (
-    <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 last:border-0">
-      <span className="text-[13.5px] text-[#8e8e93]">{label}</span>
-      <div className="flex items-center gap-2 max-w-[55%]">
-        <span className="text-[13.5px] font-semibold text-black text-right truncate">
-          {value || '—'}
-        </span>
-        <button
-          type="button"
-          onClick={() => copyToClipboard(value, field)}
-          className="shrink-0 text-gray-400 hover:text-[#25D366] active:scale-90 transition-all cursor-pointer"
-        >
-          {copiedField === field
-            ? <Check className="w-4 h-4 text-[#25D366] stroke-[2.5]" />
-            : <Copy className="w-4 h-4" />}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="w-full min-h-screen bg-[#f1f1f2] pb-28 font-sans text-black select-none">
 
@@ -170,105 +150,84 @@ export default function PayMoney() {
         <button
           onClick={() => navigate('/recarregar')}
           className="p-1 -ml-1 text-black active:opacity-50 transition-opacity cursor-pointer"
+          aria-label="Voltar"
         >
           <ArrowLeft className="w-6 h-6 stroke-[2.2]" />
         </button>
-        <div>
-          <h1 className="text-[18px] font-bold leading-tight tracking-tight">Pague</h1>
-          <p className="text-[12px] text-[#8e8e93] leading-none mt-0.5">Passo 3 de 3</p>
-        </div>
+        <h1 className="text-[18px] font-bold leading-tight tracking-tight">Pagar</h1>
       </header>
 
-      <div className="mx-4 mb-3">
-        <div className="bg-white rounded-[16px] px-5 py-3.5 flex items-center justify-between shadow-2xs border border-gray-100">
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-7 h-7 rounded-full bg-[#25D366] flex items-center justify-center">
-              <Check className="w-4 h-4 text-white stroke-[2.5]" />
-            </div>
-            <span className="text-[10px] font-semibold text-[#25D366]">Valor</span>
-          </div>
-          <div className="flex-1 h-[2px] bg-[#25D366] mx-1 rounded-full" />
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-7 h-7 rounded-full bg-[#25D366] flex items-center justify-center">
-              <Check className="w-4 h-4 text-white stroke-[2.5]" />
-            </div>
-            <span className="text-[10px] font-semibold text-[#25D366]">Banco</span>
-          </div>
-          <div className="flex-1 h-[2px] bg-[#25D366] mx-1 rounded-full" />
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-7 h-7 rounded-full bg-[#25D366] flex items-center justify-center ring-4 ring-[#25D366]/20">
-              <span className="text-white font-bold text-[13px]">3</span>
-            </div>
-            <span className="text-[10px] font-bold text-[#25D366]">Pagar</span>
-          </div>
-        </div>
-      </div>
+      <main className="px-5 pt-3 flex flex-col gap-5 max-w-[480px] mx-auto">
 
-      <main className="px-4 flex flex-col gap-3 max-w-[480px] mx-auto">
-
-        <div className="bg-white rounded-[16px] px-5 py-4 shadow-2xs border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-[#e5f5e9] flex items-center justify-center shrink-0">
-            <BanknoteIcon className="w-6 h-6 text-[#25D366]" />
-          </div>
+        {/* 1. VALOR */}
+        <div className="flex items-center justify-between pb-3 border-b border-gray-200">
           <div>
-            <p className="text-[12.5px] text-[#8e8e93]">Valor a depositar</p>
-            <p className="text-[22px] font-bold text-black tracking-tight leading-tight">{formattedAmount}</p>
+            <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Valor</span>
+            <div className="text-[24px] font-bold text-black tracking-tight">{formattedAmount}</div>
           </div>
           <button
             type="button"
             onClick={() => copyToClipboard(amount || '', 'amount')}
-            className="ml-auto text-gray-400 hover:text-[#25D366] transition-colors cursor-pointer"
+            className="p-2 text-gray-400 hover:text-[#2481cc] active:scale-90 transition-all cursor-pointer"
+            title="Copiar valor"
           >
             {copiedField === 'amount'
-              ? <Check className="w-5 h-5 text-[#25D366] stroke-[2.5]" />
+              ? <Check className="w-5 h-5 text-[#2481cc] stroke-[2.5]" />
               : <Copy className="w-5 h-5" />}
           </button>
         </div>
 
-        <div className="bg-white rounded-[16px] overflow-hidden shadow-2xs border border-gray-100">
-          <div className="px-4 pt-3.5 pb-2 border-b border-gray-100">
-            <span className="text-[12px] font-bold text-[#25D366] tracking-wide uppercase">
-              Dados para Transferência
-            </span>
+        {/* 2. IBAN */}
+        <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+          <div className="flex-1 min-w-0 mr-2">
+            <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">IBAN</span>
+            <div className="text-[15.5px] font-mono font-bold text-black tracking-tight select-all truncate">
+              {bankDetails?.iban || 'A carregar...'}
+            </div>
           </div>
-          <DetailRow label="IBAN" value={bankDetails?.iban || 'A carregar...'} field="iban" />
-          <DetailRow label="Banco" value={bankDetails?.nome_banco || '—'} field="banco" />
-          <DetailRow label="Beneficiário" value={bankDetails?.nome_proprietario || '—'} field="beneficiario" />
+          <button
+            type="button"
+            onClick={() => copyToClipboard(bankDetails?.iban || '', 'iban')}
+            className="p-2 text-gray-400 hover:text-[#2481cc] active:scale-90 transition-all cursor-pointer shrink-0"
+            title="Copiar IBAN"
+          >
+            {copiedField === 'iban'
+              ? <Check className="w-5 h-5 text-[#2481cc] stroke-[2.5]" />
+              : <Copy className="w-5 h-5" />}
+          </button>
         </div>
 
+        {/* 3. ÁREA DE CARREGAR IMAGEM */}
         <form onSubmit={handleSubmit} id="pay-money-form">
           <input type="file" id="proofInput" className="hidden" accept="image/*" onChange={handleFileChange} />
 
           {previewUrl ? (
             <div
               onClick={() => !isSubmitting && document.getElementById('proofInput')?.click()}
-              className="bg-white rounded-[16px] overflow-hidden shadow-2xs border border-[#25D366] cursor-pointer transition-all active:scale-[0.99] relative w-full h-40"
+              className="relative w-full h-48 rounded-xl overflow-hidden cursor-pointer active:scale-[0.99] transition-transform border border-gray-200"
             >
               <img src={previewUrl} alt="Comprovativo" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                <div className="bg-white/90 rounded-full px-4 py-2 flex items-center gap-2 text-[13px] font-bold text-[#25D366]">
+              <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
+                <span className="bg-white/95 text-[#2481cc] font-bold text-[13px] px-4 py-2 rounded-full shadow-xs flex items-center gap-1.5">
                   <Check className="w-4 h-4 stroke-[2.5]" />
-                  Comprovativo Anexado
-                </div>
+                  Comprovativo Anexado (Alterar)
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); document.getElementById('proofInput')?.click(); }}
-                className="absolute top-2 right-2 bg-white rounded-full px-3 py-1 text-[11.5px] font-bold text-gray-700 shadow-xs"
-              >
-                Alterar
-              </button>
             </div>
           ) : (
             <div
               onClick={() => !isSubmitting && document.getElementById('proofInput')?.click()}
-              className="flex items-start justify-start py-2"
+              className="w-full py-8 border-2 border-dashed border-gray-300 hover:border-[#2481cc] rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors active:bg-gray-100 text-center"
             >
-              <div className="w-[72px] h-[72px] bg-white/80 flex items-center justify-center transition-transform active:scale-95 cursor-pointer">
-                {isOptimizing
-                  ? <Loader2 className="w-8 h-8 text-[#25D366]/50 animate-spin" />
-                  : <Camera className="w-8 h-8 text-[#25D366]/50" />}
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-[#2481cc]">
+                {isOptimizing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
               </div>
+              <span className="text-[14px] font-semibold text-black">
+                {isOptimizing ? 'A preparar imagem...' : 'Carregar Comprovativo'}
+              </span>
+              <span className="text-[12px] text-gray-400">
+                Toque aqui para anexar a foto ou captura
+              </span>
             </div>
           )}
         </form>
@@ -280,7 +239,7 @@ export default function PayMoney() {
           type="submit"
           form="pay-money-form"
           disabled={isSubmitting || !proofFile || isOptimizing}
-          className="w-full h-[50px] rounded-[16px] bg-[#25D366] text-white font-bold text-[15px] shadow-[0_4px_16px_rgba(37,211,102,0.3)] flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:shadow-none active:scale-[0.99] cursor-pointer"
+          className="w-full h-[50px] rounded-[16px] bg-[#2481cc] text-white font-bold text-[15px] shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-40 active:scale-[0.99] cursor-pointer"
         >
           {isSubmitting ? (
             <>
