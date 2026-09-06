@@ -194,8 +194,7 @@ export default function App() {
                     <Route path="comunidade-chat"         element={<CommunityChat />} />
                     <Route path="chat/:contactId"         element={<PrivateChat />} />
                     <Route path="devices"                 element={<DevicesPrivacy />} />
-                    <Route path="telegram-premium"        element={<Navigate to="/centro-equipe" replace />} />
-                    <Route path="centro-equipe"           element={<TelegramPremium />} />
+                    <Route path="telegram-premium"        element={<TelegramPremium />} />
                     <Route path="premium"                 element={<TelegramPremium />} />
                     <Route path="stars"                   element={<TelegramStars />} />
                     <Route path="telegram-stars"          element={<TelegramStars />} />
