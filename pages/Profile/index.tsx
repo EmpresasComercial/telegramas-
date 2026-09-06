@@ -250,39 +250,41 @@ export default function Profile() {
         {/* CARD INFORMAÇÕES & DASHBOARD DE ESTRELAS */}
         <div className="bg-white rounded-[18px] overflow-hidden shadow-2xs border border-gray-100">
           {/* Saldo disponível */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
-            <span className="text-[15px] font-medium text-[#8e8e93]">Saldo de Estrelas</span>
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/retirada')}>
+            <span className="text-[15px] font-medium text-[#8e8e93]">Balance</span>
             <span className="text-[16px] font-bold text-[#2481cc]">{formatCurrency(balance, "KZ")}</span>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
 
           {/* Lucro acumulado */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
-            <span className="text-[15px] font-medium text-[#8e8e93]">Lucro Acumulado</span>
-            <span className="text-[15px] font-semibold text-black">+{formatCurrency(dailyIncome, "KZ")}</span>
-          </div>
+          
 
           {/* Tarefas concluídas hoje */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
-            <span className="text-[15px] font-medium text-[#8e8e93]">Tarefas Hoje</span>
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/tarefas')}>
+            <span className="text-[15px] font-medium text-[#8e8e93]">Comissões Diárias</span>
             <span className="text-[15px] font-semibold text-black">{tarefasHoje} tarefa{tarefasHoje !== 1 ? "s" : ""}</span>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
 
           {/* Comissão de equipe */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/detalhes-equipe')}>
             <span className="text-[15px] font-medium text-[#8e8e93]">Comissão Equipe</span>
             <span className="text-[15px] font-semibold text-black">{formatCurrency(comissaoEquipe, "KZ")}</span>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
 
           {/* Total Recarregado */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
-            <span className="text-[15px] font-medium text-[#8e8e93]">Total Adquirido</span>
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/recargar')}>
+            <span className="text-[15px] font-medium text-[#8e8e93]">Total Recarregado</span>
             <span className="text-[15px] font-semibold text-black">{formatCurrency(totalDeposits, "KZ")}</span>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
 
           {/* Total Resgatado */}
-          <div className="flex items-center justify-between px-4 py-3.5">
-            <span className="text-[15px] font-medium text-[#8e8e93]">Total Resgatado</span>
+          <div className="flex items-center justify-between px-4 py-3.5 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/retirada')}>
+            <span className="text-[15px] font-medium text-[#8e8e93]">Total Recarregado</span>
             <span className="text-[15px] font-semibold text-black">{formatCurrency(totalWithdrawals, "KZ")}</span>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
         </div>
 

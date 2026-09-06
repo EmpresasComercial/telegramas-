@@ -1,4 +1,78 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useInviteLink } from '@/hooks/useInviteLink';
+import { supabase } from '@/lib/supabaseClient';
+
+export default function CentroEquipe() {
+  const navigate = useNavigate();
+  const { session } = useAuth();
+  const { inviteUrl, copy, share } = useInviteLink(session?.user?.id || '');
+  const [dailyCount, setDailyCount] = useState<number | null>(null);
+
+  // Busca a contagem de aderidos hoje do banco
+  useEffect(() => {
+    const fetchCount = async () => {
+      const { data, error } = await supabase.rpc('get_daily_join_count');
+      if (!error && typeof data === 'number') setDailyCount(data);
+    };
+    fetchCount();
+  }, []);
+
+  return (
+    <div className="w-full min-h-screen bg-[#0f1015] text-white font-sans pb-20 select-none mx-2">
+      {/* HEADER */}
+      <header className="w-full px-4 pt-4 pb-3 sticky top-0 z-30 bg-[#0f1015]/90 backdrop-blur-md flex items-center justify-between border-b border-white/10">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="p-1.5 -ml-1 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer rounded-full bg-white/5"
+          aria-label="Voltar"
+        >
+          ←
+        </button>
+        <h1 className="text-[16px] font-bold tracking-tight bg-gradient-to-r from-[#e0c3fc] to-[#8ec5fc] bg-clip-text text-transparent">
+          Instruções de equipe
+        </h1>
+        <div className="w-8" />
+      </header>
+
+      <main className="max-w-[540px] mx-auto px-4 pt-4 flex flex-col gap-5 rounded-[16px] bg-[#171923] p-6">
+        {/* Invite Link Card */}
+        <section className="bg-[#0f1015] rounded-[12px] p-4 border border-white/5">
+          <h2 className="text-[15px] font-bold mb-2">Seu link de convite</h2>
+          <p className="text-[13px] text-gray-300 break-all mb-3">{inviteUrl}</p>
+          <div className="flex gap-3">
+            <button onClick={copy} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-[8px]">
+              Copiar
+            </button>
+            <button onClick={share} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-[8px]">
+              Partilhar
+            </button>
+          </div>
+        </section>
+
+        {/* Daily Join Count */}
+        <section className="text-center">
+          <p className="text-[14px] text-gray-300">
+            {dailyCount !== null ? `${dailyCount} membros aderiram hoje` : 'Carregando estatística...'}
+          </p>
+        </section>
+
+        {/* Botão para Centro de Instruções */}
+        <section className="pt-2">
+          <button
+            onClick={() => navigate('/convite')}
+            className="w-full h-[52px] rounded-[16px] bg-gradient-to-r from-[#8b5cf6] via-[#7c3aed] to-[#6d28d9] text-white font-bold text-[15px] shadow-[0_4px_20px_rgba(139,92,246,0.35)] flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
+          >
+            Ver minha equipe &amp; links
+          </button>
+        </section>
+      </main>
+    </div>
+  );
+}
+
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 

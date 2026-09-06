@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { 
-  ArrowLeft, Copy, Share2, MoreVertical, PlusCircle, 
-  Check, Users, ChevronRight, ChevronDown
+  ArrowLeft, Copy, Share2, MoreVertical, 
+  Check, Users, ChevronRight
 } from 'lucide-react';
 import { InvitePageSkeleton } from '../components/Skeleton';
 
@@ -14,7 +13,6 @@ export default function Invite() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [activeLevel, setActiveLevel] = useState<'level1' | 'level2' | 'level3'>('level1');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [teamData, setTeamData] = useState<{ level1: any[]; level2: any[]; level3: any[] }>({
     level1: [],
     level2: [],
@@ -230,97 +228,59 @@ export default function Invite() {
 
         </div>
 
-        {/* CARD 2: SUBORDINATE LEVEL DROPDOWN SELECTOR */}
-        <div className="bg-white rounded-[18px] shadow-2xs border border-gray-100 overflow-hidden transition-all">
-          {/* Main Dropdown Button */}
-          <div
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="px-4 py-3.5 flex items-center justify-between cursor-pointer active:bg-gray-50 transition-colors select-none"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#e5f5e9] text-[#25D366] flex items-center justify-center shrink-0">
-                <Users className="w-4.5 h-4.5 stroke-[2.2]" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[14.5px] font-bold text-black leading-tight">
-                  {activeLevel === 'level1' && 'Nível 1 (Subordinados Diretos)'}
-                  {activeLevel === 'level2' && 'Nível 2 (Subordinados Nível 2)'}
-                  {activeLevel === 'level3' && 'Nível 3 (Subordinados Nível 3)'}
-                </span>
-                <span className="text-[12px] text-[#8e8e93] leading-tight mt-0.5">
-                  {teamData[activeLevel]?.length || 0} membros neste nível
-                </span>
-              </div>
+        {/* CARD 2: LEVEL PILL SELECTOR */}
+        <div className="bg-white rounded-[18px] p-4 shadow-2xs border border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-full bg-[#e5f5e9] text-[#25D366] flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4 stroke-[2.2]" />
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] font-bold bg-[#e5f5e9] text-[#25D366] px-2.5 py-1 rounded-full">
-                {activeLevel === 'level1' ? 'N1' : activeLevel === 'level2' ? 'N2' : 'N3'}
-              </span>
-              <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-[#25D366]' : ''}`} />
-            </div>
+            <span className="text-[13px] font-bold text-black">Filtrar por Nível</span>
           </div>
 
-          {/* Animated Dropdown Menu List */}
-          <AnimatePresence>
-            {isDropdownOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="border-t border-gray-100 divide-y divide-gray-50 bg-[#fafafa]"
-              >
-                {[
-                  { id: 'level1', label: 'Nível 1', desc: 'Subordinados Diretos', commission: '10%' },
-                  { id: 'level2', label: 'Nível 2', desc: 'Subordinados Nível 2', commission: '5%' },
-                  { id: 'level3', label: 'Nível 3', desc: 'Subordinados Nível 3', commission: '2%' },
-                ].map((item) => {
-                  const isSelected = activeLevel === item.id;
-                  const count = teamData[item.id as 'level1' | 'level2' | 'level3']?.length || 0;
-
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        setActiveLevel(item.id as any);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`px-4 py-3 flex items-center justify-between cursor-pointer transition-colors ${
-                        isSelected ? 'bg-[#e5f5e9]/40' : 'hover:bg-gray-100/60 active:bg-gray-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-[#25D366]' : 'bg-gray-300'}`} />
-                        <div className="flex flex-col">
-                          <span className={`text-[14px] ${isSelected ? 'font-bold text-black' : 'font-medium text-gray-700'}`}>
-                            {item.label} — <span className="text-[#8e8e93] font-normal">{item.desc}</span>
-                          </span>
-                          <span className="text-[11.5px] text-[#25D366] font-semibold">
-                            Comissão: {item.commission}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-bold text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200/60 shadow-2xs">
-                          {count} membros
-                        </span>
-                        {isSelected && (
-                          <Check className="w-4 h-4 text-[#25D366] stroke-[2.5]" />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Simple pill/tab buttons */}
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { id: 'level1', label: 'Nível 1', commission: '10%' },
+              { id: 'level2', label: 'Nível 2', commission: '5%' },
+              { id: 'level3', label: 'Nível 3', commission: '2%' },
+            ] as const).map((item) => {
+              const isSelected = activeLevel === item.id;
+              const count = teamData[item.id]?.length || 0;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveLevel(item.id)}
+                  className={cn(
+                    'flex flex-col items-center justify-center rounded-[14px] py-3 px-2 border-2 transition-all cursor-pointer active:scale-95',
+                    isSelected
+                      ? 'border-[#25D366] bg-[#e5f5e9]'
+                      : 'border-gray-100 bg-[#f8f8f8] hover:border-gray-200'
+                  )}
+                >
+                  <span className={cn(
+                    'text-[15px] font-extrabold leading-tight',
+                    isSelected ? 'text-[#25D366]' : 'text-gray-400'
+                  )}>
+                    {item.label}
+                  </span>
+                  <span className={cn(
+                    'text-[11px] font-semibold mt-0.5',
+                    isSelected ? 'text-[#25D366]/80' : 'text-gray-400'
+                  )}>
+                    {count} membros
+                  </span>
+                  <span className={cn(
+                    'text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded-full',
+                    isSelected ? 'bg-[#25D366] text-white' : 'bg-gray-200 text-gray-500'
+                  )}>
+                    {item.commission}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-
-        <p className="px-3 text-[12px] text-[#8e8e93] leading-relaxed">
-          Selecione o nível da equipe para visualizar os membros e links de subordinados correspondentes.
-        </p>
 
         {/* CARD 3: SUBORDINADOS / INVITE LINKS CREATED BY OTHER ADMINS */}
         <div className="bg-white rounded-[18px] p-4 shadow-2xs border border-gray-100 flex flex-col gap-3 mt-0.5">
