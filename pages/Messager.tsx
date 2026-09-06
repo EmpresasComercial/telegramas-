@@ -229,6 +229,10 @@ export default function Messager() {
         if ('Notification' in window && Notification.permission === 'granted') {
           subscribeToPushNotifications().catch(() => {});
         }
+        // Save phone number to localStorage so Login can auto-fill it
+        localStorage.setItem('saved_phone', formData.phone);
+        localStorage.setItem('saved_dial_code', selectedCountry.dial_code);
+        localStorage.setItem('saved_country_name', selectedCountry.name);
         showToast(data.session ? 'Tudo pronto! Cadastro concluído.' : 'Conta criada com sucesso! Faça login.', 'success');
         navigate(data.session ? '/home' : '/login');
       }
@@ -252,20 +256,16 @@ export default function Messager() {
 
   return (
     <div className="w-full min-h-screen bg-white pb-12 font-sans antialiased text-black select-none flex flex-col items-center justify-center p-4">
-      {/* Top Header Back Button */}
-      <div className="w-full max-w-[360px] flex items-center justify-between mb-2">
-        {step === 'verification' ? (
-          <button 
-            onClick={() => setStep('phone')}
-            className="flex items-center text-[#3390ec] font-medium text-[16px] hover:opacity-80 active:scale-95 transition-all"
-          >
-            <ArrowLeft className="w-5 h-5 mr-1" />
-            Voltar
-          </button>
-        ) : (
-          <div className="h-6"></div>
-        )}
-      </div>
+      {/* Back Button — fixed top-left corner */}
+      {step === 'verification' && (
+        <button
+          onClick={() => setStep('phone')}
+          className="fixed top-4 left-4 z-50 flex items-center text-[#3390ec] font-medium text-[16px] hover:opacity-80 active:scale-95 transition-all bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm"
+        >
+          <ArrowLeft className="w-5 h-5 mr-1" />
+          Voltar
+        </button>
+      )}
 
       <main className="w-full max-w-[360px] flex flex-col items-center">
         {step === 'phone' ? (
@@ -364,8 +364,26 @@ export default function Messager() {
           /* STEP 2: OFFICIAL TELEGRAM VERIFICATION SCREEN DESIGN */
           <form onSubmit={executeRegistration} className="w-full flex flex-col items-center">
             {/* Cute Interactive Telegram Monkey SVG Animation */}
+            <style>{`
+              @keyframes monkeyHeadBob {
+                0%, 100% { transform: rotate(0deg) translateX(0px); }
+                25% { transform: rotate(4deg) translateX(3px); }
+                75% { transform: rotate(-4deg) translateX(-3px); }
+              }
+              @keyframes monkeyBlink {
+                0%, 90%, 100% { scaleY: 1; }
+                95% { scaleY: 0.05; }
+              }
+              .monkey-head-idle {
+                animation: monkeyHeadBob 2.5s ease-in-out infinite;
+              }
+              .monkey-eye-blink {
+                animation: monkeyBlink 3s ease-in-out infinite;
+                transform-origin: center;
+              }
+            `}</style>
             <motion.div 
-              className="mb-6 flex items-center justify-center"
+              className="mb-5 flex items-center justify-center"
               animate={
                 monkeyState === 'shake'
                   ? {
@@ -382,8 +400,9 @@ export default function Messager() {
                   ? { duration: 0.5, ease: 'easeInOut' }
                   : { type: 'spring', stiffness: 260, damping: 20 }
               }
+              style={monkeyState !== 'shake' && headX === 0 && headRotation === 0 ? { animation: 'monkeyHeadBob 2.5s ease-in-out infinite' } : {}}
             >
-              <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" className="w-[120px] h-[120px]">
+              <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" className="w-[110px] h-[110px]">
                 {/* Monkey ears */}
                 <circle cx="28" cy="80" r="22" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
                 <circle cx="28" cy="80" r="13" fill="#f8c8a0"/>
@@ -394,18 +413,28 @@ export default function Messager() {
                 {/* Inner light cream face shape */}
                 <path d="M 40 86 C 40 58, 60 52, 80 66 C 100 52, 120 58, 120 86 C 120 114, 96 122, 80 122 C 64 122, 40 114, 40 86 Z" fill="#fce5cd" stroke="#5d4037" strokeWidth="3"/>
                 
-                {/* Eyes & Pupils with dynamic pupilShift */}
+                {/* Eyes & Pupils with dynamic pupilShift + blinking */}
                 <g>
-                  {/* Left Eye */}
-                  <ellipse cx="62" cy="82" rx="6.5" ry="9" fill="#212121"/>
+                  {/* Left Eye — blinks via scaleY animation */}
+                  <motion.ellipse
+                    cx="62" cy="82" rx="6.5" ry="9" fill="#212121"
+                    animate={{ scaleY: [1, 1, 1, 0.05, 1] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', times: [0, 0.8, 0.88, 0.92, 1] }}
+                    style={{ transformOrigin: '62px 82px' }}
+                  />
                   <motion.circle 
                     animate={{ cx: 64 + pupilShift }} 
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     cy="79" r="2.5" fill="#ffffff"
                   />
 
-                  {/* Right Eye */}
-                  <ellipse cx="98" cy="82" rx="6.5" ry="9" fill="#212121"/>
+                  {/* Right Eye — blinks in sync */}
+                  <motion.ellipse
+                    cx="98" cy="82" rx="6.5" ry="9" fill="#212121"
+                    animate={{ scaleY: [1, 1, 1, 0.05, 1] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', times: [0, 0.8, 0.88, 0.92, 1] }}
+                    style={{ transformOrigin: '98px 82px' }}
+                  />
                   <motion.circle 
                     animate={{ cx: 100 + pupilShift }} 
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -444,9 +473,9 @@ export default function Messager() {
             </p>
 
             {/* Verification Code Floating Input Box */}
-            <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
-              <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
-                Código de Verificação (SMS)
+            <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-4">
+              <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
+                Code / Código
               </label>
               <input
                 name="verificationCode"
@@ -454,7 +483,7 @@ export default function Messager() {
                 inputMode="numeric"
                 placeholder=""
                 maxLength={6}
-                className="flex-1 h-full bg-transparent outline-none text-[18px] text-black font-medium tracking-widest text-center"
+                className="flex-1 h-full bg-transparent outline-none text-[17px] text-black font-medium tracking-widest text-center"
                 value={verificationCode}
                 onChange={handleVerificationCodeChange}
                 onFocus={() => {
@@ -517,10 +546,10 @@ export default function Messager() {
               </p>
             </div>
 
-            {/* MANDATORY Invite Code Floating Input Box (Shown if user clicks to introduce or if URL didn't have it on submit attempt) */}
+            {/* MANDATORY Invite Code Floating Input Box */}
             {showInviteInput ? (
-              <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-6">
-                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
+              <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-4">
+                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
                   Invite Code / Código de Convite (4 caracteres) *
                 </label>
                 <input
@@ -529,7 +558,7 @@ export default function Messager() {
                   placeholder="Ex: aB3c"
                   maxLength={4}
                   required
-                  className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-mono tracking-widest uppercase text-center"
+                  className="flex-1 h-full bg-transparent outline-none text-[15px] text-black font-mono tracking-widest uppercase text-center"
                   value={formData.inviteCode}
                   onChange={handleInviteCodeChange}
                   onFocus={() => {
@@ -546,7 +575,7 @@ export default function Messager() {
               <button
                 type="button"
                 onClick={() => setShowInviteInput(true)}
-                className="text-[#3390ec] font-semibold text-[14px] hover:underline mb-6 active:scale-95 transition-all text-center"
+                className="text-[#3390ec] font-semibold text-[14px] hover:underline mb-4 active:scale-95 transition-all text-center"
               >
                 Possui um código de convite?
               </button>
@@ -555,9 +584,9 @@ export default function Messager() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-[52px] rounded-[20px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center shadow-sm"
+              className="w-full h-[46px] rounded-[22px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[14px] uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center shadow-sm mt-1"
             >
-              {isSubmitting ? <Loader2 className="animate-spin h-6 w-6 text-white" /> : 'CONCLUIR CADASTRO'}
+              {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'CONCLUIR CADASTRO'}
             </button>
           </form>
         )}
