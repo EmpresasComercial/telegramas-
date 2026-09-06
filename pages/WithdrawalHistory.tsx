@@ -31,15 +31,22 @@ export default function WithdrawalHistory() {
         if (withdrawError) throw withdrawError;
         if (withdrawData) setWithdrawals(withdrawData);
         
-        const { data: rechargeData, error: rechargeError } = await supabase
-          .from('recargas_mcpn')
-          .select('*');
-        if (rechargeError) throw rechargeError;
+        let rechargeData: any[] = [];
+        const { data: rpcRecharge, error: rpcError } = await supabase.rpc('get_my_recharges_mcpn');
+        if (!rpcError && rpcRecharge) {
+          rechargeData = rpcRecharge;
+        } else {
+          const { data: tableData } = await supabase.from('recargas_mcpn').select('*');
+          if (tableData) rechargeData = tableData;
+        }
 
-        const { data: usdtData, error: usdtError } = await supabase
-          .from('recharges_usdt_mcpn')
-          .select('*');
-        if (usdtError) throw usdtError;
+        let usdtData: any[] = [];
+        try {
+          const { data, error } = await supabase.from('recharges_usdt_mcpn').select('*');
+          if (!error && data) usdtData = data;
+        } catch {
+          // ignora se tabela não existir
+        }
 
         const unifiedRecharges = [
           ...(rechargeData || []).map((item: any) => ({ ...item, isUsdt: false })),

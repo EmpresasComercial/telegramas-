@@ -51,7 +51,7 @@ export default function Recharge() {
     if (currentStep === 2) {
       setCurrentStep(1);
     } else {
-      navigate('/perfil');
+      navigate('/definicoes');
     }
   };
 
@@ -117,16 +117,7 @@ export default function Recharge() {
         </div>
       </div>
 
-      <div className="px-3 flex flex-col gap-4">
-
-        {/* Icon */}
-        <div className="flex flex-col items-center py-4">
-          <div className="w-[72px] h-[72px] rounded-[22px] bg-[#3390ec] flex items-center justify-center mb-3 shadow-[0_4px_12px_rgba(51,144,236,0.3)]">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-        </div>
+      <div className="px-3 flex flex-col gap-4 pt-2">
 
         {currentStep === 1 && (
           <>
