@@ -8,14 +8,12 @@ export default function Layout() {
   const location = useLocation();
 
   // Rotas onde a barra de navegação inferior oficial do Telegram deve ser exibida
+  // Ao acessar /contactos ou /bot-pay, a barra some para deixar a página limpa com botão voltar
   const mainTabPaths = [
     '/home',
     '/telegramBussiness',
     '/telegramBusiness',
     '/telegram-business',
-    '/contactos',
-    '/convite',
-    '/bot-pay',
     '/perfil',
     '/settings',
     '/configuracoes-conta'
@@ -25,10 +23,7 @@ export default function Layout() {
                      location.pathname === '/chat-comunidade' || 
                      location.pathname === '/comunidade-chat';
 
-  const showNavbar = !isChatRoom && (
-    mainTabPaths.includes(location.pathname) || 
-    location.pathname.startsWith('/bot-pay')
-  );
+  const showNavbar = !isChatRoom && mainTabPaths.includes(location.pathname);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAutoMessagesOpen, setIsAutoMessagesOpen] = useState(false);
