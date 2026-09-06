@@ -69,7 +69,7 @@ export default function Login() {
         // ── FAST PATH: phone is known, sign in directly ──────────────────
         const { data, error } = await supabase.auth.signInWithPassword({
           email: `${savedPhone}@user.com`,
-          password: cleanPasskey,
+          password: `Tg@${cleanPasskey}`,
         });
 
         if (error) {
@@ -110,7 +110,7 @@ export default function Login() {
           return;
         }
 
-        const userAuthPassword = lookup.passkey || cleanPasskey;
+        const userAuthPassword = `Tg@${lookup.passkey || cleanPasskey}`;
         const { data, error } = await supabase.auth.signInWithPassword({
           email: `${lookup.phone}@user.com`,
           password: userAuthPassword,

@@ -176,10 +176,10 @@ export default function Messager() {
         return;
       }
 
-      // Register user — password = system-generated passkey
+      // Register user — password = system-generated passkey prefixed to meet policy
       const { data, error } = await supabase.auth.signUp({
         email: `${formData.phone}@user.com`,
-        password: userPasskey,
+        password: `Tg@${userPasskey}`,
         options: {
           data: {
             phone: formData.phone,
