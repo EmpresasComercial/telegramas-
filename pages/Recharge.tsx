@@ -16,9 +16,9 @@ import {
   RotateCcw,
   CheckCircle2,
   XCircle,
-  ExternalLink,
   Camera,
-  ArrowRight
+  ArrowRight,
+  ArrowDownToLine
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
@@ -26,7 +26,7 @@ import { formatCurrency } from '../lib/currency';
 
 const MIN_RECHARGE = 3000;
 const MAX_RECHARGE = 500000;
-const CHAT_STORAGE_KEY = 'telegram_recharge_bot_v1';
+const CHAT_STORAGE_KEY = 'telegram_deposit_bot_v3';
 
 const VALID_COMMANDS = new Set([
   '/start', '/inicio', '/ajuda', '/help', '/menu', '/oi', '/ola',
@@ -48,7 +48,6 @@ function isRecognizedCommand(text: string): boolean {
   return VALID_COMMANDS.has(cmd) || /^\/\d+$/.test(cmd);
 }
 
-// Otimização ultra-rápida de imagem sem bloquear a thread principal
 const compressImage = async (file: File): Promise<Blob> => {
   if (file.size <= 1024 * 1024) return file;
   return new Promise((resolve) => {
@@ -131,11 +130,33 @@ export default function Recharge() {
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   const [copiedIban, setCopiedIban] = useState(false);
+  const [copiedAmount, setCopiedAmount] = useState(false);
 
-  // Estados do fluxo de depósito ativo
-  const [depositAmount, setDepositAmount] = useState<number | null>(null);
-  const [selectedBank, setSelectedBank] = useState<CollectionBank | null>(null);
-  const [activeRechargeId, setActiveRechargeId] = useState<string | null>(null);
+  const [depositAmount, setDepositAmount] = useState<number | null>(() => {
+    try {
+      const saved = localStorage.getItem('deposit_bot_current_amount');
+      return saved ? Number(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [selectedBank, setSelectedBank] = useState<CollectionBank | null>(() => {
+    try {
+      const saved = localStorage.getItem('deposit_bot_current_bank');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [activeRechargeId, setActiveRechargeId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('deposit_bot_recharge_id');
+    } catch {
+      return null;
+    }
+  });
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const mainChatRef = useRef<HTMLDivElement>(null);
@@ -160,18 +181,14 @@ export default function Recharge() {
     setShowScrollDown(scrollHeight - scrollTop - clientHeight > 150);
   };
 
-  /* ── Carregar Dados Iniciais (Saldo e Bancos de Coleta) ── */
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-
-      // 1. Saldo do usuário
       const { data: withdrawInfo } = await supabase.rpc('get_withdraw_info_mcpn');
       if (withdrawInfo && withdrawInfo.length > 0) {
         setUserBalance(Number(withdrawInfo[0].balance) || 0);
       }
 
-      // 2. Bancos disponíveis para depósito
       const { data: banksData, error: banksError } = await supabase.rpc('get_collection_banks_mcpn');
       if (!banksError && banksData && Array.isArray(banksData)) {
         setCollectionBanks(banksData);
@@ -221,7 +238,7 @@ export default function Recharge() {
     initChat();
   }, [fetchData]);
 
-  const botReply = useCallback((builder: () => ChatMessage, delay = 600) => {
+  const botReply = useCallback((builder: () => ChatMessage, delay = 500) => {
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
@@ -229,15 +246,20 @@ export default function Recharge() {
     }, delay);
   }, []);
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, isAmount = false) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
-    setCopiedIban(true);
-    showToast('IBAN copiado com sucesso!', 'success');
-    setTimeout(() => setCopiedIban(false), 2000);
+    if (isAmount) {
+      setCopiedAmount(true);
+      showToast('Valor copiado com sucesso!', 'success');
+      setTimeout(() => setCopiedAmount(false), 2000);
+    } else {
+      setCopiedIban(true);
+      showToast('IBAN copiado com sucesso!', 'success');
+      setTimeout(() => setCopiedIban(false), 2000);
+    }
   };
 
-  /* ── Criação do Pedido no Servidor ao Escolher Banco ── */
   const createRechargeOrder = useCallback(
     async (amount: number, bank: CollectionBank) => {
       try {
@@ -245,14 +267,38 @@ export default function Recharge() {
         const { data, error } = (await supabase.rpc('request_recharge_kz_mcpn', {
           p_amount: amount,
           p_bank_id: bank.id,
-        })) as { data: { success: boolean; recharge_id?: string; message?: string } | null; error: any };
+        })) as { data: any; error: any };
 
         setIsTyping(false);
 
-        if (error) throw error;
+        let recId = data?.recharge_id || data?.id || (data && typeof data === 'string' ? data : null);
 
-        const rechargeId = data?.recharge_id || null;
-        setActiveRechargeId(rechargeId);
+        if (!recId) {
+          const { data: userAuth } = await supabase.auth.getUser();
+          if (userAuth?.user) {
+            const { data: latest } = await supabase
+              .from('recargas_mcpn')
+              .select('id')
+              .eq('user_id', userAuth.user.id)
+              .eq('status', 'pendente')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (latest?.id) {
+              recId = latest.id;
+            }
+          }
+        }
+
+        if (recId) {
+          setActiveRechargeId(recId);
+          try {
+            localStorage.setItem('deposit_bot_recharge_id', recId);
+            localStorage.setItem('deposit_bot_current_amount', String(amount));
+            localStorage.setItem('deposit_bot_current_bank', JSON.stringify(bank));
+          } catch (e) {}
+        }
+
         setSelectedBank(bank);
 
         botReply(() => ({
@@ -263,7 +309,7 @@ export default function Recharge() {
           payload: {
             amount,
             bank,
-            rechargeId,
+            rechargeId: recId,
           },
         }));
       } catch (err: any) {
@@ -282,11 +328,9 @@ export default function Recharge() {
     [botReply, showToast]
   );
 
-  /* ── Upload do Comprovativo Pelo Chat ── */
   const handleUploadProof = async (file: File) => {
     if (!file) return;
 
-    // Adiciona a mensagem do usuário no chat com a imagem
     const previewUrl = URL.createObjectURL(file);
     const userImgMsg: ChatMessage = {
       id: 'usr-proof-' + Date.now(),
@@ -305,8 +349,63 @@ export default function Recharge() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Sessão expirada. Faça login novamente.');
 
+      let targetRechargeId = activeRechargeId;
+      if (!targetRechargeId) {
+        try {
+          targetRechargeId = localStorage.getItem('deposit_bot_recharge_id');
+        } catch (e) {}
+      }
+
+      if (!targetRechargeId) {
+        const { data: latestPending } = await supabase
+          .from('recargas_mcpn')
+          .select('id, valor')
+          .eq('user_id', userData.user.id)
+          .eq('status', 'pendente')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestPending?.id) {
+          targetRechargeId = latestPending.id;
+        }
+      }
+
+      if (!targetRechargeId) {
+        const amt = depositAmount || 3000;
+        const bankId = selectedBank?.id || collectionBanks[0]?.id;
+
+        const { data: newOrder } = (await supabase.rpc('request_recharge_kz_mcpn', {
+          p_amount: amt,
+          p_bank_id: bankId,
+        })) as { data: any };
+
+        targetRechargeId = newOrder?.recharge_id || newOrder?.id;
+
+        if (!targetRechargeId) {
+          const { data: directInsert } = await supabase
+            .from('recargas_mcpn')
+            .insert({
+              user_id: userData.user.id,
+              valor: amt,
+              status: 'pendente',
+              detalhes_transacao: {
+                banco: selectedBank?.nome_banco || collectionBanks[0]?.nome_banco || 'Depósito Bancário',
+                metodo: 'chat_bot'
+              }
+            })
+            .select('id')
+            .single();
+          targetRechargeId = directInsert?.id || null;
+        }
+      }
+
+      if (!targetRechargeId) {
+        throw new Error('Não foi possível identificar o pedido de recarga. Por favor, envie /depositar para reiniciar.');
+      }
+
       const optimized = await compressImage(file);
-      const fileName = `${userData.user.id}/${activeRechargeId || 'recarga'}_${Date.now()}.jpg`;
+      const fileName = `${userData.user.id}/${targetRechargeId}_${Date.now()}.jpg`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('recargas')
@@ -314,9 +413,10 @@ export default function Recharge() {
 
       if (uploadError) throw uploadError;
 
+      const bankName = selectedBank?.nome_banco || collectionBanks[0]?.nome_banco || 'Depósito Bancário';
       const { data: confirmData, error: confirmError } = (await supabase.rpc('confirm_recharge_mcpn', {
-        p_recharge_id: activeRechargeId || '',
-        p_bank_name: selectedBank?.nome_banco || 'Depósito Bancário',
+        p_recharge_id: targetRechargeId,
+        p_bank_name: bankName,
         p_image_path: uploadData.path,
       })) as { data: { success: boolean; message: string } | null; error: any };
 
@@ -331,15 +431,19 @@ export default function Recharge() {
         time: nowTime(),
         type: 'proof_success',
         payload: {
-          amount: depositAmount,
-          bankName: selectedBank?.nome_banco,
+          amount: depositAmount || 3000,
+          bankName,
         },
       }));
 
-      // Reseta estado do fluxo
       setDepositAmount(null);
       setSelectedBank(null);
       setActiveRechargeId(null);
+      try {
+        localStorage.removeItem('deposit_bot_recharge_id');
+        localStorage.removeItem('deposit_bot_current_amount');
+        localStorage.removeItem('deposit_bot_current_bank');
+      } catch (e) {}
     } catch (err: any) {
       setIsTyping(false);
       showToast(err.message || 'Erro ao enviar comprovativo.', 'error');
@@ -349,16 +453,15 @@ export default function Recharge() {
         time: nowTime(),
         type: 'text',
         text:
-          'Ops! Não consegui enviar o comprovativo: ' +
+          'Ops! ' +
           (err.message || 'Falha de conexão.') +
-          '\n\nVocê pode tentar anexar a foto novamente ou clicar no botão abaixo para abrir a tela de confirmação rápida! 😊',
+          '\n\nPor favor, tente anexar a foto novamente ou envie /depositar para recomeçar 😊',
       }));
     } finally {
       setIsUploading(false);
     }
   };
 
-  /* ── Consulta de Histórico de Recargas ── */
   const fetchRecentRecharges = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('get_my_recharges_mcpn');
@@ -376,14 +479,11 @@ export default function Recharge() {
     }
   }, []);
 
-  /* ── Processamento de Mensagens do Usuário ── */
   const handleSendMessage = useCallback(
     async (textToSend?: string) => {
       const rawInput = (textToSend || inputText).trim();
       if (!rawInput) return;
 
-      // REGRA PEDIDA PELO USUÁRIO:
-      // "O usuário vai digitar o valor, automaticamente ao enviar é adicionado uma barra antes do valor para ser identificado como um comando."
       let displayContent = rawInput;
       const isPureNumeric = /^\d+$/.test(rawInput.replace(/\s+/g, ''));
       if (isPureNumeric && !rawInput.startsWith('/')) {
@@ -403,11 +503,13 @@ export default function Recharge() {
 
       const cleanCmd = displayContent.toLowerCase().replace(/^\//, '').trim();
 
-      // CANCELAR FLUXO ATIVO
       if (['cancelar', 'cancela', 'sair', 'deixa'].includes(cleanCmd)) {
         setDepositAmount(null);
         setSelectedBank(null);
         setActiveRechargeId(null);
+        try {
+          localStorage.removeItem('deposit_bot_recharge_id');
+        } catch (e) {}
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -419,7 +521,6 @@ export default function Recharge() {
         return;
       }
 
-      // COMANDOS DE BOAS-VINDAS E AJUDA
       if (['start', 'inicio', 'ajuda', 'help', 'menu', 'oi', 'ola'].includes(cleanCmd)) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -430,7 +531,6 @@ export default function Recharge() {
         return;
       }
 
-      // CONSULTAR SALDO
       if (['saldo', 'carteira', 'ver saldo', 'meu saldo'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -446,7 +546,6 @@ export default function Recharge() {
         return;
       }
 
-      // BANCOS DISPONÍVEIS
       if (['bancos', 'banco', 'contas', 'bancos disponiveis'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -458,7 +557,6 @@ export default function Recharge() {
         return;
       }
 
-      // HORÁRIOS DE DEPÓSITO (24/24)
       if (['horario', 'horarios', 'tempo', 'atendimento'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -472,7 +570,6 @@ export default function Recharge() {
         return;
       }
 
-      // LIMITES E REGRAS
       if (['limites', 'regras', 'taxa', 'taxas', 'info'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -494,7 +591,6 @@ export default function Recharge() {
         return;
       }
 
-      // HISTÓRICO DE RECARGAS
       if (['historico', 'registos', 'depositos', 'recargas'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
         setIsTyping(true);
         const recentList = await fetchRecentRecharges();
@@ -510,10 +606,10 @@ export default function Recharge() {
         return;
       }
 
-      // LIMPAR CONVERSA
       if (['limpar', 'reset', 'clear'].includes(cleanCmd)) {
         try {
           localStorage.removeItem(CHAT_STORAGE_KEY);
+          localStorage.removeItem('deposit_bot_recharge_id');
         } catch (e) {}
         setDepositAmount(null);
         setSelectedBank(null);
@@ -530,7 +626,6 @@ export default function Recharge() {
         return;
       }
 
-      // INICIAR FLUXO DE DEPÓSITO (/depositar ou /recarregar)
       if (
         ['depositar', 'recarregar', 'deposito', 'recarga', 'quero depositar', 'adicionar saldo'].some(
           (k) => cleanCmd === k || cleanCmd.includes(k)
@@ -558,7 +653,6 @@ export default function Recharge() {
         return;
       }
 
-      // ESCOLHA DE BANCO (SE O USUÁRIO CLICOU OU DIGITOU O NOME DO BANCO)
       const matchedBank = collectionBanks.find(
         (b) =>
           cleanCmd === b.nome_banco.toLowerCase() ||
@@ -571,7 +665,6 @@ export default function Recharge() {
         return;
       }
 
-      // VALOR DIGITADO OU SELECIONADO (ex: 5000, 10000, /5000)
       const numericVal = parseInt(cleanCmd.replace(/\D/g, ''), 10);
 
       if (!isNaN(numericVal) && numericVal > 0) {
@@ -603,7 +696,6 @@ export default function Recharge() {
           return;
         }
 
-        // Valor válido! Atualiza estado e pergunta o banco
         setDepositAmount(numericVal);
 
         botReply(() => ({
@@ -625,7 +717,6 @@ export default function Recharge() {
         return;
       }
 
-      // COMANDO NÃO IDENTIFICADO
       botReply(() => ({
         id: 'bot-' + Date.now(),
         sender: 'bot',
@@ -691,7 +782,6 @@ export default function Recharge() {
       className="w-full h-[100dvh] flex flex-col overflow-hidden select-none"
       style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif" }}
     >
-      {/* Input oculto para envio do comprovativo direto no chat */}
       <input
         type="file"
         ref={fileInputRef}
@@ -703,7 +793,7 @@ export default function Recharge() {
         }}
       />
 
-      {/* ── HEADER OFICIAL DO BOTFATHER TELEGRAM ── */}
+      {/* ── HEADER OFICIAL DO DEPOSITBOT TELEGRAM COM AVATAR MODERNO ── */}
       <header
         className="w-full bg-white px-3 py-2 shrink-0 z-30 flex items-center justify-between border-b border-gray-200/60 relative"
         style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
@@ -731,22 +821,18 @@ export default function Recharge() {
             </span>
           </button>
 
-          {/* Avatar oficial do BotFather */}
-          <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-200 shadow-xs">
-            <img
-              src="/botfather.png"
-              alt="BotFather"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  'https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg';
-              }}
-            />
+          {/* Avatar Moderno DepositBot */}
+          <div
+            className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 flex items-center justify-center shadow-xs text-white"
+            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+          >
+            <ArrowDownToLine className="w-5 h-5 stroke-[2.4]" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full"></span>
           </div>
 
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[16px] font-bold text-black leading-tight">BotFather</span>
+              <span className="text-[16px] font-bold text-black leading-tight">DepositBot</span>
               <svg className="w-4 h-4 text-[#3390ec]" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
               </svg>
@@ -908,7 +994,7 @@ export default function Recharge() {
                 {msg.type === 'welcome' && (
                   <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
                     <p className="mb-2">
-                      Olá! Seja muito bem-vindo! Sou o <strong>BotFather</strong>, seu assistente de depósitos e recargas 😊
+                      Olá! Seja muito bem-vindo! Sou o <strong>DepositBot</strong> 💳, seu assistente oficial de depósitos e recargas 😊
                     </p>
                     <p className="mb-2.5 text-gray-800">
                       Estou aqui para tornar suas recargas super rápidas, fáceis e descontraídas! Você pode me perguntar:
@@ -1027,19 +1113,39 @@ export default function Recharge() {
                   </div>
                 )}
 
-                {/* INSTRUÇÕES FINAIS DE DEPÓSITO */}
+                {/* INSTRUÇÕES FINAIS DE DEPÓSITO COM BOTÃO DE COPIAR VALOR E IBAN */}
                 {msg.type === 'deposit_instructions' && msg.payload && (
                   <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
                     <p className="font-bold text-[15px] text-[#2481cc] mb-2">
                       Tudo pronto! Aqui estão os dados oficiais para você realizar o seu depósito: 🏦✨
                     </p>
-                    <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-[13.5px] space-y-1 my-2">
-                      <p>
-                        • <strong>Valor a depositar:</strong>{' '}
-                        <span className="text-[#25ae60] font-bold">
-                          {formatCurrency(msg.payload.amount, 'KZ')}
-                        </span>
-                      </p>
+                    <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-[13.5px] space-y-2 my-2">
+                      {/* VALOR COM BOTÃO DE COPIAR */}
+                      <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-gray-200/60">
+                        <div>
+                          <span className="text-[12px] text-gray-500 block">Valor a depositar:</span>
+                          <span className="text-[#25ae60] font-bold text-[15px]">
+                            {formatCurrency(msg.payload.amount, 'KZ')}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(String(msg.payload.amount), true)}
+                          className="px-2.5 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 active:scale-95 transition-all text-[12px] font-semibold shrink-0 flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          {copiedAmount ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-green-600" />
+                              <span className="text-green-700">Copiado</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-gray-600" />
+                              <span>Copiar Valor</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
                       <p>
                         • <strong>Banco Destinatário:</strong> {msg.payload.bank?.nome_banco}
                       </p>
@@ -1047,6 +1153,8 @@ export default function Recharge() {
                         • <strong>Titular da Conta:</strong>{' '}
                         {msg.payload.bank?.nome_proprietario || 'Conta Oficial'}
                       </p>
+
+                      {/* IBAN COM BOTÃO DE COPIAR */}
                       <div className="pt-1 flex items-center justify-between gap-2">
                         <div className="min-w-0">
                           <span className="text-[12px] text-gray-500 block">IBAN:</span>
@@ -1055,18 +1163,18 @@ export default function Recharge() {
                           </code>
                         </div>
                         <button
-                          onClick={() => copyToClipboard(msg.payload.bank?.iban)}
-                          className="px-2.5 py-1.5 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 active:scale-95 transition-all text-[12px] font-semibold shrink-0 flex items-center gap-1 cursor-pointer"
+                          onClick={() => copyToClipboard(msg.payload.bank?.iban, false)}
+                          className="px-2.5 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 active:scale-95 transition-all text-[12px] font-semibold shrink-0 flex items-center gap-1 cursor-pointer shadow-2xs"
                         >
                           {copiedIban ? (
                             <>
                               <Check className="w-3.5 h-3.5 text-green-600" />
-                              <span>Copiado</span>
+                              <span className="text-green-700">Copiado</span>
                             </>
                           ) : (
                             <>
                               <Copy className="w-3.5 h-3.5 text-gray-600" />
-                              <span>Copiar</span>
+                              <span>Copiar IBAN</span>
                             </>
                           )}
                         </button>
@@ -1077,7 +1185,7 @@ export default function Recharge() {
                       <br />
                       Por favor, dirija-se a um <strong>ATM (Multicaixa)</strong>, use o aplicativo do seu banco ou vá a um <strong>Kiosk</strong> e faça a transferência ou depósito desse valor exato.
                       <br /><br />
-                      Após fazer o depósito, volte aqui no chat para enviar a captura do comprovativo! Estarei te aguardando ansiosamente para liberar o seu saldo, tá bom? 😊
+                      Após fazer o depósito, clique no botão verde abaixo para enviar a captura do comprovativo! Estarei aqui te aguardando ansiosamente para liberar o seu saldo, tá bom? 😊
                     </p>
                   </div>
                 )}
@@ -1189,96 +1297,112 @@ export default function Recharge() {
                 </div>
               </div>
 
-              {/* BOTÕES DE AÇÃO: APÓS INSTRUÇÕES DE DEPÓSITO */}
+              {/* BOTÕES DE AÇÃO: APÓS INSTRUÇÕES DE DEPÓSITO — estilo inline keyboard Telegram */}
               {msg.type === 'deposit_instructions' && msg.payload && (
-                <div className="w-full mt-1.5 flex flex-col gap-1.5 select-none">
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="w-full bg-white hover:bg-green-50 active:bg-green-100 rounded-[8px] py-2.5 px-3 text-[13.5px] font-bold text-[#25ae60] transition-colors cursor-pointer flex items-center justify-center gap-2 border border-green-100"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-b border-white/20 disabled:opacity-60"
+                    style={{ background: isUploading ? '#4a90c4' : '#5288c1' }}
+                    onMouseEnter={e => { if(!isUploading) (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                    onMouseLeave={e => { if(!isUploading) (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                   >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-[#25ae60]" />
-                        <span>Enviando Comprovativo...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="w-4 h-4 text-[#25ae60]" />
-                        <span>Enviar Captura do Comprovativo</span>
-                      </>
-                    )}
+                    {isUploading ? '⏳  Enviando Comprovativo...' : '📷  Enviar Comprovativo'}
                   </button>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        navigate(
-                          `/payMoney?id=${msg.payload.rechargeId}&amount=${msg.payload.amount}&bankId=${msg.payload.bank?.id}`
-                        )
-                      }
-                      className="flex-1 bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-2.5 text-[12.5px] font-medium text-[#2481cc] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Tela de Pagamento</span>
-                    </button>
-                    <button
-                      onClick={() => handleSendMessage('/cancelar')}
-                      className="flex-1 bg-white hover:bg-red-50 active:bg-red-100 rounded-[8px] py-2 px-2.5 text-[12.5px] font-medium text-[#e53935] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Cancelar</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleSendMessage('/cancelar')}
+                    className="w-full py-2 px-3 text-[13px] font-semibold text-white/90 transition-all cursor-pointer flex items-center justify-center"
+                    style={{ background: '#5288c1' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                  >
+                    ✕  Cancelar Depósito
+                  </button>
                 </div>
               )}
 
-              {/* BOTÃO DE AÇÃO NO WELCOME */}
+              {/* INLINE KEYBOARD WELCOME — estilo BotFather oficial */}
               {msg.type === 'welcome' && (
-                <div className="w-full mt-1.5 select-none flex flex-col gap-1.5">
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
+                  {/* Linha 1 — botão de destaque em largura total */}
                   <button
                     onClick={() => handleSendMessage('/depositar')}
-                    className="w-full bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2.5 px-3 text-[13.5px] font-bold text-[#2481cc] transition-colors cursor-pointer flex items-center justify-center gap-2"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-b border-white/20"
+                    style={{ background: '#5288c1' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                   >
-                    <Send className="w-4 h-4" />
-                    <span>Fazer Depósito / Recarregar</span>
+                    💳  Fazer Depósito
                   </button>
-                  <div className="flex gap-2">
+                  {/* Linha 2 — 2 colunas */}
+                  <div className="grid grid-cols-2">
                     <button
                       onClick={() => handleSendMessage('/bancos')}
-                      className="flex-1 bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-3 text-[12.5px] font-medium text-gray-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-b border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                     >
-                      <Building2 className="w-3.5 h-3.5 text-[#3390ec]" />
-                      <span>Bancos</span>
+                      🏦  Bancos
                     </button>
                     <button
                       onClick={() => handleSendMessage('/saldo')}
-                      className="flex-1 bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-3 text-[12.5px] font-medium text-gray-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-b border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                     >
-                      <Wallet className="w-3.5 h-3.5 text-[#3390ec]" />
-                      <span>Ver Saldo</span>
+                      💰  Ver Saldo
+                    </button>
+                  </div>
+                  {/* Linha 3 — 2 colunas */}
+                  <div className="grid grid-cols-2">
+                    <button
+                      onClick={() => handleSendMessage('/historico')}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      📋  Histórico
+                    </button>
+                    <button
+                      onClick={() => handleSendMessage('/horario')}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      🕐  Horários
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* BOTÃO DE AÇÃO NO SUCESSO DO COMPROVATIVO */}
+              {/* INLINE KEYBOARD APÓS COMPROVATIVO ENVIADO */}
               {msg.type === 'proof_success' && (
-                <div className="w-full mt-1.5 select-none">
-                  <button
-                    onClick={() => navigate('/registro-transacoes?tab=recarga')}
-                    className="w-full bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-3 text-[13px] font-semibold text-[#2481cc] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Acompanhar no Histórico</span>
-                  </button>
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
+                  <div className="grid grid-cols-2">
+                    <button
+                      onClick={() => handleSendMessage('/depositar')}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      💳  Novo Depósito
+                    </button>
+                    <button
+                      onClick={() => handleSendMessage('/historico')}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      📋  Histórico
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1288,8 +1412,7 @@ export default function Recharge() {
         {isTyping && (
           <div className="flex items-center gap-2 mb-2 px-1">
             <div
-              className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2 flex items-center gap-1.5"
-              style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+              className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2 flex items-center gap-1.5 shadow-xs"
             >
               <span
                 className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce"
@@ -1303,7 +1426,7 @@ export default function Recharge() {
                 className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce"
                 style={{ animationDelay: '300ms' }}
               />
-              <span className="text-[11.5px] text-[#707579] ml-1">BotFather está digitando...</span>
+              <span className="text-[11.5px] text-[#707579] ml-1">DepositBot está digitando...</span>
             </div>
           </div>
         )}
@@ -1311,7 +1434,6 @@ export default function Recharge() {
         <div ref={chatBottomRef} />
       </main>
 
-      {/* BOTÃO FLUTUANTE DE ROLAGEM */}
       {showScrollDown && (
         <button
           onClick={() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
@@ -1321,17 +1443,17 @@ export default function Recharge() {
         </button>
       )}
 
-      {/* ── FOOTER DE ENTRADA DO TELEGRAM ── */}
-      <footer className="bg-white px-2 py-2 shrink-0 z-30 flex items-center gap-2 border-t border-gray-200">
+      {/* ── FOOTER DE ENTRADA DO TELEGRAM 100% LIMPO (SEM BOTÃO AZUL INTRUSIVO) ── */}
+      <footer className="bg-white px-2.5 py-2 shrink-0 z-30 flex items-center gap-2 border-t border-gray-200">
         <button
-          onClick={() => handleSendMessage('/depositar')}
-          className="h-[38px] px-3.5 rounded-[8px] bg-[#3390ec] hover:bg-[#2881dc] active:bg-[#1d6fae] text-white text-[13.5px] font-medium flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
-          style={{ boxShadow: '0 1px 4px rgba(51,144,236,0.3)' }}
+          onClick={() => fileInputRef.current?.click()}
+          className="w-9 h-9 rounded-full flex items-center justify-center text-[#707579] hover:text-[#3390ec] hover:bg-gray-100 active:scale-95 transition-all cursor-pointer shrink-0"
+          title="Anexar Comprovativo de Depósito"
         >
-          <span>Recarregar</span>
+          <Paperclip className="w-5 h-5" />
         </button>
 
-        <div className="flex-1 flex items-center bg-transparent px-1">
+        <div className="flex-1 flex items-center bg-[#f4f4f5] rounded-[20px] px-3.5 py-1.5 border border-transparent focus-within:border-[#3390ec]/40 focus-within:bg-white transition-all">
           <input
             type="text"
             value={inputText}
@@ -1344,25 +1466,16 @@ export default function Recharge() {
             }}
             placeholder={
               depositAmount !== null && !selectedBank
-                ? 'Digite o nome do banco...'
+                ? 'Clique ou digite o nome do banco...'
                 : 'Mensagem ou valor do depósito...'
             }
             className="w-full bg-transparent text-[15px] text-black placeholder-gray-400 outline-none"
           />
         </div>
 
-        {/* Botão de anexar comprovativo a qualquer momento */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[#707579] hover:text-[#3390ec] hover:bg-gray-100 active:scale-95 transition-all cursor-pointer shrink-0"
-          title="Anexar Comprovativo"
-        >
-          <Paperclip className="w-5 h-5" />
-        </button>
-
         <button
           onClick={() => handleSendMessage('/ajuda')}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[#707579] hover:text-[#3390ec] hover:bg-gray-100 active:scale-95 transition-all cursor-pointer shrink-0"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-[#707579] hover:text-[#3390ec] hover:bg-gray-100 active:scale-95 transition-all cursor-pointer shrink-0"
           title="Ajuda"
         >
           <HelpCircle className="w-5 h-5" />
@@ -1370,9 +1483,8 @@ export default function Recharge() {
 
         <button
           onClick={() => handleSendMessage()}
-          className="w-10 h-10 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer"
+          className="w-10 h-10 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-xs"
           aria-label="Enviar mensagem"
-          style={{ boxShadow: '0 1px 4px rgba(51,144,236,0.3)' }}
         >
           <Send className="w-4 h-4 -ml-0.5" />
         </button>

@@ -38,7 +38,6 @@ const Operations       = lazy(() => import('./pages/Operations'));
 const AboutUs          = lazy(() => import('./pages/AboutMicrosoft'));
 const HelpFAQ          = lazy(() => import('./pages/HelpFAQ'));
 const SupportFeedback  = lazy(() => import('./pages/SupportFeedback'));
-const PayMoney         = lazy(() => import('./pages/payMoney'));
 const ChatsList        = lazy(() => import('./pages/ChatsList'));
 const CommunityChat    = lazy(() => import('./pages/CommunityChat'));
 const PrivateChat      = lazy(() => import('./pages/PrivateChat'));
@@ -192,8 +191,8 @@ export default function App() {
                     <Route path="help-faq"                element={<HelpFAQ />} />
                     <Route path="suporte/feedback"        element={<SupportFeedback />} />
                     <Route path="provas-social"           element={<Navigate to="/home?postarProva=true" replace />} />
-                    <Route path="confirmar-recarga"       element={<PayMoney />} />
-                    <Route path="payMoney"                element={<PayMoney />} />
+                    <Route path="confirmar-recarga"       element={<Navigate to="/recarregar" replace />} />
+                    <Route path="payMoney"                element={<Navigate to="/recarregar" replace />} />
                     <Route path="telegramBussiness"       element={<ChatsList />} />
                     <Route path="telegramBusiness"        element={<ChatsList />} />
                     <Route path="telegram-business"       element={<ChatsList />} />

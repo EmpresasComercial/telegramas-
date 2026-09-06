@@ -14,7 +14,8 @@ import {
   FileText,
   RotateCcw,
   CheckCircle2,
-  XCircle
+  XCircle,
+  ArrowDownLeft
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
@@ -23,7 +24,7 @@ import { formatCurrency } from '../lib/currency';
 const MIN_WITHDRAW = 100;
 const MAX_WITHDRAW = 100000;
 const FEE_PERCENT = 10;
-const CHAT_STORAGE_KEY = 'telegram_withdraw_bot_v1';
+const CHAT_STORAGE_KEY = 'telegram_withdraw_bot_v2';
 
 const VALID_COMMANDS = new Set([
   '/start', '/inicio', '/ajuda', '/help', '/menu', '/oi', '/ola',
@@ -243,7 +244,6 @@ export default function Withdraw() {
     }, delay);
   }, []);
 
-  /* ── Execução do Pedido de Retirada ── */
   const processWithdrawal = useCallback(
     async (amount: number) => {
       if (!info.bankId) {
@@ -336,7 +336,6 @@ export default function Withdraw() {
     [info, botReply, showToast]
   );
 
-  /* ── Consulta de Histórico ── */
   const fetchRecentHistory = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('get_my_withdrawals_mcpn');
@@ -348,7 +347,6 @@ export default function Withdraw() {
     }
   }, []);
 
-  /* ── Mensagens Conversacionais do Bot ── */
   const handleSendMessage = useCallback(
     async (textToSend?: string) => {
       const content = (textToSend || inputText).trim();
@@ -366,7 +364,6 @@ export default function Withdraw() {
       if (!textToSend) setInputText('');
       const raw = content.toLowerCase().replace(/^\//, '').trim();
 
-      // Confirmação ativa de retirada pendente
       if (pendingAmount !== null) {
         if (['sim', 'confirmar', 'confirma', 'yes', 's', 'ok', 'prosseguir', 'quero'].includes(raw)) {
           processWithdrawal(pendingAmount);
@@ -411,7 +408,6 @@ export default function Withdraw() {
 
       const numericOnly = parseInt(raw.replace(/\D/g, ''));
 
-      // COMANDOS DE INÍCIO / BOAS-VINDAS / AJUDA
       if (['start', 'inicio', 'ajuda', 'help', 'menu', 'oi', 'ola'].includes(raw)) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -422,7 +418,6 @@ export default function Withdraw() {
         return;
       }
 
-      // CONSULTAR SALDO
       if (['saldo', 'carteira', 'ver saldo', 'meu saldo', 'ganhos'].some((k) => raw === k || raw.includes(k))) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -441,7 +436,6 @@ export default function Withdraw() {
         return;
       }
 
-      // INICIAR RETIRADA
       if (['retirar', 'sacar', 'retirada', 'saque', 'quero retirar', 'fazer retirada'].some((k) => raw === k || raw.includes(k))) {
         if (info.hasPending) {
           botReply(() => ({
@@ -511,7 +505,6 @@ export default function Withdraw() {
           return;
         }
 
-        // Tudo aprovado -> mensagem curta, simpática e amigável com seletores rápidos
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -527,7 +520,6 @@ export default function Withdraw() {
         return;
       }
 
-      // CONSULTAR BANCO
       if (['banco', 'iban', 'conta', 'meuiban'].some((k) => raw === k || raw.includes(k))) {
         if (info.hasBank) {
           botReply(() => ({
@@ -553,7 +545,6 @@ export default function Withdraw() {
         return;
       }
 
-      // HORÁRIO
       if (['horario', 'horarios', 'dias', 'atendimento'].some((k) => raw === k || raw.includes(k))) {
         const sched = getWithdrawScheduleStatus();
         botReply(() => ({
@@ -571,7 +562,6 @@ export default function Withdraw() {
         return;
       }
 
-      // TAXAS E REGRAS
       if (['taxa', 'taxas', 'limites', 'regras', 'instrucoes'].some((k) => raw === k || raw.includes(k))) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -589,7 +579,6 @@ export default function Withdraw() {
         return;
       }
 
-      // HISTÓRICO DE RETIRADAS
       if (['historico', 'registos', 'retiradas', 'pedidos'].some((k) => raw === k || raw.includes(k))) {
         setIsTyping(true);
         const recentList = await fetchRecentHistory();
@@ -605,7 +594,6 @@ export default function Withdraw() {
         return;
       }
 
-      // CANCELAR
       if (raw === 'cancelar') {
         setPendingAmount(null);
         botReply(() => ({
@@ -618,7 +606,6 @@ export default function Withdraw() {
         return;
       }
 
-      // LIMPAR CONVERSA
       if (['limpar', 'reset', 'clear'].includes(raw)) {
         try {
           localStorage.removeItem(CHAT_STORAGE_KEY);
@@ -636,7 +623,6 @@ export default function Withdraw() {
         return;
       }
 
-      // VALOR NUMÉRICO DIGITADO DIRETAMENTE (ex: 500, 1000, 5000)
       if (!isNaN(numericOnly) && numericOnly >= 1 && raw.replace(/\D/g, '') === raw) {
         const amount = numericOnly;
 
@@ -728,7 +714,6 @@ export default function Withdraw() {
         return;
       }
 
-      // MENSAGEM NÃO RECONHECIDA
       botReply(() => ({
         id: 'bot-' + Date.now(),
         sender: 'bot',
@@ -821,7 +806,7 @@ export default function Withdraw() {
       className="w-full h-[100dvh] flex flex-col overflow-hidden select-none"
       style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif" }}
     >
-      {/* ── HEADER OFICIAL DO BOTFATHER TELEGRAM ── */}
+      {/* ── HEADER OFICIAL DO WITHDRAWBOT TELEGRAM ── */}
       <header
         className="w-full bg-white px-3 py-2 shrink-0 z-30 flex items-center justify-between border-b border-gray-200/60 relative"
         style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
@@ -849,22 +834,18 @@ export default function Withdraw() {
             </span>
           </button>
 
-          {/* Avatar oficial do BotFather */}
-          <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-200 shadow-xs">
-            <img
-              src="/botfather.png"
-              alt="BotFather"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  'https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg';
-              }}
-            />
+          {/* Avatar WithdrawBot */}
+          <div
+            className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 flex items-center justify-center shadow-xs text-white"
+            style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+          >
+            <ArrowDownLeft className="w-5 h-5 stroke-[2.4]" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-sky-400 border-2 border-white rounded-full"></span>
           </div>
 
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[16px] font-bold text-black leading-tight">BotFather</span>
+              <span className="text-[16px] font-bold text-black leading-tight">WithdrawBot</span>
               <svg className="w-4 h-4 text-[#3390ec]" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
               </svg>
@@ -1017,7 +998,7 @@ export default function Withdraw() {
                 {msg.type === 'welcome' && (
                   <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
                     <p className="mb-2">
-                      Olá! Que bom ver você por aqui! 😊 Sou o <strong>BotFather</strong>, seu assistente de retiradas.
+                      Olá! Que bom ver você por aqui! 😊 Sou o <strong>WithdrawBot</strong> 💸, seu assistente oficial de retiradas.
                     </p>
                     <p className="mb-2.5 text-gray-800">
                       Como posso te ajudar hoje? Você pode escolher uma das opções abaixo:
@@ -1222,108 +1203,132 @@ export default function Withdraw() {
                 </div>
               </div>
 
-              {/* BOTÕES DE AÇÃO: CONFIRMAR RETIRADA */}
+              {/* INLINE KEYBOARD: CONFIRMAR RETIRADA */}
               {msg.type === 'confirm_withdraw' && pendingAmount !== null && (
-                <div className="w-full mt-1.5 flex gap-2 select-none">
-                  <button
-                    onClick={handleConfirmButton}
-                    disabled={isProcessing}
-                    className="flex-1 bg-white hover:bg-green-50 active:bg-green-100 rounded-[8px] py-2.5 px-3 text-[13.5px] font-semibold text-[#25ae60] transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Processando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Confirmar Retirada</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleCancelButton}
-                    disabled={isProcessing}
-                    className="flex-1 bg-white hover:bg-red-50 active:bg-red-100 rounded-[8px] py-2.5 px-3 text-[13.5px] font-semibold text-[#e53935] transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
-                  >
-                    <XCircle className="w-4 h-4" />
-                    <span>Cancelar</span>
-                  </button>
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
+                  <div className="grid grid-cols-2">
+                    <button
+                      onClick={handleConfirmButton}
+                      disabled={isProcessing}
+                      className="py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20 disabled:opacity-60"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      {isProcessing ? '⏳  Processando...' : '✅  Confirmar'}
+                    </button>
+                    <button
+                      onClick={handleCancelButton}
+                      disabled={isProcessing}
+                      className="py-2.5 px-3 text-[13.5px] font-semibold text-white/90 transition-all cursor-pointer flex items-center justify-center disabled:opacity-60"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      ✕  Cancelar
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* BOTÃO DE AÇÃO: VINCULAR BANCO */}
+              {/* INLINE KEYBOARD: CADASTRAR BANCO */}
               {msg.type === 'no_bank' && (
-                <div className="w-full mt-1.5 select-none">
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
                   <button
                     onClick={() => navigate('/adicionar-banco?redirect=/retirada')}
-                    className="w-full bg-white hover:bg-blue-50 active:bg-blue-100 rounded-[8px] py-2.5 px-3 text-[13.5px] font-bold text-[#2481cc] transition-colors cursor-pointer flex items-center justify-center gap-2"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
+                    style={{ background: '#5288c1' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                   >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Cadastrar Conta Bancária Agora</span>
+                    ➕  Cadastrar Conta Bancária
                   </button>
                 </div>
               )}
 
               {/* BOTÃO DE AÇÃO: COMPRAR ROBÔ */}
               {msg.type === 'no_bots' && (
-                <div className="w-full mt-1.5 select-none">
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
                   <button
                     onClick={() => navigate('/bot-pay')}
-                    className="w-full bg-white hover:bg-blue-50 active:bg-blue-100 rounded-[8px] py-2.5 px-3 text-[13.5px] font-bold text-[#2481cc] transition-colors cursor-pointer flex items-center justify-center gap-2"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
+                    style={{ background: '#5288c1' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    <span>Ir para o Catálogo de Robôs</span>
+                    🤖  Ir para o Catálogo de Robôs
                   </button>
                 </div>
               )}
 
-              {/* BOTÃO DE AÇÃO: HISTÓRICO COMPLETO */}
+              {/* INLINE KEYBOARD: HISTÓRICO COMPLETO */}
               {msg.type === 'history_list' && (
-                <div className="w-full mt-1.5 select-none">
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
                   <button
                     onClick={() => navigate('/registro-retirada')}
-                    className="w-full bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-3 text-[13px] font-semibold text-[#2481cc] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
+                    style={{ background: '#5288c1' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                   >
-                    <FileText className="w-4 h-4" />
-                    <span>Abrir Histórico Completo</span>
+                    📋  Ver Histórico Completo
                   </button>
                 </div>
               )}
 
-              {/* BOTÕES DE AÇÃO NO WELCOME */}
+              {/* INLINE KEYBOARD WELCOME — WithdrawBot estilo BotFather */}
               {msg.type === 'welcome' && (
-                <div className="w-full mt-1.5 select-none flex flex-col gap-1.5">
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
+                  {/* Linha 1 — largura total */}
                   <button
                     onClick={() => handleSendMessage('/retirar')}
-                    className="w-full bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2.5 px-3 text-[13.5px] font-bold text-[#2481cc] transition-colors cursor-pointer flex items-center justify-center gap-2"
-                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-b border-white/20"
+                    style={{ background: '#5288c1' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                   >
-                    <Send className="w-4 h-4" />
-                    <span>Iniciar Pedido de Retirada</span>
+                    💸  Iniciar Retirada
                   </button>
-                  <div className="flex gap-2">
+                  {/* Linha 2 — 2 colunas */}
+                  <div className="grid grid-cols-2">
                     <button
                       onClick={() => handleSendMessage('/saldo')}
-                      className="flex-1 bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-3 text-[12.5px] font-medium text-gray-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-b border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                     >
-                      <Wallet className="w-3.5 h-3.5 text-[#3390ec]" />
-                      <span>Ver Saldo</span>
+                      💰  Ver Saldo
                     </button>
                     <button
                       onClick={() => handleSendMessage('/banco')}
-                      className="flex-1 bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-3 text-[12.5px] font-medium text-gray-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-b border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                     >
-                      <Building2 className="w-3.5 h-3.5 text-[#3390ec]" />
-                      <span>Meu Banco</span>
+                      🏦  Meu Banco
+                    </button>
+                  </div>
+                  {/* Linha 3 — 2 colunas */}
+                  <div className="grid grid-cols-2">
+                    <button
+                      onClick={() => handleSendMessage('/historico')}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      📋  Histórico
+                    </button>
+                    <button
+                      onClick={() => handleSendMessage('/horario')}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      🕐  Horários
                     </button>
                   </div>
                 </div>
@@ -1350,7 +1355,7 @@ export default function Withdraw() {
                 className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce"
                 style={{ animationDelay: '300ms' }}
               />
-              <span className="text-[11.5px] text-[#707579] ml-1">BotFather está digitando...</span>
+              <span className="text-[11.5px] text-[#707579] ml-1">WithdrawBot está digitando...</span>
             </div>
           </div>
         )}
@@ -1358,7 +1363,6 @@ export default function Withdraw() {
         <div ref={chatBottomRef} />
       </main>
 
-      {/* BOTÃO FLUTUANTE DE ROLAGEM */}
       {showScrollDown && (
         <button
           onClick={() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
@@ -1370,15 +1374,9 @@ export default function Withdraw() {
 
       {/* ── FOOTER DE ENTRADA DO TELEGRAM ── */}
       <footer className="bg-white px-2 py-2 shrink-0 z-30 flex items-center gap-2 border-t border-gray-200">
-        <button
-          onClick={() => handleSendMessage('/retirar')}
-          className="h-[38px] px-3.5 rounded-[8px] bg-[#3390ec] hover:bg-[#2881dc] active:bg-[#1d6fae] text-white text-[13.5px] font-medium flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
-          style={{ boxShadow: '0 1px 4px rgba(51,144,236,0.3)' }}
-        >
-          <span>Retirar</span>
-        </button>
+        
 
-        <div className="flex-1 flex items-center bg-transparent px-1">
+        <div className="flex-1 flex items-center bg-[#f4f4f5] rounded-[20px] px-3.5 py-1.5 border border-transparent focus-within:border-[#3390ec]/40 focus-within:bg-white transition-all">
           <input
             type="text"
             value={inputText}
