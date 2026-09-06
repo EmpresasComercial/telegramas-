@@ -198,7 +198,7 @@ export default function TelegramDrawer({ isOpen, onClose, onOpenAutoMessages }: 
           <DrawerItem 
             icon={<User className="w-5 h-5 text-[#707579] dark:text-[#a0aab5]" />}
             label="Contatos"
-            onClick={() => handleNavigate('/convite')}
+            onClick={() => handleNavigate('/contactos')}
           />
 
           {/* Chamadas */}

@@ -17,8 +17,8 @@ export default function Navbar() {
     },
     {
       name: 'Contatos',
-      path: '/convite',
-      aliasPaths: ['/convite'],
+      path: '/contactos',
+      aliasPaths: ['/contactos', '/convite'],
       icon: <Users className="w-[22px] h-[22px]" strokeWidth={2} />
     },
     {

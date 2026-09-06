@@ -13,6 +13,7 @@ export default function Layout() {
     '/telegramBussiness',
     '/telegramBusiness',
     '/telegram-business',
+    '/contactos',
     '/convite',
     '/bot-pay',
     '/perfil',

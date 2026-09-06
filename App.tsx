@@ -23,7 +23,7 @@ import Home     from './pages/Home';
 
 // Todas as outras páginas: carregadas sob-demanda
 const Bots             = lazy(() => import('./pages/Bots'));
-const Invite           = lazy(() => import('./pages/contacto'));
+const Invite           = lazy(() => import('./pages/contactos'));
 const Profile          = lazy(() => import('./pages/Profile'));
 const Settings         = lazy(() => import('./pages/Settings'));
 const AddBank          = lazy(() => import('./pages/AddBank'));
@@ -44,7 +44,6 @@ const ChatsList        = lazy(() => import('./pages/ChatsList'));
 const CommunityChat    = lazy(() => import('./pages/CommunityChat'));
 const PrivateChat      = lazy(() => import('./pages/PrivateChat'));
 const DevicesPrivacy   = lazy(() => import('./pages/DevicesPrivacy'));
-const TelegramPremium  = lazy(() => import('./pages/TelegramPremium'));
 const TelegramStars    = lazy(() => import('./pages/TelegramStars'));
 const OfficialChannel  = lazy(() => import('./pages/OfficialChannel'));
 
@@ -161,7 +160,8 @@ export default function App() {
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="home"                    element={<Home />} />
                     <Route path="bot-pay"                 element={<Bots />} />
-                    <Route path="convite"                 element={<Invite />} />
+                    <Route path="contactos"               element={<Invite />} />
+                    <Route path="convite"                 element={<Navigate to="/contactos" replace />} />
                     <Route path="perfil"                  element={<Profile />} />
                     <Route path="settings"                element={<Navigate to="/perfil" replace />} />
                     <Route path="adicionar-banco"         element={<AddBank />} />
@@ -194,8 +194,8 @@ export default function App() {
                     <Route path="comunidade-chat"         element={<CommunityChat />} />
                     <Route path="chat/:contactId"         element={<PrivateChat />} />
                     <Route path="devices"                 element={<DevicesPrivacy />} />
-                    <Route path="telegram-premium"        element={<TelegramPremium />} />
-                    <Route path="premium"                 element={<TelegramPremium />} />
+                    <Route path="telegram-premium"        element={<Navigate to="/contactos" replace />} />
+                    <Route path="premium"                 element={<Navigate to="/contactos" replace />} />
                     <Route path="stars"                   element={<TelegramStars />} />
                     <Route path="telegram-stars"          element={<TelegramStars />} />
                     <Route path="canais"                  element={<OfficialChannel />} />
