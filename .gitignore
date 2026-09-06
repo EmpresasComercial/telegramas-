@@ -10,3 +10,8 @@ coverage/
 # Supabase
 supabase/.temp/
 supabase/migrations/
+
+# Secrets & Deploy credentials (never commit to git)
+.secrets/
+*.credentials.json
+render.key
