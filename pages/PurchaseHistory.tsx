@@ -1,13 +1,48 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useLanguage } from "../contexts/LanguageContext";
 import { formatCurrency } from "../lib/currency";
-import { Bot, Calendar, Sparkles, ChevronRight, ArrowUpRight, Clock, TrendingUp, CheckCircle2 } from "lucide-react";
+import {
+  MoreVertical,
+  Send,
+  Loader2,
+  Paperclip,
+  Smile,
+  Mic,
+  Clock,
+  ChevronDown
+} from "lucide-react";
+import { useToast } from "../components/Toast";
 
-/* ─────────────────────────────────────────────
-   HELPER: seconds until next daily credit cycle
-───────────────────────────────────────────── */
+/* ── Interfaces ───────────────────────────────────────────── */
+interface PurchasedBot {
+  id: string;
+  preco_pago: number;
+  renda_diaria: number;
+  data_inicio: string;
+  data_fim: string;
+  dias_restantes: number;
+  ativo: boolean;
+  produto_nome: string;
+  produto_imagem?: string;
+  storage_size?: string;
+}
+
+interface ChatMessage {
+  id: string;
+  sender: "bot" | "user";
+  time: string;
+  text?: string;
+  type: "welcome" | "status_report" | "text" | "cycle_countdown";
+  payload?: any;
+}
+
+/* ── Helpers de Tempo ─────────────────────────────────────── */
+function nowTime() {
+  return new Date().toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit" });
+}
+
 function getSecondsUntilNextCredit(dataInicio: string): number {
   try {
     const start = new Date(dataInicio);
@@ -30,313 +65,566 @@ function formatCountdown(seconds: number): string {
   return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
 }
 
-function generateFakeHistory(dailyIncome: number, dataInicio: string) {
-  const history: { time: string; amount: number }[] = [];
-  const start = new Date(dataInicio);
-  const creditHour = start.getHours();
-  const creditMin = start.getMinutes();
-  for (let i = 3; i >= 1; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    d.setHours(creditHour, creditMin, 0, 0);
-    history.push({
-      time: d.toLocaleDateString("pt-AO", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit" }),
-      amount: dailyIncome,
-    });
-  }
-  return history;
-}
+function PurchasedBotCountdown({ dataInicio }: { dataInicio: string }) {
+  const [sec, setSec] = useState(() => getSecondsUntilNextCredit(dataInicio));
 
-/* ─────────────────────────────────────────────
-   COMPACT BOT CARD
-───────────────────────────────────────────── */
-function BotCard({ item, idx, language }: { item: any; idx: number; language: string }) {
-  const navigate = useNavigate();
-  const dailyIncome = Number(item.renda_diaria) || 0;
-  const preco = Number(item.preco_pago) || 0;
-  const isActive = Boolean(item.ativo);
-  const [secondsLeft, setSecondsLeft] = useState(() =>
-    item.data_inicio ? getSecondsUntilNextCredit(item.data_inicio) : 86400
-  );
-  const [showFlash, setShowFlash] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const history = generateFakeHistory(dailyIncome, item.data_inicio || new Date().toISOString());
-
-  // Real-time countdown
   useEffect(() => {
-    if (!isActive) return;
-    const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          setShowFlash(true);
-          setTimeout(() => setShowFlash(false), 2500);
-          return item.data_inicio ? getSecondsUntilNextCredit(item.data_inicio) : 86400;
-        }
-        return prev - 1;
-      });
+    const timer = setInterval(() => {
+      setSec((prev) => (prev <= 1 ? getSecondsUntilNextCredit(dataInicio) : prev - 1));
     }, 1000);
-    return () => clearInterval(interval);
-  }, [isActive, item.data_inicio]);
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "---";
-    return new Date(dateStr).toLocaleDateString(
-      language === "en" ? "en-US" : language === "fr" ? "fr-FR" : "pt-AO",
-      { day: "2-digit", month: "2-digit" }
-    );
-  };
+    return () => clearInterval(timer);
+  }, [dataInicio]);
 
   return (
-    <div className="bg-white rounded-[16px] overflow-hidden shadow-2xs border border-gray-200/80 transition-all">
-      {/* ── CARD HEADER: Avatar, Name, Status & Countdown ── */}
-      <div className="p-3.5 pb-3 border-b border-gray-100">
-        <div className="flex items-center justify-between gap-2">
-          {/* Left: Avatar + Title */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-[10px] bg-gradient-to-tr from-[#3390ec] to-[#54a9eb] flex items-center justify-center shadow-xs">
-                {item.produto_imagem ? (
-                  <img
-                    src={item.produto_imagem}
-                    alt={item.produto_nome}
-                    className="w-full h-full object-cover rounded-[10px]"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <Bot className="w-5 h-5 text-white" />
-                )}
-              </div>
-              {isActive && (
-                <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25ae60] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#25ae60] border border-white"></span>
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-col min-w-0">
-              <span className="text-[15px] font-bold text-black truncate leading-tight">
-                {item.produto_nome || "Bot Telegram"}
-              </span>
-              <span className="text-[12px] text-[#8e8e93] truncate">
-                ID: #{item.id?.toString().slice(0, 6).toUpperCase() || String(idx + 1).padStart(3, "0")}
-                {item.storage_size ? ` • ${item.storage_size}` : ""}
-              </span>
-            </div>
-          </div>
-
-          {/* Right: Status badge */}
-          <span
-            className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 ${
-              isActive
-                ? "bg-[#e8f7ef] text-[#25ae60]"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#25ae60]" : "bg-gray-400"}`} />
-            {isActive ? "Ativo" : "Expirado"}
-          </span>
-        </div>
-
-        {/* Real-time Countdown Banner (Compact) */}
-        {isActive && (
-          <div className="mt-2.5 flex items-center justify-between bg-[#f4f7fb] rounded-[10px] px-3 py-1.5 border border-[#e2eaf4]">
-            <div className="flex items-center gap-1.5 text-[12px] text-[#3390ec] font-medium">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Próximo rendimento:</span>
-            </div>
-            <div className="font-mono text-[13px] font-bold text-[#1e6dc8] tabular-nums tracking-wide bg-white px-2 py-0.5 rounded-md shadow-2xs border border-[#d6e3f3]">
-              {formatCountdown(secondsLeft)}
-            </div>
-          </div>
-        )}
-
-        {/* Flash on credit */}
-        {showFlash && (
-          <div className="mt-2 text-[12px] font-bold text-[#16a34a] bg-[#dcfce7] px-2.5 py-1 rounded-[8px] flex items-center gap-1.5 animate-bounce">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>+{formatCurrency(dailyIncome, "KZ")} creditado automaticamente! ✨</span>
-          </div>
-        )}
-      </div>
-
-      {/* ── CARD METRICS (3-col compact) ── */}
-      <div className="grid grid-cols-3 divide-x divide-gray-100 py-2 bg-white">
-        <div className="px-3 py-1 text-center">
-          <span className="text-[11px] text-[#8e8e93] block">Rendimento</span>
-          <span className="text-[13px] font-bold text-[#25ae60]">
-            +{formatCurrency(dailyIncome, "KZ")}
-          </span>
-        </div>
-        <div className="px-3 py-1 text-center">
-          <span className="text-[11px] text-[#8e8e93] block">Ativação</span>
-          <span className="text-[13px] font-semibold text-black">
-            {formatCurrency(preco, "KZ")}
-          </span>
-        </div>
-        <div className="px-3 py-1 text-center">
-          <span className="text-[11px] text-[#8e8e93] block">Período</span>
-          <span className="text-[12px] font-medium text-gray-700">
-            {formatDate(item.data_inicio)} - {formatDate(item.data_fim)}
-          </span>
-        </div>
-      </div>
-
-      {/* ── CARD ACTIONS ── */}
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-50/70 border-t border-gray-100 text-[12px]">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="text-[#8e8e93] hover:text-black font-medium flex items-center gap-1 cursor-pointer"
-        >
-          <TrendingUp className="w-3.5 h-3.5 text-[#3390ec]" />
-          <span>Histórico de Rendimentos</span>
-          <ChevronRight
-            className={`w-3.5 h-3.5 text-gray-400 transition-transform ${
-              expanded ? "rotate-90" : ""
-            }`}
-          />
-        </button>
-
-        <button
-          onClick={() => navigate("/telegramBussiness")}
-          className="text-[#3390ec] font-semibold flex items-center gap-0.5 hover:underline cursor-pointer"
-        >
-          <span>Chat</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* ── EXPANDED HISTORY DRAWER ── */}
-      {expanded && (
-        <div className="bg-[#fafafa] border-t border-gray-100 px-3 py-2 space-y-1.5">
-          <div className="text-[11px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1">
-            Últimos Ciclos Creditados
-          </div>
-          {history.map((h, i) => (
-            <div key={i} className="flex items-center justify-between text-[12px] py-1 border-b border-gray-100 last:border-0">
-              <div className="flex items-center gap-1.5 text-gray-600">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#25ae60]" />
-                <span>{h.time}</span>
-              </div>
-              <span className="font-semibold text-[#25ae60]">+{formatCurrency(h.amount, "KZ")}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <span className="font-mono text-[12px] font-bold text-[#1e6dc8] tabular-nums bg-white px-1.5 py-0.5 rounded border border-[#d6e3f3]">
+      {formatCountdown(sec)}
+    </span>
   );
 }
 
-/* ─────────────────────────────────────────────
-   MAIN PAGE
-───────────────────────────────────────────── */
+/* ── Componente Principal: Chatbot do Bot Comprado (BotFather) ── */
 export default function PurchaseHistory() {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const [purchases, setPurchases] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
 
+  const [purchasedBots, setPurchasedBots] = useState<PurchasedBot[]>([]);
+  const [userBalance, setUserBalance] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const mainChatRef = useRef<HTMLDivElement>(null);
+  const hasInitialized = useRef(false);
+
+  // Auto-scroll
   useEffect(() => {
-    async function fetchPurchases() {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase.rpc("get_my_purchased_products_mcpn");
-        if (error) throw error;
-        if (data) setPurchases(data);
-      } catch {
-        // Fallback
-      } finally {
-        setLoading(false);
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
+
+  const handleScroll = () => {
+    if (!mainChatRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = mainChatRef.current;
+    setShowScrollDown(scrollHeight - scrollTop - clientHeight > 150);
+  };
+
+  /* ── Buscar Bots Comprados e Saldo ── */
+  const fetchPurchasedBots = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.rpc("get_my_purchased_products_mcpn");
+      if (error) throw error;
+
+      let clean: PurchasedBot[] = [];
+      if (data && Array.isArray(data)) {
+        clean = data.map((b: any) => ({
+          id: b.id,
+          preco_pago: Number(b.preco_pago) || 0,
+          renda_diaria: Number(b.renda_diaria) || 0,
+          data_inicio: b.data_inicio,
+          data_fim: b.data_fim,
+          dias_restantes: b.dias_restantes || 0,
+          ativo: Boolean(b.ativo),
+          produto_nome: b.produto_nome || "Spam Bot",
+          produto_imagem: b.produto_imagem || "",
+          storage_size: b.storage_size || ""
+        }));
+        setPurchasedBots(clean);
       }
+
+      // Saldo do usuário
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session?.user) {
+        const { data: userData } = await supabase
+          .from("sys_t500")
+          .select("saldo_disponivel")
+          .eq("id", sessionData.session.user.id)
+          .single();
+        if (userData) {
+          setUserBalance(Number(userData.saldo_disponivel) || 0);
+        }
+      }
+
+      return clean;
+    } catch (err) {
+      console.error("Erro ao carregar bots comprados:", err);
+      return [];
+    } finally {
+      setLoading(false);
     }
-    fetchPurchases();
   }, []);
 
-  const activeBots = purchases.filter((p) => p.ativo).length;
+  /* ── Iniciar conversa com Mensagem Única de Boas-vindas e Tutorial ── */
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    async function initChat() {
+      const bots = await fetchPurchasedBots();
+
+      setIsTyping(true);
+      setTimeout(() => {
+        setIsTyping(false);
+
+        // Apenas UMA mensagem de tutorial inicial, sem duplicatas
+        setMessages([
+          {
+            id: "welcome-init",
+            sender: "bot",
+            time: nowTime(),
+            type: "welcome",
+            payload: { activeCount: bots.filter((b) => b.ativo).length }
+          }
+        ]);
+      }, 500);
+    }
+
+    initChat();
+  }, [fetchPurchasedBots]);
+
+  /* ── Simular resposta do BotFather ── */
+  const botReply = useCallback((builder: () => ChatMessage, delay = 650) => {
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages((prev) => [...prev, builder()]);
+    }, delay);
+  }, []);
+
+  /* ── Enviar mensagem para o BotFather ── */
+  const handleSendMessage = useCallback(
+    (textToSend?: string) => {
+      const content = (textToSend || inputText).trim();
+      if (!content) return;
+
+      const userMsg: ChatMessage = {
+        id: "usr-" + Date.now(),
+        sender: "user",
+        time: nowTime(),
+        text: content,
+        type: "text"
+      };
+
+      setMessages((prev) => [...prev, userMsg]);
+      if (!textToSend) setInputText("");
+
+      const normalized = content.toLowerCase().replace(/^\//, "").trim();
+
+      if (normalized === "start" || normalized === "inicio" || normalized === "help" || normalized === "ajuda") {
+        botReply(() => ({
+          id: "bot-" + Date.now(),
+          sender: "bot",
+          time: nowTime(),
+          type: "welcome",
+          payload: { activeCount: purchasedBots.filter((b) => b.ativo).length }
+        }));
+        return;
+      }
+
+      if (
+        normalized === "status" ||
+        normalized === "meusbots" ||
+        normalized === "mybots" ||
+        normalized === "ativos"
+      ) {
+        if (!purchasedBots || purchasedBots.length === 0) {
+          botReply(() => ({
+            id: "bot-" + Date.now(),
+            sender: "bot",
+            time: nowTime(),
+            type: "text",
+            text: `Você ainda não possui nenhum robô comprado.\n\nEnvie /comprar para abrir o catálogo e ativar o seu primeiro robô.`
+          }));
+          return;
+        }
+
+        botReply(() => ({
+          id: "bot-" + Date.now(),
+          sender: "bot",
+          time: nowTime(),
+          type: "status_report",
+          payload: { bots: purchasedBots }
+        }));
+        return;
+      }
+
+      if (normalized === "rendimento" || normalized === "proximo" || normalized === "ciclo") {
+        if (!purchasedBots || purchasedBots.length === 0) {
+          botReply(() => ({
+            id: "bot-" + Date.now(),
+            sender: "bot",
+            time: nowTime(),
+            type: "text",
+            text: `Você não tem rendimentos em andamento porque ainda não comprou robôs. Envie /comprar para ativar um bot.`
+          }));
+          return;
+        }
+
+        botReply(() => ({
+          id: "bot-" + Date.now(),
+          sender: "bot",
+          time: nowTime(),
+          type: "cycle_countdown",
+          payload: { bots: purchasedBots }
+        }));
+        return;
+      }
+
+      if (normalized === "saldo" || normalized === "carteira") {
+        botReply(() => ({
+          id: "bot-" + Date.now(),
+          sender: "bot",
+          time: nowTime(),
+          type: "text",
+          text: `O seu saldo disponível na carteira é:\n**${formatCurrency(userBalance, "KZ")}**\n\nEnvie /comprar para ver os robôs disponíveis para ativação.`
+        }));
+        return;
+      }
+
+      if (normalized === "comprar" || normalized === "bots" || normalized === "catalogo") {
+        botReply(() => ({
+          id: "bot-" + Date.now(),
+          sender: "bot",
+          time: nowTime(),
+          type: "text",
+          text: "Abrindo o catálogo de robôs disponíveis para compra..."
+        }));
+        setTimeout(() => navigate("/bot-pay"), 900);
+        return;
+      }
+
+      botReply(() => ({
+        id: "bot-" + Date.now(),
+        sender: "bot",
+        time: nowTime(),
+        type: "text",
+        text: `Comando não reconhecido. Envie /ajuda para ver o tutorial ou /status para consultar os robôs comprados.`
+      }));
+    },
+    [botReply, inputText, navigate, purchasedBots, userBalance]
+  );
 
   return (
     <div
-      className="w-full min-h-[100dvh] flex flex-col pb-24"
-      style={{
-        backgroundColor: "#f1f1f2",
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      }}
+      className="w-full h-[100dvh] flex flex-col overflow-hidden select-none"
+      style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif" }}
     >
-      {/* HEADER */}
-      <header className="flex items-center px-4 pt-4 pb-3 bg-[#f1f1f2] sticky top-0 z-30 border-b border-[#e5e5e5]">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-1 -ml-1 rounded-full active:opacity-50 transition-opacity mr-3"
-          aria-label="Voltar"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      {/* ── HEADER OFICIAL DO BOTFATHER ── */}
+      <header className="w-full bg-white px-3 py-2 shrink-0 z-30 flex items-center justify-between border-b border-gray-200/60 shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-1 -ml-1 text-[#000000] hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors cursor-pointer relative"
+            aria-label="Voltar"
           >
-            <path d="M19 12H5M5 12l7-7M5 12l7 7" />
-          </svg>
-        </button>
-        <span className="text-[20px] font-bold text-black flex-1">Meus Bots</span>
-        <button
-          onClick={() => navigate("/bot-pay")}
-          className="text-[15px] font-semibold text-[#3390ec] active:opacity-60 transition-opacity"
-        >
-          + Ativar Bot
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M5 12l7-7M5 12l7 7" />
+            </svg>
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#3390ec] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+              1
+            </span>
+          </button>
+
+          <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-200 shadow-2xs">
+            <img
+              src="/botfather.png"
+              alt="BotFather"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg";
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[16px] font-bold text-[#000000] leading-tight">
+                BotFather
+              </span>
+              <svg className="w-4 h-4 text-[#3390ec]" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              </svg>
+            </div>
+            <span
+              onClick={() => handleSendMessage("/saldo")}
+              className="text-[12px] text-[#707579] truncate cursor-pointer hover:text-[#3390ec] transition-colors"
+            >
+              Saldo: {formatCurrency(userBalance, "KZ")}
+            </span>
+          </div>
+        </div>
+
+        <button className="p-1.5 text-[#707579] hover:bg-gray-100 rounded-full cursor-pointer">
+          <MoreVertical className="w-5 h-5" />
         </button>
       </header>
 
-      {/* CONTEÚDO */}
-      <main className="flex-1 max-w-2xl mx-auto w-full px-3 pt-3">
-        {/* Summary Bar */}
-        <div className="flex items-center justify-between px-1 mb-3">
-          <span className="text-[13px] font-semibold text-[#8e8e93] uppercase tracking-wider">
-            Automações ({purchases.length})
-          </span>
-          <span className="text-[12px] font-medium text-[#25ae60] bg-[#e8f7ef] px-2.5 py-0.5 rounded-full">
-            {activeBots} em execução
+      {/* ── CORPO DO CHAT COM WALLPAPER OFICIAL TELEGRAM VERDE ── */}
+      <main
+        ref={mainChatRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2 relative select-text"
+        style={{
+          backgroundColor: "#8ea78f",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%236f8a70' fill-opacity='0.22'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")`
+        }}
+      >
+        <div className="flex justify-center my-1 select-none">
+          <span className="bg-[#5b7a5e]/70 text-white text-[11.5px] font-medium px-3 py-0.5 rounded-full shadow-2xs backdrop-blur-xs">
+            Wednesday
           </span>
         </div>
 
-        {/* LOADING */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-2.5">
-            <div className="w-7 h-7 border-2 border-[#3390ec] border-t-transparent rounded-full animate-spin" />
-            <p className="text-[13px] text-[#8e8e93]">Sincronizando bots...</p>
-          </div>
-        ) : purchases.length === 0 ? (
-          <div className="bg-white rounded-[16px] p-8 text-center border border-gray-200/70 shadow-2xs flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#f1f1f2] flex items-center justify-center text-[#8e8e93]">
-              <Bot className="w-6 h-6" />
+        {/* Mensagens do chat */}
+        {messages.map((msg) => {
+          const isUser = msg.sender === "user";
+
+          if (isUser) {
+            return (
+              <div key={msg.id} className="flex justify-end mb-1">
+                <div
+                  className="bg-[#effdde] rounded-[16px] rounded-br-[3px] px-3.5 py-2 max-w-[85%] relative select-text"
+                  style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
+                >
+                  <p className="text-[14.5px] text-[#000000] leading-snug font-normal whitespace-pre-line">
+                    {msg.text}
+                  </p>
+                  <div className="flex justify-end items-center gap-1 mt-0.5 text-[11px] text-[#537c3e] select-none">
+                    <span>{msg.time}</span>
+                    <span className="text-[#3ca3e8] font-bold text-[12px] leading-none">✓✓</span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // Balão do BotFather (Texto Puro limpo, sem subcards)
+          return (
+            <div key={msg.id} className="flex flex-col items-start mb-2 max-w-[92%] sm:max-w-[85%]">
+              <div
+                className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2.5 text-gray-900 w-full relative select-text"
+                style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
+              >
+                {/* 1. Boas-vindas com Tutorial de Comandos */}
+                {msg.type === "welcome" && (
+                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
+                    <p className="mb-2">
+                      Bem-vindo! Eu sou o <strong>BotFather</strong>.
+                    </p>
+                    <p className="mb-2">
+                      Aqui você pode consultar o status dos seus robôs comprados e acompanhar os rendimentos diários em tempo real.
+                    </p>
+                    <p className="mb-1.5 font-bold">
+                      Comandos Rápidos Disponíveis:
+                    </p>
+                    <p className="space-y-1 mb-2">
+                      • <span onClick={() => handleSendMessage("/status")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/status</span> — Ver seus robôs comprados em execução
+                      <br />
+                      • <span onClick={() => handleSendMessage("/rendimento")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/rendimento</span> — Tempo para o próximo crédito diário
+                      <br />
+                      • <span onClick={() => handleSendMessage("/saldo")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/saldo</span> — Consultar saldo da carteira
+                      <br />
+                      • <span onClick={() => handleSendMessage("/comprar")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/comprar</span> — Comprar um novo robô
+                    </p>
+                    <p className="text-[#707579] text-[13px] pt-1 border-t border-gray-100">
+                      Você possui atualmente <strong>{msg.payload?.activeCount || 0} robô(s) ativo(s)</strong> gerando lucros diários.
+                    </p>
+                  </div>
+                )}
+
+                {/* 2. Relatório de Status dos Bots Comprados */}
+                {msg.type === "status_report" && msg.payload?.bots && (
+                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
+                    <p className="font-bold text-[15px] mb-2">
+                      Robôs Comprados em Execução ({msg.payload.bots.length}):
+                    </p>
+                    <div className="space-y-3 my-1">
+                      {msg.payload.bots.map((bot: PurchasedBot, idx: number) => (
+                        <div key={bot.id || idx} className="text-[13.5px] leading-relaxed border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                          <p className="font-bold text-gray-900">
+                            {idx + 1}. {bot.produto_nome} <span className="text-[#25ae60] text-[12px] font-semibold">• Ativo</span>
+                          </p>
+                          <p className="text-gray-600">
+                            • Contrato: <span className="font-mono text-[12px] text-gray-800">#{bot.id?.slice(0, 6).toUpperCase()}</span>
+                            <br />
+                            • Renda Diária: <strong className="text-[#25ae60]">+{formatCurrency(bot.renda_diaria, "KZ")}</strong> / dia
+                            <br />
+                            • Valor Pago: {formatCurrency(bot.preco_pago, "KZ")}
+                            <br />
+                            • Dias Restantes: {bot.dias_restantes} dias
+                          </p>
+                          {bot.ativo && (
+                            <div className="mt-1 flex items-center gap-1.5 text-[12.5px] text-[#2481cc]">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>Próximo crédito em:</span>
+                              <PurchasedBotCountdown dataInicio={bot.data_inicio} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Contagem Regressiva do Ciclo */}
+                {msg.type === "cycle_countdown" && msg.payload?.bots && (
+                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
+                    <p className="font-bold text-[15px] mb-1.5">
+                      ⏳ Sincronização de Rendimento Diário
+                    </p>
+                    <p className="text-[13.5px] text-gray-800 mb-2">
+                      Os rendimentos dos seus robôs são creditados diariamente a cada 24 horas:
+                    </p>
+                    <div className="space-y-2 my-1.5">
+                      {msg.payload.bots.map((bot: PurchasedBot, idx: number) => (
+                        <div key={bot.id || idx} className="text-[13px] border-b border-gray-100 pb-1.5 last:border-0">
+                          <p className="font-bold text-gray-900">{bot.produto_nome}:</p>
+                          <p>• Crédito: <strong className="text-[#25ae60]">+{formatCurrency(bot.renda_diaria, "KZ")}</strong></p>
+                          <div className="flex items-center gap-1.5 text-[#2481cc] mt-0.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Tempo restante:</span>
+                            <PurchasedBotCountdown dataInicio={bot.data_inicio} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Mensagem de Texto Comum */}
+                {msg.type === "text" && (
+                  <div className="text-[14.5px] text-[#000000] leading-relaxed whitespace-pre-line font-normal">
+                    {msg.text?.split("\n").map((line, lIdx) => {
+                      const renderFormatted = (str: string) => {
+                        const parts = str.split(/(\*\*.*?\*\*|\*.*?\*|\/[-_a-zA-Z0-9]+)/g);
+                        return parts.map((part, pIdx) => {
+                          if (part.startsWith("**") && part.endsWith("**")) {
+                            return <strong key={pIdx} className="font-bold">{part.slice(2, -2)}</strong>;
+                          }
+                          if (part.startsWith("*") && part.endsWith("*")) {
+                            return <strong key={pIdx} className="font-bold">{part.slice(1, -1)}</strong>;
+                          }
+                          if (part.startsWith("/")) {
+                            return (
+                              <span
+                                key={pIdx}
+                                onClick={() => handleSendMessage(part)}
+                                className="text-[#3390ec] font-medium cursor-pointer hover:underline"
+                              >
+                                {part}
+                              </span>
+                            );
+                          }
+                          return part;
+                        });
+                      };
+
+                      return (
+                        <span key={lIdx}>
+                          {renderFormatted(line)}
+                          {lIdx < (msg.text?.split("\n").length || 1) - 1 && <br />}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex justify-end mt-1 text-[11px] text-[#707579] font-normal select-none">
+                  <span>{msg.time}</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="text-[16px] font-bold text-black mb-1">Nenhum bot ativo</h3>
-              <p className="text-[13px] text-[#8e8e93] max-w-[240px]">
-                Ative um bot para receber recompensas automáticas diárias.
-              </p>
-            </div>
-            <button
-              onClick={() => navigate("/bot-pay")}
-              className="mt-1 px-5 py-2 bg-[#3390ec] text-white text-[13px] font-semibold rounded-full shadow-xs active:scale-95 transition-transform cursor-pointer"
+          );
+        })}
+
+        {/* Indicador de Digitando */}
+        {isTyping && (
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <div
+              className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2 flex items-center gap-1.5"
+              style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
             >
-              Ver Bots Disponíveis
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {purchases.map((item, idx) => (
-              <BotCard key={item.id || idx} item={item} idx={idx} language={language} />
-            ))}
+              <span className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span className="text-[11.5px] text-[#707579] ml-1">BotFather está digitando...</span>
+            </div>
           </div>
         )}
+
+        <div ref={chatBottomRef} />
       </main>
+
+      {/* Botão flutuante de rolagem */}
+      {showScrollDown && (
+        <button
+          onClick={() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+          className="absolute right-3.5 bottom-16 w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-[#707579] hover:bg-gray-50 active:scale-95 transition-all z-20 cursor-pointer"
+        >
+          <ChevronDown className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* ── BARRA INFERIOR DE INPUT OFICIAL ── */}
+      <footer className="bg-white px-2 py-2 shrink-0 z-30 flex items-center gap-2 border-t border-gray-200">
+        <button
+          onClick={() => navigate("/bot-pay")}
+          className="h-[38px] px-3 rounded-[8px] bg-[#3390ec] hover:bg-[#2881dc] active:bg-[#1d6fae] text-white text-[13.5px] font-bold flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer shadow-xs"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          </svg>
+          <span>Catálogo</span>
+        </button>
+
+        <button
+          onClick={() => handleSendMessage("/status")}
+          className="p-1.5 text-[#707579] hover:text-[#000000] active:scale-90 transition-transform cursor-pointer"
+          title="Status dos Bots"
+        >
+          <Paperclip className="w-5 h-5 -rotate-45" />
+        </button>
+
+        <div className="flex-1 flex items-center bg-transparent px-1">
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            placeholder="Mensagem (ex: /status, /rendimento, /comprar)"
+            className="w-full bg-transparent text-[15px] text-[#000000] placeholder-gray-400 outline-none"
+          />
+        </div>
+
+        <button
+          onClick={() => handleSendMessage("/ajuda")}
+          className="p-1.5 text-[#707579] hover:text-[#000000] active:scale-90 transition-transform cursor-pointer"
+          title="Ajuda"
+        >
+          <Smile className="w-5 h-5" />
+        </button>
+
+        <button
+          onClick={() => handleSendMessage()}
+          className="w-10 h-10 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-xs"
+          aria-label={inputText.trim() ? "Enviar mensagem" : "Mensagem de voz"}
+        >
+          {inputText.trim() ? (
+            <Send className="w-4 h-4 -ml-0.5" />
+          ) : (
+            <Mic className="w-5 h-5" />
+          )}
+        </button>
+      </footer>
     </div>
   );
 }

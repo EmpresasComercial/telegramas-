@@ -27,45 +27,59 @@ export default function ChangePassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.newPassword.length < 8) {
-      showToast(t('auth.password_error_length'), 'error');
+    if (!formData.currentPassword) {
+      showToast('Por favor, informe a senha atual.', 'error');
+      return;
+    }
+    if (formData.newPassword.length < 6) {
+      showToast('A nova senha deve ter pelo menos 6 caracteres.', 'error');
       return;
     }
     if (formData.newPassword !== formData.confirmPassword) {
-      showToast(t('password.match_error'), 'error');
+      showToast(t('password.match_error') || 'As senhas não coincidem.', 'error');
       return;
     }
+
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error('Sessão inválida. Faça login novamente.');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error('Sessão inválida. Faça login novamente.');
 
+      const email = user.email || (user.user_metadata?.phone ? `${user.user_metadata.phone}@user.com` : null);
+      if (!email) throw new Error('Identificação de usuário não encontrada.');
+
+      // 1. Valida se a senha atual está correta tentando autenticar
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
+        email,
         password: formData.currentPassword
       });
       if (signInError) throw new Error('A senha atual está incorreta.');
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/user`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-        },
-        body: JSON.stringify({ password: formData.newPassword, current_password: formData.currentPassword })
+      // 2. Atualiza a senha pelo método oficial padronizado do Supabase passando a senha atual
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: formData.newPassword,
+        current_password: formData.currentPassword
       });
+      if (updateError) {
+        if (updateError.message.includes('Current password required') || updateError.message.includes('current password')) {
+          throw new Error('A confirmação da senha atual é obrigatória.');
+        }
+        if (updateError.message.includes('New password should be different')) {
+          throw new Error('A nova senha deve ser diferente da senha atual.');
+        }
+        throw updateError;
+      }
 
-      const responseData = await res.json();
-      if (!res.ok) throw new Error(responseData.msg || responseData.message || 'Erro ao atualizar a senha');
-
-      showToast(t('password.success'), 'success');
-      setTimeout(() => navigate('/settings'), 1500);
+      showToast(t('password.success') || 'Senha redefinida com sucesso!', 'success');
+      setTimeout(() => navigate(-1), 1200);
     } catch (err: any) {
-      showToast(err.message || t('common.error'), 'error');
+      let msg = err.message || t('common.error');
+      if (msg.includes('Current password required')) {
+        msg = 'A confirmação da senha atual é obrigatória.';
+      } else if (msg.includes('Invalid login credentials')) {
+        msg = 'A senha atual está incorreta.';
+      }
+      showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +90,7 @@ export default function ChangePassword() {
 
       {/* HEADER */}
       <div className="flex items-center px-4 pt-5 pb-3 bg-[#f1f1f2] sticky top-0 z-10">
-        <button onClick={() => navigate('/settings')} className="mr-4 active:opacity-50">
+        <button onClick={() => navigate(-1)} className="mr-4 active:opacity-50 cursor-pointer">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
           </svg>
@@ -88,16 +102,16 @@ export default function ChangePassword() {
 
         {/* Icon header */}
         <div className="flex flex-col items-center py-6">
-          <div className="w-[72px] h-[72px] rounded-[22px] bg-[#25D366] flex items-center justify-center mb-3 shadow-[0_4px_12px_rgba(37,211,102,0.3)]">
-            <ShieldAlert className="w-9 h-9 text-white" strokeWidth={1.8} />
+          <div className="w-[64px] h-[64px] rounded-none bg-[#2481cc] flex items-center justify-center mb-3 shadow-[0_4px_12px_rgba(36,129,204,0.3)]">
+            <ShieldAlert className="w-8 h-8 text-white" strokeWidth={1.8} />
           </div>
           <p className="text-[13px] text-[#8e8e93] text-center max-w-[260px] leading-snug">
-            Escolha uma senha forte com pelo menos 8 caracteres.
+            Escolha uma senha forte com pelo menos 6 caracteres.
           </p>
         </div>
 
         {/* Fields card */}
-        <div className="bg-white rounded-[16px] overflow-hidden">
+        <div className="bg-white rounded-none overflow-hidden shadow-none">
           {/* Current password */}
           <div className="flex items-center px-4 h-[52px] border-b border-[#e5e5e5]">
             <input
@@ -108,7 +122,7 @@ export default function ChangePassword() {
               value={formData.currentPassword}
               onChange={handleChange}
             />
-            <button type="button" onClick={() => setShowCurrentPass(!showCurrentPass)} className="ml-2 text-[#c7c7cc] active:opacity-50">
+            <button type="button" onClick={() => setShowCurrentPass(!showCurrentPass)} className="ml-2 text-[#c7c7cc] active:opacity-50 cursor-pointer">
               {showCurrentPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
@@ -119,11 +133,11 @@ export default function ChangePassword() {
               name="newPassword"
               type={showNewPass ? 'text' : 'password'}
               className="flex-1 bg-transparent outline-none text-[16px] text-black placeholder:text-[#c7c7cc]"
-              placeholder="Nova senha (mínimo 8 caracteres)"
+              placeholder="Nova senha (mínimo 6 caracteres)"
               value={formData.newPassword}
               onChange={handleChange}
             />
-            <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="ml-2 text-[#c7c7cc] active:opacity-50">
+            <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="ml-2 text-[#c7c7cc] active:opacity-50 cursor-pointer">
               {showNewPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
@@ -138,7 +152,7 @@ export default function ChangePassword() {
               value={formData.confirmPassword}
               onChange={handleChange}
             />
-            <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="ml-2 text-[#c7c7cc] active:opacity-50">
+            <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="ml-2 text-[#c7c7cc] active:opacity-50 cursor-pointer">
               {showConfirmPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
@@ -149,7 +163,7 @@ export default function ChangePassword() {
           type="submit"
           form="change-pass-form"
           disabled={isSubmitting || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword}
-          className="w-full h-[50px] rounded-[16px] bg-[#25D366] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
+          className="w-full h-[50px] rounded-none bg-[#2481cc] hover:bg-[#1f73b7] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-all shadow-[0_4px_12px_rgba(36,129,204,0.35)] cursor-pointer"
         >
           {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'Redefinir Senha'}
         </button>

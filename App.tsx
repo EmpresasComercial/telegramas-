@@ -21,7 +21,6 @@ import Login    from './pages/Login';
 import Messager from './pages/Messager';
 import Home     from './pages/Home';
 
-// Todas as outras páginas: carregadas sob-demanda
 const Bots             = lazy(() => import('./pages/Bots'));
 const Invite           = lazy(() => import('./pages/contactos'));
 const Profile          = lazy(() => import('./pages/Profile'));
