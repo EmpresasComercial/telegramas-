@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Eye, EyeOff, Wallet, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Plus } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../lib/currency';
@@ -26,10 +26,9 @@ export default function Withdraw() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [balance, setBalance] = useState(0);
   const [amount, setAmount] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [hasBank, setHasBank] = useState(false);
   const [bankId, setBankId] = useState<string | null>(null);
+  const [iban, setIban] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [hasPending, setHasPending] = useState(false);
 
@@ -42,6 +41,7 @@ export default function Withdraw() {
         setBalance(Number(d.balance));
         setHasBank(d.has_bank);
         setBankId(d.bank_id || null);
+        setIban(d.iban || '');
         setIsVerified(d.is_verified);
         setHasPending(d.has_pending);
       }
@@ -55,7 +55,7 @@ export default function Withdraw() {
     fetchData();
     const channel = supabase
       .channel('withdraw_balance_sync')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sys_t500' }, fetchData)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sys_t111' }, fetchData)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
@@ -70,7 +70,6 @@ export default function Withdraw() {
     if (!isWithdrawAllowed()) { showToast(t('withdraw.time_error'), 'error'); return; }
     if (!isVerified) { showToast(t('withdraw.verify_required'), 'error'); navigate('/autenticacao'); return; }
     if (!hasBank) { showToast(t('withdraw.bank_required'), 'error'); navigate('/informacao-bancaria?redirect=/retirada'); return; }
-    if (!password) { showToast(t('auth.password_error_empty'), 'error'); return; }
 
     const withdrawAmount = parseInt(amount);
     if (!amount || withdrawAmount < MIN_WITHDRAW) { showToast(t('withdraw.min_amount'), 'error'); return; }
@@ -79,15 +78,10 @@ export default function Withdraw() {
 
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error('Sessão expirada.');
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: user.email, password });
-      if (authError) { showToast(t('auth.password_error_wrong'), 'error'); return; }
-
       const { data, error } = await supabase.rpc('process_withdrawal_request', {
         p_amount: withdrawAmount,
         p_bank_id: bankId || '',
-        p_password: password
+        p_password: ''
       }) as { data: { success: boolean; message: string } | null; error: any };
 
       if (error) throw error;
@@ -101,18 +95,18 @@ export default function Withdraw() {
   };
 
   const guideItems = [
-    t('withdraw.guide_time'),
-    t('withdraw.guide_limits'),
-    t('withdraw.guide_tax'),
-    t('withdraw.guide_support'),
+    'Os saques são processados de segunda a sexta, das 09:00 às 18:00.',
+    'Valor mínimo de retirada 100 Kz e máximo 100.000 Kz.',
+    'Taxa operacional de retirada: 10%.',
+    'Atendimento ao cliente 24/7 pelo Telegram e WhatsApp.',
   ];
 
   if (isLoading) {
     return (
       <div className="w-full min-h-screen bg-[#f1f1f2] pb-10 font-sans flex flex-col px-3 pt-16">
-        <Skeleton className="w-full h-[52px] rounded-[16px] mb-4" />
-        <Skeleton className="w-full h-[104px] rounded-[16px] mb-4" />
-        <Skeleton className="w-full h-[120px] rounded-[16px]" />
+        <Skeleton className="w-full h-[120px] rounded-none mb-4" />
+        <Skeleton className="w-full h-[52px] rounded-none mb-4" />
+        <Skeleton className="w-full h-[52px] rounded-none" />
       </div>
     );
   }
@@ -130,57 +124,10 @@ export default function Withdraw() {
         <span className="text-[18px] font-semibold flex-1">Retirar Saldo</span>
       </div>
 
-      <form onSubmit={handleSubmit} id="withdraw-form" className="px-3 flex flex-col gap-4">
-
-        {/* Icon */}
-        <div className="flex flex-col items-center py-4">
-          <div className="w-[72px] h-[72px] rounded-[22px] bg-[#2481cc] flex items-center justify-center mb-3 shadow-[0_4px_12px_rgba(37,211,102,0.3)]">
-            <Wallet className="w-9 h-9 text-white" strokeWidth={1.8} />
-          </div>
-        </div>
-
-        {/* Balance display */}
-        <div className="bg-white rounded-[16px] px-4 py-3 flex items-center justify-between">
-          <span className="text-[14px] text-[#8e8e93]">Saldo disponível</span>
-          <span className="text-[16px] font-bold text-[#2481cc]">{formatCurrency(balance, 'KZ')}</span>
-        </div>
-
-        {/* Inputs card */}
-        <div className="bg-white rounded-[16px] overflow-hidden">
-          <div className="flex items-center px-4 h-[52px] border-b border-[#e5e5e5]">
-            <input
-              type="tel"
-              placeholder={`Valor a retirar (mín. ${MIN_WITHDRAW} Kz)`}
-              className="flex-1 bg-transparent outline-none text-[16px] text-black placeholder:text-[#c7c7cc]"
-              value={amount}
-              onChange={handleAmountChange}
-            />
-            <span className="text-[13px] font-semibold text-[#2481cc] ml-2">KZ</span>
-          </div>
-          <div className="flex items-center px-4 h-[52px]">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Senha de login"
-              className="flex-1 bg-transparent outline-none text-[16px] text-black placeholder:text-[#c7c7cc]"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button type="button" onClick={() => setShowPassword(p => !p)} className="ml-2 text-[#c7c7cc] active:opacity-50">
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Pending warning */}
-        {hasPending && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-[16px] px-4 py-3 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-            <p className="text-[13px] text-yellow-700">Existe um pedido de retirada pendente. Aguarde a aprovação antes de solicitar outro.</p>
-          </div>
-        )}
+      <form onSubmit={handleSubmit} id="withdraw-form" className="px-3 flex flex-col gap-4 pt-6">
 
         {/* Guide card */}
-        <div className="bg-white rounded-[16px] px-4 py-4">
+        <div className="bg-white rounded-none px-4 py-4">
           <p className="text-[13px] font-semibold text-[#2481cc] mb-2">Instruções de Retirada</p>
           <div className="space-y-2">
             {guideItems.map((text, idx) => (
@@ -192,12 +139,53 @@ export default function Withdraw() {
           </div>
         </div>
 
+        {/* IBAN vinculado display */}
+        <div className="bg-white rounded-none px-4 py-3 flex items-center justify-between">
+          <span className="text-[14px] text-[#8e8e93]">IBAN vinculado</span>
+          {hasBank && iban ? (
+            <span className="text-[15px] font-mono font-medium text-[#2481cc] select-all truncate max-w-[68%] text-right">
+              {iban}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('/adicionar-banco?redirect=/retirada')}
+              className="inline-flex items-center gap-1 text-[13.5px] font-medium text-[#2481cc] hover:opacity-80 active:scale-95 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[2.2]" />
+              <span>Bank</span>
+            </button>
+          )}
+        </div>
+
+        {/* Inputs card */}
+        <div className="bg-white rounded-none overflow-hidden">
+          <div className="flex items-center px-4 h-[52px]">
+            <input
+              type="tel"
+              placeholder={`Valor a retirar (mín. ${MIN_WITHDRAW} Kz)`}
+              className="flex-1 bg-transparent outline-none text-[16px] text-black placeholder:text-[#c7c7cc]"
+              value={amount}
+              onChange={handleAmountChange}
+            />
+            <span className="text-[13px] font-semibold text-[#2481cc] ml-2">KZ</span>
+          </div>
+        </div>
+
+        {/* Pending warning */}
+        {hasPending && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-none px-4 py-3 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+            <p className="text-[13px] text-yellow-700">Existe um pedido de retirada pendente. Aguarde a aprovação antes de solicitar outro.</p>
+          </div>
+        )}
+
         {/* Submit */}
         <button
           type="submit"
           form="withdraw-form"
           disabled={isSubmitting || hasPending || !amount || parseInt(amount) < MIN_WITHDRAW}
-          className="w-full h-[50px] rounded-[16px] bg-[#2481cc] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
+          className="w-full h-[50px] rounded-none bg-[#2481cc] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(36,129,204,0.35)]"
         >
           {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'Confirmar Retirada'}
         </button>

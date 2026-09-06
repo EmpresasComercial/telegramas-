@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ChevronDown, Loader2, CreditCard } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -119,17 +119,7 @@ export default function AddBank() {
         <span className="text-[18px] font-semibold flex-1">Cartão Bancário</span>
       </div>
 
-      <form onSubmit={handleSubmit} id="add-card-form" className="px-3 flex flex-col gap-4">
-
-        {/* Icon header */}
-        <div className="flex flex-col items-center py-6">
-          <div className="w-[72px] h-[72px] rounded-[22px] bg-[#3390ec] flex items-center justify-center mb-3 shadow-[0_4px_12px_rgba(51,144,236,0.3)]">
-            <CreditCard className="w-9 h-9 text-white" strokeWidth={1.8} />
-          </div>
-          <p className="text-[13px] text-[#8e8e93] text-center max-w-[260px] leading-snug">
-            Adicione o seu cartão bancário para efectuar levantamentos.
-          </p>
-        </div>
+      <form onSubmit={handleSubmit} id="add-card-form" className="px-3 flex flex-col gap-4 pt-6">
 
         {/* Fields card */}
         <div className="bg-white rounded-[16px] overflow-hidden">
@@ -187,7 +177,7 @@ export default function AddBank() {
           type="submit"
           form="add-card-form"
           disabled={isSubmitting || !formData.cardNumber || !formData.holderName || !formData.cardName}
-          className="w-full h-[50px] rounded-[16px] bg-[#25D366] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(37,211,102,0.25)]"
+          className="w-full h-[50px] rounded-[16px] bg-[#2481cc] text-white font-semibold text-[16px] flex items-center justify-center disabled:opacity-40 active:scale-[0.99] transition-transform shadow-[0_4px_12px_rgba(36,129,204,0.35)]"
         >
           {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'Salvar Cartão'}
         </button>
