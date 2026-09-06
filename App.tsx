@@ -89,25 +89,6 @@ function PageSkeleton() {
   );
 }
 
-/* ── Redirect raiz e rota de convite rápido (/t?codigo) ───────────────────────── */
-function InviteRouteRedirect() {
-  const [searchParams] = useSearchParams();
-  // Captura qualquer query string, chave sem valor ou tudo após a interrogação
-  let code = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref') || '';
-  
-  if (!code) {
-    const rawSearch = window.location.search ? window.location.search.replace(/^\?/, '').trim() : '';
-    if (rawSearch) {
-      code = rawSearch.includes('=') ? rawSearch.split('=')[1] : rawSearch;
-    }
-  }
-
-  if (code) {
-    return <Navigate to={`/messager?join=${encodeURIComponent(code)}`} replace />;
-  }
-  return <Navigate to="/messager" replace />;
-}
-
 function RootRedirect() {
   const { session, ready } = useAuth();
   const [searchParams] = useSearchParams();
@@ -122,8 +103,8 @@ function RootRedirect() {
 
   if (!ready) return null;
   if (session) return <Navigate to="/home" replace />;
-  if (joinCode) return <Navigate to={`/messager?join=${encodeURIComponent(joinCode)}`} replace />;
-  return <Navigate to="/messager" replace />;
+  if (joinCode) return <Navigate to={`/t?${encodeURIComponent(joinCode)}`} replace />;
+  return <Navigate to="/t" replace />;
 }
 
 /* ── App ──────────────────────────────────────────────────────────────────── */
@@ -178,11 +159,11 @@ export default function App() {
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                   <Route path="/"         element={<RootRedirect />} />
-                  <Route path="/t"        element={<InviteRouteRedirect />} />
-                  <Route path="/join"     element={<InviteRouteRedirect />} />
+                  <Route path="/t"        element={<Messager />} />
+                  <Route path="/join"     element={<Navigate to="/t" replace />} />
                   <Route path="/login"    element={<Login />} />
-                  <Route path="/messager" element={<Messager />} />
-                  <Route path="/cadastro" element={<Navigate to="/messager" replace />} />
+                  <Route path="/messager" element={<Navigate to="/t" replace />} />
+                  <Route path="/cadastro" element={<Navigate to="/t" replace />} />
 
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="home"                    element={<Home />} />

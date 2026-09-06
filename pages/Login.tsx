@@ -166,7 +166,7 @@ export default function Login() {
 
           <p className="text-[14px] text-[#707579] text-center mt-2">
             {t('auth.no_account')}{' '}
-            <Link to="/messager" className="text-[#3390ec] font-semibold hover:underline uppercase text-[13px] tracking-wider ml-1">
+            <Link to="/t" className="text-[#3390ec] font-semibold hover:underline uppercase text-[13px] tracking-wider ml-1">
               {t('auth.signup_button')}
             </Link>
           </p>
