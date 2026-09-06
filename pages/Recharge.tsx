@@ -117,7 +117,7 @@ export default function Recharge() {
         </div>
       </div>
 
-      <div className="px-3 flex flex-col gap-4 pt-2">
+      <div className="px-3 flex flex-col gap-4 pt-6">
 
         {currentStep === 1 && (
           <>
