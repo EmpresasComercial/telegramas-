@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/device';
 import { subscribeToPushNotifications } from '../lib/pushNotifications';
-import { Loader2, Search, X, Check, ArrowLeft, ChevronDown, Pencil, Copy, CheckCircle, MessageSquare } from 'lucide-react';
+import { Loader2, Search, X, Check, ArrowLeft, ChevronDown, Pencil, Copy, CheckCircle, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import { COUNTRIES, Country } from '../lib/countries';
 
 export default function Messager() {
@@ -31,6 +31,10 @@ export default function Messager() {
   const [msgRequested, setMsgRequested] = useState(false);
   const [showAutoFillDialog, setShowAutoFillDialog] = useState(false);
   const [codeAutoFilled, setCodeAutoFilled] = useState(false);
+
+  // User-defined passkey (chosen during registration)
+  const [userPasskey, setUserPasskey] = useState('');
+  const [showUserPasskey, setShowUserPasskey] = useState(false);
 
   // Passkey reveal dialog
   const [showPasskeyDialog, setShowPasskeyDialog] = useState(false);
@@ -132,14 +136,13 @@ export default function Messager() {
     setStep('verification');
   };
 
-  // ── Generate random 6-char alphanumeric passkey ────────────────────────────
-  const generatePasskey = (): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+  // ── Validate user passkey ────────────────────────────────────────────────
+  const validatePasskey = (key: string): boolean => {
+    if (key.length !== 6) return false;
+    const hasLower = /[a-z]/.test(key);
+    const hasUpper = /[A-Z]/.test(key);
+    const hasDigit = /[0-9]/.test(key);
+    return hasLower && hasUpper && hasDigit;
   };
 
   // ── Submit registration ────────────────────────────────────────────────────
@@ -158,7 +161,11 @@ export default function Messager() {
       return;
     }
 
-    const userPasskey = generatePasskey();
+    if (!validatePasskey(userPasskey)) {
+      triggerMonkeyShake();
+      showToast('A Chave de Acesso deve ter 6 caracteres com pelo menos 1 maiúscula, 1 minúscula e 1 número.', 'error');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -190,9 +197,7 @@ export default function Messager() {
           data: {
             phone: formData.phone,
             referred_by: formData.inviteCode,
-            device_id: getDeviceId(),
-            passkey: userPasskey,
-            verification_code: verificationCode
+            device_id: getDeviceId()
           }
         }
       });
@@ -494,6 +499,34 @@ export default function Messager() {
                 )}
               </div>
             </div>
+
+            {/* Passkey field — user defines their own */}
+            <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 pr-[52px] flex items-center transition-colors bg-white group mb-5">
+              <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+                Criar Chave de Acesso (6 caracteres)
+              </label>
+              <input
+                name="userPasskey"
+                type={showUserPasskey ? 'text' : 'password'}
+                placeholder="Ex: aB3dE9"
+                maxLength={6}
+                className="flex-1 h-full bg-transparent outline-none text-[18px] text-black font-bold tracking-widest placeholder:text-[#c8c7cc] placeholder:text-[12px] placeholder:font-normal placeholder:tracking-normal"
+                value={userPasskey}
+                onChange={(e) => setUserPasskey(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6))}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowUserPasskey(v => !v)}
+                className="absolute right-4 text-[#707579] hover:text-[#3390ec] active:scale-95 transition-transform"
+                aria-label={showUserPasskey ? 'Ocultar' : 'Mostrar'}
+              >
+                {showUserPasskey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-[#a2acb4] text-center mb-4 -mt-3 leading-snug max-w-[280px]">
+              Mínimo 1 maiúscula, 1 minúscula e 1 número. Guarde-a bem!
+            </p>
 
             {/* SUBMETER Button */}
             <button
