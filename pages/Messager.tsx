@@ -64,6 +64,19 @@ export default function Messager() {
     setTimeout(() => setMonkeyState('idle'), 600);
   }, []);
 
+  const formatPhoneNumber = (phone: string, maxLength: number) => {
+    if (maxLength === 9) {
+      return phone.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1 $2 $3').trim();
+    }
+    if (maxLength === 10) {
+      return phone.replace(/(\d{3})(\d{3})(\d{1,4})/, '$1 $2 $3').trim();
+    }
+    if (maxLength === 11) {
+      return phone.replace(/(\d{3})(\d{4})(\d{1,4})/, '$1 $2 $3').trim();
+    }
+    return phone.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+  };
+
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let sanitized = value;
@@ -107,9 +120,8 @@ export default function Messager() {
   // ── Phone step ─────────────────────────────────────────────────────────────
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const minLen = Math.max(6, selectedCountry.maxLength - 2);
-    if (!formData.phone || formData.phone.length < minLen) {
-      showToast(`Ops! Por favor insira um número de telefone válido (${selectedCountry.maxLength} dígitos).`, 'error');
+    if (!formData.phone || formData.phone.length !== selectedCountry.maxLength) {
+      showToast(`Número de ${selectedCountry.name} inválido.`, 'error');
       return;
     }
     setShowConfirmationModal(true);
@@ -259,7 +271,7 @@ export default function Messager() {
         {step === 'phone' ? (
           <>
             <div className="mb-6 flex items-center justify-center">
-              <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[110px] h-[110px]">
+              <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[90px] h-[90px]">
                 <defs>
                   <linearGradient id="tgOfficialGrad" x1=".667" x2=".417" y1=".167" y2=".75">
                     <stop offset="0" stopColor="#37aee2"/>
@@ -315,9 +327,9 @@ export default function Messager() {
                   autoComplete="tel"
                   placeholder=""
                   className="flex-1 h-full bg-transparent outline-none text-[15px] text-black font-normal"
-                  value={formData.phone}
+                  value={formatPhoneNumber(formData.phone, selectedCountry.maxLength)}
                   onChange={handleChange}
-                  maxLength={selectedCountry.maxLength}
+                  maxLength={selectedCountry.maxLength + 2}
                   autoFocus
                 />
               </div>
@@ -440,59 +452,42 @@ export default function Messager() {
             </p>
 
             {/* Verification Code Field (read-only, auto-filled) */}
-            <div className={`relative w-full h-[46px] rounded-[22px] border px-4 flex items-center transition-all bg-white group mb-4 ${codeAutoFilled ? 'border-[#3390ec]' : 'border-[#c8c7cc]'}`}>
+            <div className={`relative w-full h-[46px] rounded-[22px] border pl-4 pr-[90px] flex items-center transition-all bg-white group mb-5 ${codeAutoFilled ? 'border-[#3390ec]' : 'border-[#c8c7cc]'}`}>
               <label className={`absolute -top-2.5 left-4 bg-white px-1 text-[11px] font-medium pointer-events-none transition-colors ${codeAutoFilled ? 'text-[#3390ec]' : 'text-[#707579]'}`}>
                 Code / Código
               </label>
               <input
                 name="verificationCode"
                 type="text"
-                readOnly
-                placeholder={msgRequested ? '— aguardando —' : '— clique em Receber Mensagem —'}
+                placeholder={msgRequested ? '— aguardando —' : '—'}
                 className="flex-1 h-full bg-transparent outline-none text-[17px] text-black font-medium tracking-widest text-center placeholder:text-[#c8c7cc] placeholder:text-[11px]"
                 value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.slice(0, 4))}
               />
-              {codeAutoFilled && (
-                <CheckCircle className="absolute right-4 w-5 h-5 text-[#3390ec]" />
-              )}
+              <div className="absolute right-4 h-full flex items-center">
+                {codeAutoFilled ? (
+                  <CheckCircle className="w-5 h-5 text-[#3390ec]" />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleReceiveMessage}
+                    disabled={msgCountdown > 0}
+                    className={`text-[13px] font-semibold transition-colors ${
+                      msgCountdown > 0 ? 'text-[#a2acb4] cursor-not-allowed' : 'text-[#3390ec] hover:text-[#2b7bc9]'
+                    }`}
+                  >
+                    {msgCountdown > 0 ? (
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        {msgCountdown}s
+                      </span>
+                    ) : (
+                      msgRequested ? 'Reenviar' : 'Receber'
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
-
-            {/* Invite Code Field (read-only, from URL) */}
-            <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] px-4 flex items-center bg-[#fafafa] mb-5">
-              <label className="absolute -top-2.5 left-4 bg-[#fafafa] px-1 text-[11px] text-[#707579] font-medium pointer-events-none">
-                Invite Code / Código de Convite *
-              </label>
-              <input
-                type="text"
-                readOnly
-                className="flex-1 h-full bg-transparent outline-none text-[15px] text-[#707579] font-mono tracking-widest uppercase text-center"
-                value={formData.inviteCode || '—'}
-              />
-            </div>
-
-            {/* Receber Mensagem Button */}
-            <button
-              type="button"
-              onClick={handleReceiveMessage}
-              disabled={msgCountdown > 0}
-              className={`w-full h-[46px] rounded-[22px] border-2 font-semibold text-[14px] transition-all mb-4 flex items-center justify-center gap-2 ${
-                msgCountdown > 0
-                  ? 'border-[#c8c7cc] text-[#a2acb4] bg-[#f8f8f8] cursor-not-allowed'
-                  : 'border-[#3390ec] text-[#3390ec] bg-white hover:bg-[#eef6ff] active:scale-[0.98]'
-              }`}
-            >
-              {msgCountdown > 0 ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Aguardar {msgCountdown}s
-                </>
-              ) : (
-                <>
-                  <MessageSquare className="w-4 h-4" />
-                  {msgRequested ? 'Reenviar Mensagem' : 'Receber Mensagem'}
-                </>
-              )}
-            </button>
 
             {/* SUBMETER Button */}
             <button
