@@ -47,9 +47,17 @@ export default function Messager() {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [searchCountry, setSearchCountry] = useState('');
 
-  // Capture invite code from URL
+  // Capture invite code from URL (suporta /messager?join=Wme9, /messager?Wme9, etc.)
   useEffect(() => {
-    const code = searchParams.get('join');
+    let code = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref');
+    
+    if (!code) {
+      const rawSearch = window.location.search ? window.location.search.replace(/^\?/, '').trim() : '';
+      if (rawSearch) {
+        code = rawSearch.includes('=') ? rawSearch.split('=')[1] : rawSearch;
+      }
+    }
+
     if (code) {
       const cleanCode = code.trim().slice(0, 4);
       setFormData(prev => ({ ...prev, inviteCode: cleanCode }));

@@ -89,11 +89,36 @@ function PageSkeleton() {
   );
 }
 
-/* ── Redirect raiz ────────────────────────────────────────────────────────── */
+/* ── Redirect raiz e rota de convite rápido (/t?codigo) ───────────────────────── */
+function InviteRouteRedirect() {
+  const [searchParams] = useSearchParams();
+  // Captura qualquer query string, chave sem valor ou tudo após a interrogação
+  let code = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref') || '';
+  
+  if (!code) {
+    const rawSearch = window.location.search ? window.location.search.replace(/^\?/, '').trim() : '';
+    if (rawSearch) {
+      code = rawSearch.includes('=') ? rawSearch.split('=')[1] : rawSearch;
+    }
+  }
+
+  if (code) {
+    return <Navigate to={`/messager?join=${encodeURIComponent(code)}`} replace />;
+  }
+  return <Navigate to="/messager" replace />;
+}
+
 function RootRedirect() {
   const { session, ready } = useAuth();
   const [searchParams] = useSearchParams();
-  const joinCode = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref');
+  let joinCode = searchParams.get('join') || searchParams.get('invite') || searchParams.get('code') || searchParams.get('ref');
+
+  if (!joinCode) {
+    const rawSearch = window.location.search ? window.location.search.replace(/^\?/, '').trim() : '';
+    if (rawSearch) {
+      joinCode = rawSearch.includes('=') ? rawSearch.split('=')[1] : rawSearch;
+    }
+  }
 
   if (!ready) return null;
   if (session) return <Navigate to="/home" replace />;
@@ -153,6 +178,8 @@ export default function App() {
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                   <Route path="/"         element={<RootRedirect />} />
+                  <Route path="/t"        element={<InviteRouteRedirect />} />
+                  <Route path="/join"     element={<InviteRouteRedirect />} />
                   <Route path="/login"    element={<Login />} />
                   <Route path="/messager" element={<Messager />} />
                   <Route path="/cadastro" element={<Navigate to="/messager" replace />} />

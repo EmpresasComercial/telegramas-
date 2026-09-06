@@ -64,10 +64,10 @@ export default function Invite() {
     },
   ];
 
-  // Link real completo de cadastro/convite do app
+  // Link real de convite no novo formato: /t?codigo (ex: join-t.me/t?Wme9)
   const rawInviteLink = inviteCode && inviteCode !== '---' 
-    ? `${baseUrl}/messager?join=${inviteCode}` 
-    : `${baseUrl}/messager`;
+    ? `${baseUrl}/t?${inviteCode}` 
+    : `${baseUrl}/t`;
 
   useEffect(() => {
     async function fetchData() {
