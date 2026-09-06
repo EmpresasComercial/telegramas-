@@ -29,8 +29,8 @@ export default function Navbar() {
     },
     {
       name: 'Definições',
-      path: '/perfil',
-      aliasPaths: ['/perfil', '/settings', '/configuracoes-conta'],
+      path: '/definicoes',
+      aliasPaths: ['/definicoes', '/perfil', '/settings', '/configuracoes-conta'],
       icon: <Settings className="w-[22px] h-[22px]" strokeWidth={2} />
     }
   ];

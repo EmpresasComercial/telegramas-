@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Phone, AtSign, Cake, Megaphone, Bot, UserPlus } from "lucide-react";
+import { Phone, AtSign, ArrowDownCircle, ArrowUpCircle, Users } from "lucide-react";
+import { formatCurrency } from "../../../lib/currency";
 import { supabase } from "../../../lib/supabase";
 import { useToast } from "../../../components/Toast";
 
@@ -13,6 +14,9 @@ interface EditProfileModalProps {
     avatarUrl: string;
     phone: string;
   };
+  totalDeposits?: number;
+  totalWithdrawals?: number;
+  comissaoEquipe?: number;
   onSaved: (data: { firstName: string; lastName: string; bio: string; avatarUrl: string }) => void;
 }
 
@@ -20,6 +24,9 @@ export default function EditProfileModal({
   isOpen,
   onClose,
   initialData,
+  totalDeposits = 0,
+  totalWithdrawals = 0,
+  comissaoEquipe = 0,
   onSaved,
 }: EditProfileModalProps) {
   const { showToast } = useToast();
@@ -254,58 +261,43 @@ export default function EditProfileModal({
             </div>
           </div>
 
-          {/* Aniversário */}
+          {/* Total Recarregado */}
           <div className="flex items-center px-4 py-3">
             <div className="w-[34px] h-[34px] rounded-full bg-[#3390ec] flex items-center justify-center mr-4 shrink-0">
-              <Cake className="w-[17px] h-[17px] text-white stroke-[2]" />
+              <ArrowDownCircle className="w-[17px] h-[17px] text-white stroke-[2]" />
             </div>
-            <span className="text-[17px] text-black font-normal">Adicionar Aniversário</span>
+            <div className="flex flex-col">
+              <span className="text-[17px] text-black font-normal">{formatCurrency(totalDeposits, 'KZ')}</span>
+              <span className="text-[13px] text-[#8e8e93]">Total Recarregado</span>
+            </div>
           </div>
         </div>
-
-        <p className="px-2 py-2 text-[13px] text-[#8e8e93]">
-          Escolha quem pode ver seu aniversário nas{" "}
-          <span className="text-[#3390ec] cursor-pointer">Configurações.</span>
-        </p>
 
         {/* ── SPACER ── */}
         <div className="h-3" />
 
-        {/* ── CARD: CANAL + AUTOMAÇÃO ── */}
+        {/* ── CARD: ESTATÍSTICAS FINANCEIRAS ── */}
         <div className="bg-white rounded-[14px] overflow-hidden shadow-2xs border border-gray-100">
-          {/* Canal pessoal */}
+          {/* Total Retirado */}
           <div className="flex items-center px-4 py-3 border-b border-[#e5e5e5]">
             <div className="w-[34px] h-[34px] rounded-full bg-[#f25050] flex items-center justify-center mr-4 shrink-0">
-              <Megaphone className="w-[17px] h-[17px] text-white stroke-[2]" />
+              <ArrowUpCircle className="w-[17px] h-[17px] text-white stroke-[2]" />
             </div>
-            <span className="text-[17px] text-black flex-1 font-normal">Canal pessoal</span>
-            <span className="text-[16px] text-[#3390ec] font-normal">Adicionar</span>
+            <div className="flex flex-col">
+              <span className="text-[17px] text-black font-normal">{formatCurrency(totalWithdrawals, 'KZ')}</span>
+              <span className="text-[13px] text-[#8e8e93]">Total Retirado</span>
+            </div>
           </div>
 
-          {/* Automação de Chats */}
+          {/* Comissão Equipe */}
           <div className="flex items-center px-4 py-3">
             <div className="w-[34px] h-[34px] rounded-full bg-[#7a57d6] flex items-center justify-center mr-4 shrink-0">
-              <Bot className="w-[17px] h-[17px] text-white stroke-[2]" />
+              <Users className="w-[17px] h-[17px] text-white stroke-[2]" />
             </div>
-            <span className="text-[17px] text-black flex-1 font-normal">Automação de Chats</span>
-            <span className="text-[11px] font-semibold bg-[#3390ec] text-white px-1.5 py-0.5 rounded-[4px]">NEW</span>
-          </div>
-        </div>
-
-        <p className="px-2 py-2 text-[13px] text-[#8e8e93] mb-2">
-          Escolha um bot para responder em seu nome.
-        </p>
-
-        {/* ── SPACER ── */}
-        <div className="h-2" />
-
-        {/* ── CARD: ADICIONAR CONTA ── */}
-        <div className="bg-white rounded-[14px] overflow-hidden shadow-2xs border border-gray-100">
-          <div className="flex items-center px-4 py-3">
-            <div className="w-[34px] h-[34px] rounded-full border-[2px] border-[#3390ec] flex items-center justify-center mr-4 shrink-0">
-              <UserPlus className="w-[17px] h-[17px] text-[#3390ec] stroke-[2]" />
+            <div className="flex flex-col">
+              <span className="text-[17px] text-black font-normal">{formatCurrency(comissaoEquipe, 'KZ')}</span>
+              <span className="text-[13px] text-[#8e8e93]">Total Ganho pela Equipe</span>
             </div>
-            <span className="text-[17px] text-[#3390ec] font-normal">Adicionar Conta</span>
           </div>
         </div>
 

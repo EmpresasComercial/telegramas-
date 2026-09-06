@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   QrCode,
-  MoreVertical,
   Wallet,
   PlusCircle,
   Settings as SettingsIcon,
@@ -89,6 +88,24 @@ export default function Profile() {
     }
   }, []);
 
+  const handleQrCodeClick = () => {
+    const inviteCode = refCode || "";
+    const inviteUrl = inviteCode ? `https://join-t.me/t?${inviteCode}` : window.location.origin;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(inviteUrl);
+      }
+    } catch {
+      // ignore
+    }
+    showToast(
+      inviteCode
+        ? `🔥 Convite VIP Copiado! Partilhe o link (código: ${inviteCode}) e ganhe até 18% de comissão diária da sua equipa! 🚀💰`
+        : `🔥 Atenção VIP! Convide amigos para a equipa e ganhe até 18% de comissões diárias garantidas! 🚀💰`,
+      "success"
+    );
+  };
+
   // Realtime: atualiza saldo/recargas/retiradas em tempo real
   useEffect(() => {
     fetchData();
@@ -162,18 +179,11 @@ export default function Profile() {
             <Edit3 className="w-5 h-5" />
           </button>
           <button 
-            onClick={() => showToast('Código QR do Perfil Telegram', 'info')}
+            onClick={handleQrCodeClick}
             className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white" 
-            title="QR Code"
+            title="QR Code / Convite VIP"
           >
             <QrCode className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={() => showToast('Mais opções', 'info')}
-            className="p-1.5 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white" 
-            title="Mais Opções"
-          >
-            <MoreVertical className="w-5 h-5" />
           </button>
         </div>
       </header>
@@ -201,15 +211,12 @@ export default function Profile() {
           </button>
         </div>
         <h2 className="text-[20px] font-bold tracking-tight text-black dark:text-white mb-0.5 text-center">{userName}</h2>
-        {phone && (
-          <p className="text-[13.5px] text-[#707579] dark:text-[#8e9aa5] font-normal mb-0.5">{phone}</p>
-        )}
         {userBio ? (
           <p className="text-[13px] text-[#707579] dark:text-[#8e9aa5] text-center max-w-[280px] mb-1">{userBio}</p>
         ) : null}
         <p className="text-[13px] text-[#2481cc] font-medium flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-[#2481cc] inline-block"></span>
-          online
+          <span className="text-[13px] font-semibold text-[#707579] dark:text-[#8e9aa5]">Balance</span>
+          <span className="font-bold text-[#2481cc]">{formatCurrency(balance, 'KZ')}</span>
         </p>
       </section>
 
@@ -222,14 +229,14 @@ export default function Profile() {
             className="bg-white rounded-[16px] py-3.5 px-1 flex flex-col items-center justify-center gap-1 shadow-2xs border border-gray-100 hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer"
           >
             <Wallet className="w-[22px] h-[22px] text-black" strokeWidth={1.8} />
-            <span className="text-[11px] font-semibold text-black leading-tight text-center">Resgatar</span>
+            <span className="text-[11px] font-semibold text-black leading-tight text-center">Retirar</span>
           </button>
           <button
             onClick={() => navigate("/recarregar")}
             className="bg-white rounded-[16px] py-3.5 px-1 flex flex-col items-center justify-center gap-1 shadow-2xs border border-gray-100 hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer"
           >
             <PlusCircle className="w-[22px] h-[22px] text-black" strokeWidth={1.8} />
-            <span className="text-[11px] font-semibold text-black leading-tight text-center">Obter</span>
+            <span className="text-[11px] font-semibold text-black leading-tight text-center">Carregar</span>
           </button>
           <button
             onClick={() => navigate("/minhas-compras")}
@@ -242,51 +249,12 @@ export default function Profile() {
             onClick={scrollToSettings}
             className="bg-white rounded-[16px] py-3.5 px-1 flex flex-col items-center justify-center gap-1 shadow-2xs border border-gray-100 hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer"
           >
-            <SettingsIcon className="w-[22px] h-[22px] text-black" strokeWidth={1.8} />
-            <span className="text-[11px] font-semibold text-black leading-tight text-center">Definições</span>
+            <Gift className="w-[22px] h-[22px] text-black" strokeWidth={1.8} />
+            <span className="text-[11px] font-semibold text-black leading-tight text-center">Prémios</span>
           </button>
         </div>
 
-        {/* CARD INFORMAÇÕES & DASHBOARD DE ESTRELAS */}
-        <div className="bg-white rounded-[18px] overflow-hidden shadow-2xs border border-gray-100">
-          {/* Saldo disponível */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/retirada')}>
-            <span className="text-[15px] font-medium text-[#8e8e93]">Balance</span>
-            <span className="text-[16px] font-bold text-[#2481cc]">{formatCurrency(balance, "KZ")}</span>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </div>
 
-          {/* Lucro acumulado */}
-          
-
-          {/* Tarefas concluídas hoje */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/tarefas')}>
-            <span className="text-[15px] font-medium text-[#8e8e93]">Comissões Diárias</span>
-            <span className="text-[15px] font-semibold text-black">{tarefasHoje} tarefa{tarefasHoje !== 1 ? "s" : ""}</span>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </div>
-
-          {/* Comissão de equipe */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/detalhes-equipe')}>
-            <span className="text-[15px] font-medium text-[#8e8e93]">Comissão Equipe</span>
-            <span className="text-[15px] font-semibold text-black">{formatCurrency(comissaoEquipe, "KZ")}</span>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </div>
-
-          {/* Total Recarregado */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/recargar')}>
-            <span className="text-[15px] font-medium text-[#8e8e93]">Total Recarregado</span>
-            <span className="text-[15px] font-semibold text-black">{formatCurrency(totalDeposits, "KZ")}</span>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </div>
-
-          {/* Total Resgatado */}
-          <div className="flex items-center justify-between px-4 py-3.5 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/retirada')}>
-            <span className="text-[15px] font-medium text-[#8e8e93]">Total Recarregado</span>
-            <span className="text-[15px] font-semibold text-black">{formatCurrency(totalWithdrawals, "KZ")}</span>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </div>
-        </div>
 
         {/* ═══ SEÇÃO DE SETTINGS UNIFICADA ═══ */}
         <div ref={settingsSectionRef} className="flex flex-col gap-3.5 pt-1">
@@ -507,6 +475,9 @@ export default function Profile() {
         isOpen={showEditProfile}
         onClose={() => setShowEditProfile(false)}
         initialData={{ firstName, lastName, bio: userBio, avatarUrl, phone }}
+        totalDeposits={totalDeposits}
+        totalWithdrawals={totalWithdrawals}
+        comissaoEquipe={comissaoEquipe}
         onSaved={({ firstName: fn, lastName: ln, bio: b, avatarUrl: av }) => {
           setFirstName(fn);
           setLastName(ln);

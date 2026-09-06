@@ -170,11 +170,12 @@ export default function App() {
                     <Route path="bot-pay"                 element={<Bots />} />
                     <Route path="contactos"               element={<Invite />} />
                     <Route path="convite"                 element={<Navigate to="/contactos" replace />} />
-                    <Route path="perfil"                  element={<Profile />} />
-                    <Route path="settings"                element={<Navigate to="/perfil" replace />} />
+                    <Route path="definicoes"              element={<Profile />} />
+                    <Route path="perfil"                  element={<Navigate to="/definicoes" replace />} />
+                    <Route path="settings"                element={<Navigate to="/definicoes" replace />} />
                     <Route path="adicionar-banco"         element={<AddBank />} />
                     <Route path="alterar-senha"           element={<ChangePassword />} />
-                    <Route path="configuracoes-conta"     element={<Navigate to="/perfil" replace />} />
+                    <Route path="configuracoes-conta"     element={<Navigate to="/definicoes" replace />} />
                     <Route path="recarregar"              element={<Recharge />} />
                     <Route path="suporte"                 element={<Navigate to="/telegramBussiness" replace />} />
                     <Route path="retirada"                element={<Withdraw />} />
