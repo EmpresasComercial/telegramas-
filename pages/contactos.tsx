@@ -64,22 +64,46 @@ export default function Invite() {
     },
   ];
 
-  // Formatted display link like Telegram invite link (e.g. t.me/+...)
-  const rawInviteLink = `${baseUrl}/messager?join=${inviteCode}`;
-  const displayTelegramLink = `t.me/+${inviteCode || 'rnPOVJAb'}`;
+  // Link real completo de cadastro/convite do app
+  const rawInviteLink = inviteCode && inviteCode !== '---' 
+    ? `${baseUrl}/messager?join=${inviteCode}` 
+    : `${baseUrl}/messager`;
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
-        const [settingsRes, teamRes, linksRes] = await Promise.all([
+        const [settingsRes, teamRes, linksRes, accountRes, authUserRes] = await Promise.all([
           supabase.rpc('get_my_settings_data_mcpn'),
           supabase.rpc('get_my_team_detailed'),
-          supabase.from('atendimento_links').select('links').maybeSingle()
+          supabase.from('atendimento_links').select('links').maybeSingle(),
+          supabase.rpc('get_my_account_data'),
+          supabase.auth.getUser()
         ]);
 
-        if (settingsRes.data && settingsRes.data.length > 0) {
-          setInviteCode(settingsRes.data[0].invite_code || '---');
+        let code = '';
+        if (settingsRes.data && settingsRes.data.length > 0 && settingsRes.data[0].invite_code) {
+          code = settingsRes.data[0].invite_code;
+        }
+
+        if (!code && accountRes.data && accountRes.data.length > 0) {
+          code = (accountRes.data[0] as any)?.codigo_meu_refferal || '';
+        }
+
+        // Busca de segurança em sys_t500 caso as RPCs não retornem
+        if (!code && authUserRes.data?.user?.id) {
+          const { data: userRow } = await supabase
+            .from('sys_t500')
+            .select('codigo_meu_refferal')
+            .eq('id', authUserRes.data.user.id)
+            .maybeSingle();
+          if (userRow?.codigo_meu_refferal) {
+            code = userRow.codigo_meu_refferal;
+          }
+        }
+
+        if (code) {
+          setInviteCode(code);
         }
 
         if (teamRes.data && Array.isArray(teamRes.data)) {
@@ -220,8 +244,8 @@ export default function Invite() {
 
           {/* Link Box */}
           <div className="bg-[#f1f1f2]/80 dark:bg-[#0e1621] rounded-[14px] px-3.5 py-3 flex items-center justify-between">
-            <span className="text-[15px] font-medium text-black dark:text-white truncate font-sans mr-2">
-              {displayTelegramLink}
+            <span className="text-[14px] font-medium text-black dark:text-white truncate font-sans mr-2 select-all">
+              {rawInviteLink}
             </span>
             <button 
               type="button"
