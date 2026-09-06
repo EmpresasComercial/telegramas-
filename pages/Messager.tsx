@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/device';
 import { subscribeToPushNotifications } from '../lib/pushNotifications';
-import { Loader2, Search, X, Check, ArrowLeft, ChevronDown, Pencil } from 'lucide-react';
+import { Loader2, Search, X, Check, ArrowLeft, ChevronDown, Pencil, Copy, CheckCircle, MessageSquare } from 'lucide-react';
 import { COUNTRIES, Country } from '../lib/countries';
 
 export default function Messager() {
@@ -13,126 +13,98 @@ export default function Messager() {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
 
-  // Step state: 'phone' | 'verification'
+  // Step state
   const [step, setStep] = useState<'phone' | 'verification'>('phone');
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [formData, setFormData] = useState({ phone: '', inviteCode: '' });
   const [verificationCode, setVerificationCode] = useState('');
-  const [extraDigit, setExtraDigit] = useState(''); // 1 user-chosen digit to complete the 6-digit passkey
 
-  // Invite code URL & visibility states
-  const [hasUrlInviteCode, setHasUrlInviteCode] = useState(false);
-  const [showInviteInput, setShowInviteInput] = useState(false);
-
-  // Monkey Animation States
+  // Monkey animation
   const [monkeyState, setMonkeyState] = useState<'idle' | 'shake'>('idle');
   const [headRotation, setHeadRotation] = useState(0);
   const [headX, setHeadX] = useState(0);
   const [pupilShift, setPupilShift] = useState(0);
 
-  // Trigger head shake animation on error
-  const triggerMonkeyShake = useCallback(() => {
-    setMonkeyState('shake');
-    setTimeout(() => {
-      setMonkeyState('idle');
-    }, 600);
-  }, []);
+  // Step 2 — message flow
+  const [msgCountdown, setMsgCountdown] = useState(0);
+  const [msgRequested, setMsgRequested] = useState(false);
+  const [showAutoFillDialog, setShowAutoFillDialog] = useState(false);
+  const [codeAutoFilled, setCodeAutoFilled] = useState(false);
 
-  // Modal states
+  // Passkey reveal dialog
+  const [showPasskeyDialog, setShowPasskeyDialog] = useState(false);
+  const [generatedPasskey, setGeneratedPasskey] = useState('');
+  const [passkeyDialogCopied, setPasskeyDialogCopied] = useState(false);
+
+  // Country / modals
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [searchCountry, setSearchCountry] = useState('');
 
-  // Automatic capture of invite code exclusively from ?join= URL parameter
+  // Capture invite code from URL
   useEffect(() => {
     const code = searchParams.get('join');
     if (code) {
       const cleanCode = code.trim().slice(0, 4);
       setFormData(prev => ({ ...prev, inviteCode: cleanCode }));
-      setHasUrlInviteCode(true);
     }
   }, [searchParams]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (msgCountdown <= 0) return;
+    const timer = setTimeout(() => setMsgCountdown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [msgCountdown]);
+
+  const triggerMonkeyShake = useCallback(() => {
+    setMonkeyState('shake');
+    setTimeout(() => setMonkeyState('idle'), 600);
+  }, []);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let sanitized = value;
     if (name === 'phone') {
       sanitized = value.replace(/\D/g, '').slice(0, selectedCountry.maxLength);
-    } else if (name === 'inviteCode') {
-      sanitized = value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4);
-    } else {
-      sanitized = value.trim();
     }
     setFormData(prev => ({ ...prev, [name]: sanitized }));
   }, [selectedCountry.maxLength]);
 
-  // Helper: extract 5 middle digits from phone number
-  const getMiddleFive = (phone: string): string => {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 5) return digits.padEnd(5, '0');
-    const start = Math.floor((digits.length - 5) / 2);
-    return digits.slice(start, start + 5);
+  // ── "Receber Mensagem" button ──────────────────────────────────────────────
+  const handleReceiveMessage = () => {
+    if (msgCountdown > 0) return;
+    setMsgRequested(true);
+    setCodeAutoFilled(false);
+    setVerificationCode('');
+    setMsgCountdown(60);
+
+    // After 6 seconds show the auto-fill dialog
+    setTimeout(() => {
+      setShowAutoFillDialog(true);
+    }, 6000);
   };
 
-  // Compound passkey = middleFive + extraDigit (1 user digit)
-  const computePasskey = (phone: string, extra: string): string => {
-    return getMiddleFive(phone) + extra;
-  };
-
-  // Handle head movement on verification code typing
-  const handleVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-    setVerificationCode(val);
-
-    if (val.length === 0) {
+  // Auto-fill dialog: user clicks OK → invite code fills verification field
+  const handleAutoFillConfirm = () => {
+    setShowAutoFillDialog(false);
+    const code = formData.inviteCode || '';
+    setVerificationCode(code);
+    setCodeAutoFilled(true);
+    // Happy monkey
+    setHeadRotation(10);
+    setHeadX(5);
+    setPupilShift(3);
+    setTimeout(() => {
       setHeadRotation(0);
       setHeadX(0);
       setPupilShift(0);
-    } else {
-      const progress = val.length / 6;
-      const angle = (progress - 0.5) * 32;
-      const posX = (progress - 0.5) * 20;
-      const pupil = (progress - 0.5) * 6;
-      setHeadRotation(angle);
-      setHeadX(posX);
-      setPupilShift(pupil);
-    }
+    }, 1500);
   };
 
-  // Handle extra digit input (0-9, exactly 1 digit)
-  const handleExtraDigitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 1);
-    setExtraDigit(val);
-    const progress = val.length === 1 ? 1 : 0;
-    setHeadRotation(progress * 16);
-    setHeadX(progress * 10);
-    setPupilShift(progress * 3);
-  };
-
-  // Handle head movement on invite code typing
-  const handleInviteCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4);
-    setFormData(prev => ({ ...prev, inviteCode: val }));
-
-    if (val.length === 0) {
-      setHeadRotation(0);
-      setHeadX(0);
-      setPupilShift(0);
-    } else {
-      const progress = val.length / 4;
-      const angle = (progress - 0.5) * 32;
-      const posX = (progress - 0.5) * 20;
-      const pupil = (progress - 0.5) * 6;
-      setHeadRotation(angle);
-      setHeadX(posX);
-      setPupilShift(pupil);
-    }
-  };
-
-  // Handle phone submission -> Trigger Confirmation Modal
+  // ── Phone step ─────────────────────────────────────────────────────────────
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const minLen = Math.max(6, selectedCountry.maxLength - 2);
@@ -143,42 +115,36 @@ export default function Messager() {
     setShowConfirmationModal(true);
   };
 
-  // Confirm phone number -> Advance to Verification Screen
   const handleConfirmNumber = () => {
     setShowConfirmationModal(false);
     setStep('verification');
   };
 
-  // Execute complete registration
+  // ── Generate random 6-digit passkey ────────────────────────────────────────
+  const generatePasskey = (): string =>
+    Math.floor(100000 + Math.random() * 900000).toString();
+
+  // ── Submit registration ────────────────────────────────────────────────────
   const executeRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!verificationCode || verificationCode.length < 4) {
+
+    if (!codeAutoFilled || verificationCode.length < 4) {
       triggerMonkeyShake();
-      showToast('Ops! Por favor introduza o código de verificação recebido por SMS.', 'error');
+      showToast('Ops! Aguarde receber o código de verificação primeiro.', 'error');
       return;
     }
 
-    // Validate the extra digit (1 user-chosen digit)
-    if (!extraDigit || extraDigit.length !== 1) {
-      triggerMonkeyShake();
-      showToast('Ops! Por favor introduza o dígito extra para criar a sua Chave de Acesso.', 'error');
-      return;
-    }
-
-    // Check mandatory invite code
     if (!formData.inviteCode || formData.inviteCode.length !== 4) {
-      setShowInviteInput(true);
       triggerMonkeyShake();
-      showToast('Ops! Por favor introduza o código de convite (4 caracteres).', 'error');
+      showToast('Ops! Código de convite inválido. Acesse através do link de convite.', 'error');
       return;
     }
 
-    // Compute compound passkey: 5 middle digits from phone + 1 extra digit
-    const middleFive = getMiddleFive(formData.phone);
-    const userPasskey = computePasskey(formData.phone, extraDigit);
+    const userPasskey = generatePasskey();
 
     setIsSubmitting(true);
     try {
+      // Validate invite code via RPC
       const { data: rpcData, error: vError } = await supabase.rpc('secure_registration_mcpn', {
         p_phone: formData.phone,
         p_invite_code: formData.inviteCode,
@@ -186,21 +152,19 @@ export default function Messager() {
       });
 
       if (vError) {
-        setShowInviteInput(true);
         triggerMonkeyShake();
         throw vError;
       }
 
       const validation = rpcData as { success: boolean; message: string } | null;
       if (validation && !validation.success) {
-        setShowInviteInput(true);
         triggerMonkeyShake();
         showToast(validation.message || 'Ops! Código de convite inválido ou expirado.', 'error');
         setIsSubmitting(false);
         return;
       }
 
-      // Register user: password = compound passkey (middleFive + extraDigit)
+      // Register user — password = system-generated passkey
       const { data, error } = await supabase.auth.signUp({
         email: `${formData.phone}@user.com`,
         password: userPasskey,
@@ -229,12 +193,14 @@ export default function Messager() {
         if ('Notification' in window && Notification.permission === 'granted') {
           subscribeToPushNotifications().catch(() => {});
         }
-        // Save phone number to localStorage so Login can auto-fill it
+        // Persist phone for auto-fill on Login
         localStorage.setItem('saved_phone', formData.phone);
         localStorage.setItem('saved_dial_code', selectedCountry.dial_code);
         localStorage.setItem('saved_country_name', selectedCountry.name);
-        showToast(data.session ? 'Tudo pronto! Cadastro concluído.' : 'Conta criada com sucesso! Faça login.', 'success');
-        navigate(data.session ? '/home' : '/login');
+
+        // Show passkey reveal dialog
+        setGeneratedPasskey(userPasskey);
+        setShowPasskeyDialog(true);
       }
     } catch (err: any) {
       triggerMonkeyShake();
@@ -246,16 +212,34 @@ export default function Messager() {
     }
   };
 
+  // Passkey dialog actions
+  const handlePasskeyDialogClose = () => {
+    setShowPasskeyDialog(false);
+    navigate('/login');
+  };
+
+  const handleCopyPasskey = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedPasskey);
+      setPasskeyDialogCopied(true);
+      setTimeout(() => setPasskeyDialogCopied(false), 2500);
+    } catch {
+      showToast('Não foi possível copiar. Anote a chave manualmente.', 'error');
+    }
+  };
+
   const filteredCountries = useMemo(() => {
     if (!searchCountry) return COUNTRIES;
-    return COUNTRIES.filter(c => 
-      c.name.toLowerCase().includes(searchCountry.toLowerCase()) || 
+    return COUNTRIES.filter(c =>
+      c.name.toLowerCase().includes(searchCountry.toLowerCase()) ||
       c.dial_code.includes(searchCountry)
     );
   }, [searchCountry]);
 
+  // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <div className="w-full min-h-screen bg-white pb-12 font-sans antialiased text-black select-none flex flex-col items-center justify-center p-4">
+
       {/* Back Button — fixed top-left corner */}
       {step === 'verification' && (
         <button
@@ -268,11 +252,14 @@ export default function Messager() {
       )}
 
       <main className="w-full max-w-[360px] flex flex-col items-center">
+
+        {/* ══════════════════════════════════════════════════════════
+            STEP 1 — PHONE NUMBER
+        ══════════════════════════════════════════════════════════ */}
         {step === 'phone' ? (
           <>
-            {/* Official Telegram Logo */}
             <div className="mb-6 flex items-center justify-center">
-              <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[120px] h-[120px]">
+              <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[110px] h-[110px]">
                 <defs>
                   <linearGradient id="tgOfficialGrad" x1=".667" x2=".417" y1=".167" y2=".75">
                     <stop offset="0" stopColor="#37aee2"/>
@@ -286,19 +273,19 @@ export default function Messager() {
               </svg>
             </div>
 
-            <h1 className="text-[30px] font-semibold text-center mb-2 tracking-tight text-black">Telegram</h1>
-            
-            <p className="text-[15px] text-[#707579] text-center mb-8 leading-snug max-w-[320px]">
-              Por favor, confirme o código do seu país e digite o seu número de telefone.
+            <h1 className="text-[28px] font-semibold text-center mb-2 tracking-tight text-black">Telegram</h1>
+
+            <p className="text-[14px] text-[#707579] text-center mb-7 leading-snug max-w-[300px]">
+              Confirme o código do seu país e introduza o seu número de telefone.
             </p>
 
             <form onSubmit={handlePhoneSubmit} className="w-full flex flex-col items-center">
-              {/* Floating Label Input 1: Country */}
-              <div 
+              {/* Country */}
+              <div
                 onClick={() => setShowCountryModal(true)}
-                className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] hover:border-[#3390ec] focus-within:border-[#3390ec] px-4 flex items-center justify-between cursor-pointer transition-colors bg-white group mb-5"
+                className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] hover:border-[#3390ec] px-4 flex items-center justify-between cursor-pointer transition-colors bg-white group mb-4"
               >
-                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none">
                   Country / País
                 </label>
                 <div className="flex items-center gap-2 overflow-hidden pr-2">
@@ -308,17 +295,17 @@ export default function Messager() {
                     className="w-6 h-auto rounded-sm object-cover shrink-0"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
-                  <span className="text-[16px] text-black font-normal truncate">{selectedCountry.name}</span>
+                  <span className="text-[15px] text-black font-normal truncate">{selectedCountry.name}</span>
                 </div>
-                <ChevronDown className="w-5 h-5 text-[#a2acb4] group-hover:text-[#3390ec] transition-colors shrink-0" />
+                <ChevronDown className="w-5 h-5 text-[#a2acb4] shrink-0" />
               </div>
 
-              {/* Floating Label Input 2: Your Phone Number */}
-              <div className="relative w-full h-[54px] rounded-[20px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-5">
-                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[12px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
+              {/* Phone */}
+              <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-4">
+                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
                   Your phone number / Número de telefone
                 </label>
-                <span className="text-[16px] text-black font-normal mr-2 select-none">
+                <span className="text-[15px] text-black font-normal mr-2 select-none">
                   {selectedCountry.dial_code}
                 </span>
                 <input
@@ -327,7 +314,7 @@ export default function Messager() {
                   inputMode="numeric"
                   autoComplete="tel"
                   placeholder=""
-                  className="flex-1 h-full bg-transparent outline-none text-[16px] text-black font-normal"
+                  className="flex-1 h-full bg-transparent outline-none text-[15px] text-black font-normal"
                   value={formData.phone}
                   onChange={handleChange}
                   maxLength={selectedCountry.maxLength}
@@ -335,289 +322,312 @@ export default function Messager() {
                 />
               </div>
 
-              {/* Checkbox: Keep me signed in */}
-              <label className="flex items-center gap-3 cursor-pointer select-none self-start mb-6">
-                <input 
-                  type="checkbox" 
-                  checked={keepSignedIn} 
+              {/* Checkbox */}
+              <label className="flex items-center gap-3 cursor-pointer select-none self-start mb-5">
+                <input
+                  type="checkbox"
+                  checked={keepSignedIn}
                   onChange={(e) => setKeepSignedIn(e.target.checked)}
                   className="w-5 h-5 rounded-[4px] accent-[#3390ec] cursor-pointer"
                 />
-                <span className="text-[15px] text-[#000000] font-normal">Manter sessão iniciada</span>
+                <span className="text-[14px] text-black font-normal">Manter sessão iniciada</span>
               </label>
 
               <button
                 type="submit"
-                className="w-full h-[52px] rounded-[20px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[15px] uppercase tracking-wider transition-all shadow-sm flex items-center justify-center"
+                className="w-full h-[46px] rounded-[22px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[14px] uppercase tracking-wider transition-all shadow-sm flex items-center justify-center"
               >
                 CONTINUAR
               </button>
 
-              <div className="flex flex-col items-center gap-3 mt-8 w-full">
-                <Link to="/login" className="text-[#3390ec] font-semibold text-[14px] uppercase tracking-wider hover:underline text-center">
+              <div className="flex flex-col items-center mt-7 w-full">
+                <Link to="/login" className="text-[#3390ec] font-semibold text-[13px] uppercase tracking-wider hover:underline text-center">
                   LOG IN WITH PASSKEY
                 </Link>
               </div>
             </form>
           </>
         ) : (
-          /* STEP 2: OFFICIAL TELEGRAM VERIFICATION SCREEN DESIGN */
+
+        /* ══════════════════════════════════════════════════════════
+            STEP 2 — VERIFICATION
+        ══════════════════════════════════════════════════════════ */
           <form onSubmit={executeRegistration} className="w-full flex flex-col items-center">
-            {/* Cute Interactive Telegram Monkey SVG Animation */}
+
+            {/* CSS for idle head bob */}
             <style>{`
               @keyframes monkeyHeadBob {
                 0%, 100% { transform: rotate(0deg) translateX(0px); }
-                25% { transform: rotate(4deg) translateX(3px); }
-                75% { transform: rotate(-4deg) translateX(-3px); }
-              }
-              @keyframes monkeyBlink {
-                0%, 90%, 100% { scaleY: 1; }
-                95% { scaleY: 0.05; }
-              }
-              .monkey-head-idle {
-                animation: monkeyHeadBob 2.5s ease-in-out infinite;
-              }
-              .monkey-eye-blink {
-                animation: monkeyBlink 3s ease-in-out infinite;
-                transform-origin: center;
+                25%  { transform: rotate(4deg) translateX(3px); }
+                75%  { transform: rotate(-4deg) translateX(-3px); }
               }
             `}</style>
-            <motion.div 
+
+            {/* Animated Monkey */}
+            <motion.div
               className="mb-5 flex items-center justify-center"
               animate={
                 monkeyState === 'shake'
-                  ? {
-                      x: [0, -18, 18, -14, 14, -10, 10, -5, 5, 0],
-                      rotate: [0, -14, 14, -10, 10, -6, 6, -3, 3, 0],
-                    }
-                  : {
-                      x: headX,
-                      rotate: headRotation,
-                    }
+                  ? { x: [0, -18, 18, -14, 14, -10, 10, -5, 5, 0], rotate: [0, -14, 14, -10, 10, -6, 6, -3, 3, 0] }
+                  : { x: headX, rotate: headRotation }
               }
               transition={
                 monkeyState === 'shake'
                   ? { duration: 0.5, ease: 'easeInOut' }
                   : { type: 'spring', stiffness: 260, damping: 20 }
               }
-              style={monkeyState !== 'shake' && headX === 0 && headRotation === 0 ? { animation: 'monkeyHeadBob 2.5s ease-in-out infinite' } : {}}
+              style={monkeyState !== 'shake' && headX === 0 && headRotation === 0
+                ? { animation: 'monkeyHeadBob 2.5s ease-in-out infinite' }
+                : {}}
             >
-              <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" className="w-[110px] h-[110px]">
-                {/* Monkey ears */}
+              <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" className="w-[100px] h-[100px]">
                 <circle cx="28" cy="80" r="22" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
                 <circle cx="28" cy="80" r="13" fill="#f8c8a0"/>
                 <circle cx="132" cy="80" r="22" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
                 <circle cx="132" cy="80" r="13" fill="#f8c8a0"/>
-                {/* Head base */}
                 <ellipse cx="80" cy="84" rx="54" ry="46" fill="#c49a6c" stroke="#5d4037" strokeWidth="4"/>
-                {/* Inner light cream face shape */}
                 <path d="M 40 86 C 40 58, 60 52, 80 66 C 100 52, 120 58, 120 86 C 120 114, 96 122, 80 122 C 64 122, 40 114, 40 86 Z" fill="#fce5cd" stroke="#5d4037" strokeWidth="3"/>
-                
-                {/* Eyes & Pupils with dynamic pupilShift + blinking */}
                 <g>
-                  {/* Left Eye — blinks via scaleY animation */}
+                  {/* Left eye — blinks */}
                   <motion.ellipse
                     cx="62" cy="82" rx="6.5" ry="9" fill="#212121"
                     animate={{ scaleY: [1, 1, 1, 0.05, 1] }}
                     transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', times: [0, 0.8, 0.88, 0.92, 1] }}
                     style={{ transformOrigin: '62px 82px' }}
                   />
-                  <motion.circle 
-                    animate={{ cx: 64 + pupilShift }} 
+                  <motion.circle
+                    animate={{ cx: 64 + pupilShift }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     cy="79" r="2.5" fill="#ffffff"
                   />
-
-                  {/* Right Eye — blinks in sync */}
+                  {/* Right eye — blinks */}
                   <motion.ellipse
                     cx="98" cy="82" rx="6.5" ry="9" fill="#212121"
                     animate={{ scaleY: [1, 1, 1, 0.05, 1] }}
                     transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', times: [0, 0.8, 0.88, 0.92, 1] }}
                     style={{ transformOrigin: '98px 82px' }}
                   />
-                  <motion.circle 
-                    animate={{ cx: 100 + pupilShift }} 
+                  <motion.circle
+                    animate={{ cx: 100 + pupilShift }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     cy="79" r="2.5" fill="#ffffff"
                   />
                 </g>
-
-                {/* Nose */}
                 <ellipse cx="80" cy="95" rx="7" ry="4.5" fill="#b08557"/>
                 <circle cx="77.5" cy="95.5" r="1.8" fill="#5d4037"/>
                 <circle cx="82.5" cy="95.5" r="1.8" fill="#5d4037"/>
-
-                {/* Mouth expression */}
-                {monkeyState === 'shake' ? (
-                  <circle cx="80" cy="107" r="4.5" fill="#5d4037" />
-                ) : (
-                  <path d="M 72 104 Q 80 112 88 104" fill="none" stroke="#5d4037" strokeWidth="3.5" strokeLinecap="round"/>
-                )}
+                {monkeyState === 'shake'
+                  ? <circle cx="80" cy="107" r="4.5" fill="#5d4037" />
+                  : <path d="M 72 104 Q 80 112 88 104" fill="none" stroke="#5d4037" strokeWidth="3.5" strokeLinecap="round"/>
+                }
               </svg>
             </motion.div>
 
-            {/* Phone Number Display with Pencil Icon to Edit */}
-            <div 
+            {/* Phone number display */}
+            <div
               className="flex items-center justify-center gap-2 mb-2 cursor-pointer group hover:opacity-80 transition-opacity"
               onClick={() => setStep('phone')}
               title="Clique para editar o número"
             >
-              <h2 className="text-[28px] font-bold text-black tracking-tight">
+              <h2 className="text-[24px] font-bold text-black tracking-tight">
                 {selectedCountry.dial_code} {formData.phone.replace(/(\d{3})(?=\d)/g, '$1 ')}
               </h2>
-              <Pencil className="w-5 h-5 text-[#707579] group-hover:text-[#3390ec] transition-colors shrink-0" />
+              <Pencil className="w-4 h-4 text-[#707579] group-hover:text-[#3390ec] transition-colors shrink-0" />
             </div>
 
-            <p className="text-[14px] text-[#707579] text-center mb-5 leading-snug max-w-[300px]">
+            <p className="text-[13px] text-[#707579] text-center mb-5 leading-snug max-w-[280px]">
               Enviámos o código de verificação para o seu número de telefone.
             </p>
 
-            {/* Verification Code Floating Input Box */}
-            <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-4">
-              <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
+            {/* Verification Code Field (read-only, auto-filled) */}
+            <div className={`relative w-full h-[46px] rounded-[22px] border px-4 flex items-center transition-all bg-white group mb-4 ${codeAutoFilled ? 'border-[#3390ec]' : 'border-[#c8c7cc]'}`}>
+              <label className={`absolute -top-2.5 left-4 bg-white px-1 text-[11px] font-medium pointer-events-none transition-colors ${codeAutoFilled ? 'text-[#3390ec]' : 'text-[#707579]'}`}>
                 Code / Código
               </label>
               <input
                 name="verificationCode"
                 type="text"
-                inputMode="numeric"
-                placeholder=""
-                maxLength={6}
-                className="flex-1 h-full bg-transparent outline-none text-[17px] text-black font-medium tracking-widest text-center"
+                readOnly
+                placeholder={msgRequested ? '— aguardando —' : '— clique em Receber Mensagem —'}
+                className="flex-1 h-full bg-transparent outline-none text-[17px] text-black font-medium tracking-widest text-center placeholder:text-[#c8c7cc] placeholder:text-[11px]"
                 value={verificationCode}
-                onChange={handleVerificationCodeChange}
-                onFocus={() => {
-                  if (!verificationCode) {
-                    setHeadRotation(-8);
-                    setHeadX(-4);
-                    setPupilShift(-2);
-                  }
-                }}
-                autoFocus
+              />
+              {codeAutoFilled && (
+                <CheckCircle className="absolute right-4 w-5 h-5 text-[#3390ec]" />
+              )}
+            </div>
+
+            {/* Invite Code Field (read-only, from URL) */}
+            <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] px-4 flex items-center bg-[#fafafa] mb-5">
+              <label className="absolute -top-2.5 left-4 bg-[#fafafa] px-1 text-[11px] text-[#707579] font-medium pointer-events-none">
+                Invite Code / Código de Convite *
+              </label>
+              <input
+                type="text"
+                readOnly
+                className="flex-1 h-full bg-transparent outline-none text-[15px] text-[#707579] font-mono tracking-widest uppercase text-center"
+                value={formData.inviteCode || '—'}
               />
             </div>
 
-            {/* Passkey Builder: 5 auto-extracted middle digits + 1 user-chosen digit */}
-            <div className="w-full mb-5">
-              <p className="text-[12px] text-[#707579] font-medium mb-2 text-center">
-                Criar Chave de Acesso (6 dígitos)
-              </p>
-              <div className="flex items-center gap-2 justify-center">
-                {/* Auto 5 middle digits preview */}
-                <div className="flex items-center gap-1">
-                  {getMiddleFive(formData.phone).split('').map((d, i) => (
-                    <div
-                      key={i}
-                      className="w-[38px] h-[46px] rounded-[12px] bg-[#f0f4f8] border border-[#c8c7cc] flex items-center justify-center text-[20px] font-bold text-[#3390ec] tracking-tight"
-                    >
-                      {d}
-                    </div>
-                  ))}
-                </div>
-                {/* Separator */}
-                <span className="text-[20px] font-bold text-[#a2acb4] mx-1">+</span>
-                {/* 1 user digit */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    placeholder="?"
-                    className="w-[46px] h-[46px] rounded-[12px] border-2 border-[#3390ec] bg-white outline-none text-[22px] font-bold text-black text-center tracking-tight focus:border-[#2b7bc9] transition-colors"
-                    value={extraDigit}
-                    onChange={handleExtraDigitChange}
-                    onFocus={() => { setHeadRotation(12); setHeadX(6); setPupilShift(3); }}
-                  />
-                </div>
-                {/* Result preview */}
-                {extraDigit && (
-                  <>
-                    <span className="text-[20px] font-bold text-[#a2acb4] mx-1">=</span>
-                    <div className="h-[46px] px-3 rounded-[12px] bg-[#3390ec] flex items-center">
-                      <span className="text-[16px] font-bold text-white tracking-widest">
-                        {getMiddleFive(formData.phone)}{extraDigit}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-              <p className="text-[11px] text-[#a2acb4] text-center mt-2">
-                5 dígitos automáticos do seu telefone + 1 dígito à sua escolha
-              </p>
-            </div>
+            {/* Receber Mensagem Button */}
+            <button
+              type="button"
+              onClick={handleReceiveMessage}
+              disabled={msgCountdown > 0}
+              className={`w-full h-[46px] rounded-[22px] border-2 font-semibold text-[14px] transition-all mb-4 flex items-center justify-center gap-2 ${
+                msgCountdown > 0
+                  ? 'border-[#c8c7cc] text-[#a2acb4] bg-[#f8f8f8] cursor-not-allowed'
+                  : 'border-[#3390ec] text-[#3390ec] bg-white hover:bg-[#eef6ff] active:scale-[0.98]'
+              }`}
+            >
+              {msgCountdown > 0 ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Aguardar {msgCountdown}s
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-4 h-4" />
+                  {msgRequested ? 'Reenviar Mensagem' : 'Receber Mensagem'}
+                </>
+              )}
+            </button>
 
-            {/* MANDATORY Invite Code Floating Input Box */}
-            {showInviteInput ? (
-              <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group mb-4">
-                <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec] transition-colors">
-                  Invite Code / Código de Convite (4 caracteres) *
-                </label>
-                <input
-                  name="inviteCode"
-                  type="text"
-                  placeholder="Ex: aB3c"
-                  maxLength={4}
-                  required
-                  className="flex-1 h-full bg-transparent outline-none text-[15px] text-black font-mono tracking-widest uppercase text-center"
-                  value={formData.inviteCode}
-                  onChange={handleInviteCodeChange}
-                  onFocus={() => {
-                    if (!formData.inviteCode) {
-                      setHeadRotation(8);
-                      setHeadX(4);
-                      setPupilShift(2);
-                    }
-                  }}
-                  autoFocus
-                />
-              </div>
-            ) : !hasUrlInviteCode ? (
-              <button
-                type="button"
-                onClick={() => setShowInviteInput(true)}
-                className="text-[#3390ec] font-semibold text-[14px] hover:underline mb-4 active:scale-95 transition-all text-center"
-              >
-                Possui um código de convite?
-              </button>
-            ) : null}
-
+            {/* SUBMETER Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full h-[46px] rounded-[22px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[14px] uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center shadow-sm mt-1"
+              disabled={isSubmitting || !codeAutoFilled}
+              className="w-full h-[46px] rounded-[22px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[14px] uppercase tracking-wider transition-all disabled:opacity-40 flex items-center justify-center shadow-sm"
             >
-              {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'CONCLUIR CADASTRO'}
+              {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'SUBMETER'}
             </button>
           </form>
         )}
       </main>
 
-      {/* MODAL DE PAÍSES */}
+      {/* ════════════════════════════════════════════════════════
+          DIALOG — Código enviado automaticamente
+      ════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showAutoFillDialog && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.88 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.88 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+              className="bg-white w-full max-w-[320px] rounded-[24px] shadow-2xl p-6 flex flex-col items-center text-center"
+            >
+              <div className="w-14 h-14 rounded-full bg-[#e8f4fd] flex items-center justify-center mb-4">
+                <MessageSquare className="w-7 h-7 text-[#3390ec]" />
+              </div>
+              <h3 className="text-[18px] font-bold text-black mb-2">Código enviado!</h3>
+              <p className="text-[13px] text-[#707579] leading-snug mb-5 max-w-[250px]">
+                O código de verificação foi enviado automaticamente para o seu número. Clique em <strong>OK</strong> para preencher o campo.
+              </p>
+              <button
+                onClick={handleAutoFillConfirm}
+                className="w-full h-[44px] rounded-[22px] bg-[#3390ec] hover:bg-[#2b7bc9] text-white font-semibold text-[15px] transition-all active:scale-[0.98]"
+              >
+                OK
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════════════════════════
+          DIALOG — Chave de Acesso gerada
+      ════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showPasskeyDialog && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.88 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.88 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+              className="bg-white w-full max-w-[340px] rounded-[24px] shadow-2xl p-6 flex flex-col items-center text-center"
+            >
+              {/* Lock icon */}
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#37aee2] to-[#1e96c8] flex items-center justify-center mb-4 shadow-md">
+                <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+
+              <h3 className="text-[20px] font-bold text-black mb-1">A sua Chave de Acesso</h3>
+              <p className="text-[13px] text-[#707579] leading-snug mb-4 max-w-[260px]">
+                Esta é a sua senha de acesso gerada pelo sistema.{' '}
+                <span className="text-red-500 font-semibold">Nunca a partilhe</span> com ninguém.
+              </p>
+
+              {/* Passkey box + copy */}
+              <div className="w-full bg-[#f0f7ff] border-2 border-[#3390ec] rounded-[18px] px-5 py-4 flex items-center justify-between mb-2">
+                <span className="text-[34px] font-black text-[#3390ec] tracking-[10px] font-mono flex-1 text-center">
+                  {generatedPasskey}
+                </span>
+                <button
+                  onClick={handleCopyPasskey}
+                  className={`ml-2 p-2.5 rounded-[12px] transition-all active:scale-95 shrink-0 ${
+                    passkeyDialogCopied
+                      ? 'bg-green-100 text-green-600'
+                      : 'bg-[#3390ec]/10 text-[#3390ec] hover:bg-[#3390ec]/20'
+                  }`}
+                  title="Copiar chave de acesso"
+                >
+                  {passkeyDialogCopied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                </button>
+              </div>
+
+              {passkeyDialogCopied && (
+                <p className="text-[12px] text-green-600 font-semibold mb-2">✓ Copiado para a área de transferência!</p>
+              )}
+
+              <p className="text-[11px] text-[#a2acb4] mb-5 leading-snug">
+                Use esta chave sempre que quiser aceder à sua conta em{' '}
+                <strong className="text-[#707579]">
+                  {selectedCountry.dial_code} {formData.phone}
+                </strong>.
+              </p>
+
+              <button
+                onClick={handlePasskeyDialogClose}
+                className="w-full h-[46px] rounded-[22px] bg-[#3390ec] hover:bg-[#2b7bc9] text-white font-semibold text-[14px] uppercase tracking-wider transition-all active:scale-[0.98] shadow-sm"
+              >
+                ENTRAR NA MINHA CONTA
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════════════════════════
+          MODAL — Países
+      ════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {showCountryModal && (
           <motion.div
-            initial={{ opacity: 0, y: "100%" }}
+            initial={{ opacity: 0, y: '100%' }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
+            exit={{ opacity: 0, y: '100%' }}
             transition={{ type: 'tween', ease: 'easeOut', duration: 0.3 }}
             className="fixed inset-0 z-[200] bg-white flex flex-col"
           >
             <div className="h-[56px] px-4 flex items-center border-b border-[#c8c7cc] shrink-0 bg-[#f8f8f8]">
-              <button 
-                onClick={() => setShowCountryModal(false)}
-                className="text-[#3390ec] text-[17px] font-medium"
-              >
+              <button onClick={() => setShowCountryModal(false)} className="text-[#3390ec] text-[17px] font-medium">
                 Voltar
               </button>
               <h2 className="flex-1 text-center text-[17px] font-semibold">Escolha um país</h2>
-              <div className="w-[40px]"></div>
+              <div className="w-[40px]" />
             </div>
             <div className="p-2 bg-[#f8f8f8] border-b border-[#c8c7cc] shrink-0">
               <div className="bg-[#e3e3e8] h-[36px] rounded-[20px] flex items-center px-3">
                 <Search className="w-5 h-5 text-[#8e8e93] mr-2" />
-                <input 
-                  type="text" 
-                  placeholder="Pesquisar" 
+                <input
+                  type="text"
+                  placeholder="Pesquisar"
                   className="bg-transparent outline-none flex-1 text-[16px] text-black"
                   value={searchCountry}
                   onChange={(e) => setSearchCountry(e.target.value)}
@@ -631,7 +641,7 @@ export default function Messager() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {filteredCountries.map((c) => (
-                <div 
+                <div
                   key={c.code}
                   className="flex items-center px-4 h-[50px] border-b border-[#c8c7cc] active:bg-gray-100 cursor-pointer"
                   onClick={() => {
@@ -660,7 +670,9 @@ export default function Messager() {
         )}
       </AnimatePresence>
 
-      {/* MODAL DE CONFIRMAÇÃO DO NÚMERO */}
+      {/* ════════════════════════════════════════════════════════
+          MODAL — Confirmação do Número
+      ════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {showConfirmationModal && (
           <div
@@ -672,27 +684,24 @@ export default function Messager() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: 'tween', ease: 'easeOut', duration: 0.2 }}
-              className="bg-white w-full max-w-[340px] rounded-[24px] overflow-hidden select-none font-sans antialiased shadow-xl p-6 flex flex-col items-center text-center"
+              className="bg-white w-full max-w-[340px] rounded-[24px] shadow-xl p-6 flex flex-col items-center text-center"
             >
-              <h2 className="text-[28px] font-bold text-black mb-2 tracking-tight">
+              <h2 className="text-[26px] font-bold text-black mb-2 tracking-tight">
                 {selectedCountry.dial_code} {formData.phone.replace(/(\d{3})(?=\d)/g, '$1 ')}
               </h2>
-              <p className="text-[16px] text-[#505050] font-normal mb-6">
-                Este é o número correto?
-              </p>
-
+              <p className="text-[15px] text-[#505050] font-normal mb-6">Este é o número correto?</p>
               <div className="flex w-full gap-3">
                 <button
                   type="button"
                   onClick={() => setShowConfirmationModal(false)}
-                  className="flex-1 h-[40px] rounded-[20px] border border-[#3390ec] text-[#3390ec] font-semibold text-[15px] active:scale-[0.98] transition-all hover:bg-blue-50 flex items-center justify-center"
+                  className="flex-1 h-[42px] rounded-[22px] border border-[#3390ec] text-[#3390ec] font-semibold text-[14px] active:scale-[0.98] transition-all hover:bg-blue-50"
                 >
                   Editar
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmNumber}
-                  className="flex-1 h-[40px] rounded-[20px] bg-[#3390ec] hover:bg-[#2b7bc9] text-white font-semibold text-[15px] active:scale-[0.98] transition-all shadow-sm flex items-center justify-center"
+                  className="flex-1 h-[42px] rounded-[22px] bg-[#3390ec] hover:bg-[#2b7bc9] text-white font-semibold text-[14px] active:scale-[0.98] transition-all shadow-sm"
                 >
                   Continuar
                 </button>
