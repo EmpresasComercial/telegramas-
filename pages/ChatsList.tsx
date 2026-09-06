@@ -17,7 +17,8 @@ import {
   Megaphone,
   Moon,
   Sun,
-  MoreVertical
+  MoreVertical,
+  Users
 } from 'lucide-react';
 import TelegramStories from '../components/TelegramStories';
 import { useToast } from '../components/Toast';
@@ -32,6 +33,8 @@ export default function ChatsList() {
   const outletContext = useOutletContext<{ openDrawer?: () => void; openAutoMessages?: () => void }>();
 
   const [contacts, setContacts] = useState<any[]>([]);
+  const [subordinates, setSubordinates] = useState<any[]>([]);
+  const [subLevelFilter, setSubLevelFilter] = useState<'all' | 1 | 2 | 3>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -47,7 +50,7 @@ export default function ChatsList() {
     isMe: false
   });
   
-  type ChatFolder = 'all' | 'personal' | 'groups' | 'channels' | 'bots' | 'unread';
+  type ChatFolder = 'all' | 'subordinates' | 'personal' | 'groups' | 'channels' | 'bots' | 'unread';
   const [activeFilter, setActiveFilter] = useState<ChatFolder>('all');
 
   const PAVEL_DUROV_ID = 'pavel-durov-ceo-00000000000000001';
@@ -130,41 +133,56 @@ export default function ChatsList() {
 
     const fetchContacts = async () => {
       try {
-        const { data: subordinatesData } = await supabase
-          .from('equipe_mcpn')
-          .select('usuario_id')
-          .eq('patrocinador_id', user.id);
+        let uniqueContacts = new Map<string, any>();
 
+        // 1. Buscar todos os subordinados multinível (Níveis 1, 2 e 3)
+        const { data: subData, error: subError } = await (supabase as any).rpc('get_my_subordinates_chat');
+        if (!subError && subData && Array.isArray(subData)) {
+          setSubordinates(subData);
+          subData.forEach((sub: any) => {
+            uniqueContacts.set(sub.membro_id, {
+              id: sub.membro_id,
+              telefone: sub.telefone,
+              nome_exibicao: sub.nome_exibicao,
+              nivel: sub.nivel,
+              patrocinador_id: sub.patrocinador_id,
+              patrocinador_telefone: sub.patrocinador_telefone,
+              codigo_meu_refferal: sub.codigo_meu_refferal,
+              data_registro: sub.data_registro,
+              total_recarregado: sub.total_recarregado,
+              isSubordinate: true
+            });
+          });
+        }
+
+        // 2. Buscar o patrocinador direto do utilizador (se houver)
         const { data: sponsorData } = await supabase
           .from('equipe_mcpn')
           .select('patrocinador_id')
           .eq('usuario_id', user.id);
 
-        let uniqueContacts = new Map<string, any>();
-
-        const fetchUserPhone = async (uid: string) => {
-          const { data } = await supabase.from('sys_t500').select('telefone').eq('id', uid).single();
-          return data?.telefone || null;
-        };
-
-        if (subordinatesData) {
-          for (const item of subordinatesData) {
-            if (item.usuario_id) {
-              const tel = await fetchUserPhone(item.usuario_id);
-              if (tel) uniqueContacts.set(item.usuario_id, { id: item.usuario_id, telefone: tel });
-            }
-          }
-        }
-
-        if (sponsorData) {
+        if (sponsorData && sponsorData.length > 0) {
           for (const item of sponsorData) {
-            if (item.patrocinador_id) {
-              const tel = await fetchUserPhone(item.patrocinador_id);
-              if (tel) uniqueContacts.set(item.patrocinador_id, { id: item.patrocinador_id, telefone: tel });
+            if (item.patrocinador_id && !uniqueContacts.has(item.patrocinador_id)) {
+              const { data: pData } = await supabase
+                .from('sys_t500')
+                .select('telefone, nome_exibicao')
+                .eq('id', item.patrocinador_id)
+                .maybeSingle();
+
+              if (pData?.telefone) {
+                uniqueContacts.set(item.patrocinador_id, {
+                  id: item.patrocinador_id,
+                  telefone: pData.telefone,
+                  nome_exibicao: pData.nome_exibicao,
+                  isSponsor: true
+                });
+              }
             }
           }
         }
 
+        // 3. Buscar as mensagens mais recentes trocadas
         try {
           const { data: lastMsgs } = await (supabase as any)
             .from('sys_t110')
@@ -194,12 +212,13 @@ export default function ChatsList() {
         const sorted = Array.from(uniqueContacts.values()).sort((a: any, b: any) => {
           const timeA = a.lastMessageTimestamp ? new Date(a.lastMessageTimestamp).getTime() : 0;
           const timeB = b.lastMessageTimestamp ? new Date(b.lastMessageTimestamp).getTime() : 0;
-          return timeB - timeA;
+          if (timeB !== timeA) return timeB - timeA;
+          return (a.nivel || 99) - (b.nivel || 99);
         });
 
         setContacts(sorted);
       } catch (e) {
-        console.error(e);
+        console.error('Erro ao carregar contactos e subordinados:', e);
       } finally {
         setIsLoading(false);
       }
@@ -209,6 +228,9 @@ export default function ChatsList() {
 
     const contactChannel = supabase.channel('chatslist_contacts_sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sys_t110' }, () => {
+        fetchContacts();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'equipe_mcpn' }, () => {
         fetchContacts();
       })
       .subscribe();
@@ -231,30 +253,45 @@ export default function ChatsList() {
 
   const filteredContacts = useMemo(() => {
     if (activeFilter === 'groups' || activeFilter === 'channels' || activeFilter === 'bots') return [];
-    return contacts.filter(c => {
-      if (activeFilter === 'unread') {
-        return !c.isMe && Boolean(c.lastMessage);
+
+    let list = contacts;
+
+    if (activeFilter === 'subordinates') {
+      list = contacts.filter(c => c.isSubordinate);
+      if (subLevelFilter !== 'all') {
+        list = list.filter(c => c.nivel === subLevelFilter);
       }
-      if (!queryClean) return true;
+    } else if (activeFilter === 'personal') {
+      list = contacts.filter(c => !c.isSubordinate);
+    } else if (activeFilter === 'unread') {
+      list = contacts.filter(c => !c.isMe && Boolean(c.lastMessage));
+    }
+
+    if (!queryClean) return list;
+
+    return list.filter(c => {
       const rawTel = (c.telefone || '').toLowerCase();
       const formattedTel = formatSenderPhone(c.telefone).toLowerCase();
+      const name = (c.nome_exibicao || '').toLowerCase();
       const digitsOnly = rawTel.replace(/\D/g, '');
 
       return (
         rawTel.includes(queryClean) ||
         formattedTel.includes(queryClean) ||
+        name.includes(queryClean) ||
         (queryDigits.length > 0 && digitsOnly.includes(queryDigits))
       );
     });
-  }, [contacts, queryClean, queryDigits, activeFilter]);
+  }, [contacts, queryClean, queryDigits, activeFilter, subLevelFilter]);
 
   const folders: { id: ChatFolder; label: string; count?: number }[] = [
-    { id: 'all', label: 'Todos', count: contacts.length + 4 },
-    { id: 'personal', label: 'Pessoais', count: contacts.length },
-    { id: 'groups', label: 'Grupos', count: 2 },
+    { id: 'all', label: 'Todos', count: contacts.length + 3 },
+    { id: 'subordinates', label: 'Subordinados', count: subordinates.length },
+    { id: 'personal', label: 'Pessoais', count: contacts.filter(c => !c.isSubordinate).length },
+    { id: 'groups', label: 'Grupos', count: 1 },
     { id: 'channels', label: 'Canais', count: 1 },
     { id: 'bots', label: 'Bots', count: 1 },
-    { id: 'unread', label: 'Não Lidos', count: 3 },
+    { id: 'unread', label: 'Não Lidos', count: contacts.filter(c => !c.isMe && Boolean(c.lastMessage)).length },
   ];
 
   const now = new Date();
@@ -526,24 +563,58 @@ export default function ChatsList() {
         )}
 
 
-        {/* ── 6. LISTA DINÂMICA DE CONTATOS PRIVADOS ── */}
+        {/* ── SUB-FILTROS DE NÍVEIS PARA SUBORDINADOS ── */}
+        {activeFilter === 'subordinates' && (
+          <div className="sticky top-0 z-30 flex items-center gap-1.5 px-3 py-2 bg-[#f4f7fa] dark:bg-[#1e2833] border-b border-gray-200/60 dark:border-white/10 overflow-x-auto no-scrollbar select-none">
+            {[
+              { id: 'all', label: 'Todos os Níveis', count: subordinates.length },
+              { id: 1, label: 'Nível 1 (Diretos)', count: subordinates.filter(s => s.nivel === 1).length, color: 'text-amber-600 dark:text-amber-400' },
+              { id: 2, label: 'Nível 2 (Indiretos)', count: subordinates.filter(s => s.nivel === 2).length, color: 'text-purple-600 dark:text-purple-400' },
+              { id: 3, label: 'Nível 3 (Rede)', count: subordinates.filter(s => s.nivel === 3).length, color: 'text-teal-600 dark:text-teal-400' },
+            ].map(pill => {
+              const isSelected = subLevelFilter === pill.id;
+              return (
+                <button
+                  key={String(pill.id)}
+                  onClick={() => setSubLevelFilter(pill.id as any)}
+                  className={`px-3 py-1.5 rounded-full text-[12px] font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#2481cc] text-white shadow-xs'
+                      : 'bg-white dark:bg-[#273444] text-[#707579] dark:text-[#9eaab6] border border-gray-200 dark:border-white/10 hover:border-[#2481cc]/40'
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-bold ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-black/30 text-gray-600 dark:text-gray-300'
+                  }`}>
+                    {pill.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── 6. LISTA DINÂMICA DE CONTATOS E SUBORDINADOS ── */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-8 space-y-2">
             <Loader2 className="w-7 h-7 text-[#2481cc] animate-spin" />
-            <span className="text-[13px] text-[#707579] dark:text-[#9eaab6]">Conectando aos chats...</span>
+            <span className="text-[13px] text-[#707579] dark:text-[#9eaab6]">Carregando conversas e subordinados...</span>
           </div>
         ) : filteredContacts.length > 0 ? (
           filteredContacts.map((contact) => {
             const color = getUserColor(contact.telefone);
             const label = (contact.telefone || '').replace(/\D/g, '').slice(-2) || '?';
+            const isSub = Boolean(contact.isSubordinate);
+            const nv = contact.nivel;
 
             return (
               <div
                 key={contact.id}
-                onClick={() => navigate(`/chat/${contact.id}?t=${encodeURIComponent(contact.telefone)}`)}
+                onClick={() => navigate(`/chat/${contact.id}?t=${encodeURIComponent(contact.telefone)}${nv ? `&nv=${nv}` : ''}`)}
                 className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#202b36] active:bg-gray-100 dark:active:bg-[#242f3d] transition-colors cursor-pointer border-b border-gray-100/80 dark:border-[#202b36]"
               >
-                {/* Avatar Oficial Telegram (52px) */}
+                {/* Avatar Oficial Telegram com Badge de Nível */}
                 <div className="relative shrink-0">
                   <div
                     className="w-13 h-13 rounded-full flex items-center justify-center text-white text-[18px] font-bold shadow-xs"
@@ -551,15 +622,51 @@ export default function ChatsList() {
                   >
                     {label}
                   </div>
+
+                  {/* Badge de Nível Multinível */}
+                  {isSub && nv && (
+                    <div
+                      className={`absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9.5px] font-black shadow-xs border-2 border-white dark:border-[#17212b] ${
+                        nv === 1
+                          ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white'
+                          : nv === 2
+                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white'
+                          : 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white'
+                      }`}
+                    >
+                      Nv {nv}
+                    </div>
+                  )}
+
+                  {/* Badge de Patrocinador / Líder */}
+                  {contact.isSponsor && (
+                    <div className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-600 text-white shadow-xs border-2 border-white dark:border-[#17212b]">
+                      Líder
+                    </div>
+                  )}
+
                   <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#17212b]" />
                 </div>
 
                 {/* Conteúdo do Chat */}
                 <div className="flex-1 min-w-0 py-0.5">
                   <div className="flex justify-between items-center mb-0.5">
-                    <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
-                      {formatSenderPhone(contact.telefone)}
-                    </h3>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <h3 className="text-[15.5px] font-semibold text-[#111] dark:text-white truncate leading-tight">
+                        {contact.nome_exibicao || formatSenderPhone(contact.telefone)}
+                      </h3>
+                      {isSub && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-sm shrink-0 ${
+                          nv === 1
+                            ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300'
+                            : nv === 2
+                            ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300'
+                            : 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300'
+                        }`}>
+                          {nv === 1 ? 'Direto' : `Nível ${nv}`}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 shrink-0 ml-1">
                       {contact.isMe && (
                         <CheckCheck className="w-4 h-4 text-[#2481cc] stroke-[2.5]" />
@@ -570,17 +677,56 @@ export default function ChatsList() {
                     </div>
                   </div>
 
-                  <p className="text-[13.5px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
-                    {contact.lastMessage || "Toque para abrir a conversa criptografada..."}
+                  {/* Hierarquia de quem convidou */}
+                  {isSub && (
+                    <div className="text-[11.5px] mb-0.5 truncate">
+                      {nv === 1 ? (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          ⭐ Seu Convidado Direto
+                        </span>
+                      ) : (
+                        <span className="text-purple-600 dark:text-purple-400 font-medium">
+                          🔗 Convidado por {contact.patrocinador_telefone ? formatSenderPhone(contact.patrocinador_telefone) : 'sua equipe'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="text-[13px] text-[#707579] dark:text-[#9eaab6] truncate leading-snug">
+                    {contact.lastMessage ? (
+                      contact.lastMessage
+                    ) : (
+                      <span className="text-[#2481cc] italic font-normal">
+                        💬 Toque para enviar mensagem a este subordinado...
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
             );
           })
+        ) : !searchQuery && activeFilter === 'subordinates' ? (
+          <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+            <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-[#202b36] flex items-center justify-center text-[#2481cc] mb-3 shadow-2xs">
+              <Users className="w-7 h-7 stroke-[1.8]" />
+            </div>
+            <h4 className="text-[16px] font-bold text-[#111] dark:text-white mb-1">
+              Nenhum subordinado {subLevelFilter !== 'all' ? `no Nível ${subLevelFilter}` : 'registrado'}
+            </h4>
+            <p className="text-[13px] text-[#707579] dark:text-[#9eaab6] max-w-[280px] leading-relaxed mb-4">
+              Compartilhe o seu link de convite oficial para registrar membros diretos e expandir sua rede de comissões.
+            </p>
+            <button
+              onClick={() => navigate('/convite')}
+              className="px-4 py-2 bg-[#2481cc] hover:bg-[#1e70b3] text-white text-[13.5px] font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              Convidar Membros Agora
+            </button>
+          </div>
         ) : !searchQuery && activeFilter === 'personal' ? (
           <div className="text-center py-12 px-6 text-[#707579] dark:text-[#9eaab6] text-[14px]">
-            Nenhum contato pessoal ainda.<br />
-            Seus contatos da equipe e afiliados aparecerão aqui.
+            Nenhum contato pessoal avulso.<br />
+            Seus afiliados estão agrupados na aba <strong>Subordinados</strong>.
           </div>
         ) : null}
 

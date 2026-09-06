@@ -48,6 +48,7 @@ export default function PrivateChat() {
   const { contactId } = useParams();
   const [searchParams] = useSearchParams();
   const rawContactPhone = searchParams.get('t') || 'Contacto';
+  const contactLevel = searchParams.get('nv');
   
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -399,7 +400,9 @@ export default function PrivateChat() {
                 <span className="w-3.5 h-3.5 rounded-full bg-white text-[#2481cc] flex items-center justify-center text-[8px] font-black shrink-0">✓</span>
               )}
             </div>
-            <span className="text-[12px] text-white/80 font-normal leading-tight">online</span>
+            <span className="text-[12px] text-white/80 font-normal leading-tight">
+              {contactLevel ? `online • Subordinado Nível ${contactLevel}` : 'online'}
+            </span>
           </div>
         </div>
 
