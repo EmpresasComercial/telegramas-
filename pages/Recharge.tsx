@@ -18,7 +18,8 @@ import {
   XCircle,
   Camera,
   ArrowRight,
-  ArrowDownToLine
+  ArrowDownToLine,
+  BarChart3
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
@@ -36,6 +37,7 @@ const VALID_COMMANDS = new Set([
   '/horario', '/horarios',
   '/limites', '/regras', '/taxa', '/taxas',
   '/historico', '/registos',
+  '/total', '/total_deposito', '/total_depositos', '/meus_depositos', '/extrato', '/relatorio',
   '/limpar', '/reset', '/clear',
   '/cancelar'
 ]);
@@ -103,7 +105,8 @@ interface ChatMessage {
     | 'deposit_instructions' 
     | 'proof_success' 
     | 'history_list'
-    | 'banks_list';
+    | 'banks_list'
+    | 'deposit_summary';
   payload?: any;
 }
 
@@ -114,6 +117,35 @@ function nowTime(): string {
 function getCurrentDay(): string {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   return days[new Date().getDay()];
+}
+
+function formatAccountDate(isoStr?: string | null): string {
+  if (!isoStr) return 'data de adesão';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return 'data de adesão';
+  const day = String(d.getDate()).padStart(2, '0');
+  const months = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} de ${month} de ${year}`;
+}
+
+function formatDepositDateTime(isoStr?: string | null): string {
+  if (!isoStr) return 'recente';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return 'recente';
+  const day = String(d.getDate()).padStart(2, '0');
+  const months = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  const month = months[d.getMonth()];
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `dia ${day} de ${month} às ${hours}h${minutes}`;
 }
 
 export default function Recharge() {
@@ -479,6 +511,61 @@ export default function Recharge() {
     }
   }, []);
 
+  const fetchDepositSummary = useCallback(async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userCreatedAt = userData?.user?.created_at || null;
+
+      let recharges: any[] = [];
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_my_recharges_mcpn');
+      if (!rpcError && Array.isArray(rpcData)) {
+        recharges = rpcData;
+      } else {
+        const { data: tableData } = await supabase
+          .from('recargas_mcpn')
+          .select('*');
+        if (tableData) recharges = tableData;
+      }
+
+      // Ordenação cronológica (mais antigo primeiro)
+      const sorted = [...recharges].sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeA - timeB;
+      });
+
+      const approved = sorted.filter((r) => {
+        const st = (r.status || '').toLowerCase();
+        return st === 'aprovado' || st === 'concluido' || st === 'approved' || st === 'completed';
+      });
+
+      const pending = sorted.filter((r) => {
+        const st = (r.status || '').toLowerCase();
+        return st === 'pendente' || st === 'pending';
+      });
+
+      const totalApprovedAmount = approved.reduce(
+        (sum, r) => sum + (Number(r.amount) || Number(r.valor) || 0),
+        0
+      );
+
+      return {
+        userCreatedAt,
+        totalDepositsCount: sorted.length,
+        approvedDepositsCount: approved.length,
+        pendingDepositsCount: pending.length,
+        totalApprovedAmount,
+        firstDeposit: approved[0] || sorted[0] || null,
+        secondDeposit: approved[1] || (sorted.length > 1 ? sorted[1] : null),
+        allApproved: approved,
+        allSorted: sorted,
+      };
+    } catch (err) {
+      console.error('Erro ao calcular resumo de depósitos:', err);
+      return null;
+    }
+  }, []);
+
   const handleSendMessage = useCallback(
     async (textToSend?: string) => {
       const rawInput = (textToSend || inputText).trim();
@@ -587,6 +674,104 @@ export default function Recharge() {
             '• **Taxa de Depósito:** **0%** (Totalmente gratuito!)\n' +
             '• **Horário:** 24 horas por dia (24/24)\n\n' +
             'Pronto para recarregar? Envie /depositar 😊',
+        }));
+        return;
+      }
+
+      const isTotalDepositCmd = [
+        'total',
+        'total_deposito',
+        'total_depositos',
+        'totaldeposito',
+        'totaldepositos',
+        'extrato',
+        'meus_depositos',
+        'meus depositos',
+        'meus depósitos',
+        'total de deposito',
+        'total de depósito',
+        'total de depositos',
+        'total de depósitos',
+        'total deposito',
+        'total depósito',
+        'total depositos',
+        'total depósitos',
+        'relatorio',
+        'relatório',
+        'total de recargas',
+        'total recargas',
+      ].some((k) => cleanCmd === k || cleanCmd.includes(k));
+
+      if (isTotalDepositCmd) {
+        setIsTyping(true);
+        const summary = await fetchDepositSummary();
+        setIsTyping(false);
+
+        if (!summary) {
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'text',
+            text: 'Ops! Não consegui consultar seu relatório de depósitos no momento. Por favor, tente novamente em instantes ou envie /historico 😊',
+          }));
+          return;
+        }
+
+        const count = summary.approvedDepositsCount;
+        const totalStr = formatCurrency(summary.totalApprovedAmount, 'KZ');
+        const accountDateStr = formatAccountDate(summary.userCreatedAt);
+
+        let reportText = '';
+
+        if (count > 0) {
+          reportText = `📊 **Relatório Geral de Depósitos**\n\n`;
+          reportText += `Desde a data de criação da sua conta em **${accountDateStr}**, você realizou um total de **${count} ${count === 1 ? 'depósito confirmado' : 'depósitos confirmados'}**.\n\n`;
+
+          if (summary.firstDeposit) {
+            const v1 = formatCurrency(Number(summary.firstDeposit.amount) || Number(summary.firstDeposit.valor) || 0, 'KZ');
+            reportText += `• **1º Depósito:** ${v1} realizado no ${formatDepositDateTime(summary.firstDeposit.created_at)}\n`;
+          }
+
+          if (summary.secondDeposit && count > 1) {
+            const v2 = formatCurrency(Number(summary.secondDeposit.amount) || Number(summary.secondDeposit.valor) || 0, 'KZ');
+            reportText += `• **2º Depósito:** ${v2} realizado no ${formatDepositDateTime(summary.secondDeposit.created_at)}\n`;
+          }
+
+          if (count > 2) {
+            const lastDeposit = summary.allApproved[summary.allApproved.length - 1];
+            const vLast = formatCurrency(Number(lastDeposit.amount) || Number(lastDeposit.valor) || 0, 'KZ');
+            reportText += `• **Último Depósito:** ${vLast} realizado no ${formatDepositDateTime(lastDeposit.created_at)}\n`;
+          }
+
+          reportText += `\nNo total, isso prefaz um valor total de **${totalStr}** em fundos aqui que você depositou no Telegram Bot! 🚀✨\n\n`;
+
+          if (summary.pendingDepositsCount > 0) {
+            reportText += `*(Nota: você possui ${summary.pendingDepositsCount} depósito em conferência pendente)*\n\n`;
+          }
+
+          reportText += `Para fazer uma nova recarga, basta enviar /depositar 😊`;
+        } else {
+          if (summary.pendingDepositsCount > 0) {
+            reportText = `📊 **Relatório Geral de Depósitos**\n\n` +
+              `Sua conta foi criada em **${accountDateStr}**.\n\n` +
+              `Você possui **${summary.pendingDepositsCount} depósito(s) em análise pendente**. Assim que conferido pela equipe, o saldo entrará na sua carteira!\n\n` +
+              `Para enviar um novo comprovativo ou recarregar, envie /depositar 😊`;
+          } else {
+            reportText = `📊 **Relatório Geral de Depósitos**\n\n` +
+              `Desde a data de criação da sua conta em **${accountDateStr}**, você ainda não realizou depósitos confirmados.\n\n` +
+              `O valor total de fundos depositados até o momento é de **${formatCurrency(0, 'KZ')}**.\n\n` +
+              `Quando quiser fazer sua primeira recarga a partir de ${formatCurrency(MIN_RECHARGE, 'KZ')}, é só enviar /depositar que te ajudo passo a passo! 😊`;
+          }
+        }
+
+        botReply(() => ({
+          id: 'bot-' + Date.now(),
+          sender: 'bot',
+          time: nowTime(),
+          type: 'deposit_summary',
+          text: reportText,
+          payload: summary,
         }));
         return;
       }
@@ -736,6 +921,7 @@ export default function Recharge() {
       showToast,
       createRechargeOrder,
       fetchRecentRecharges,
+      fetchDepositSummary,
     ]
   );
 
@@ -909,6 +1095,16 @@ export default function Recharge() {
                 <FileText className="w-4 h-4 text-[#8e44ad]" />
                 <span>Histórico de Depósitos</span>
               </button>
+              <button
+                onClick={() => {
+                  setShowMenuDropdown(false);
+                  handleSendMessage('/total_deposito');
+                }}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2.5 cursor-pointer"
+              >
+                <BarChart3 className="w-4 h-4 text-[#10b981]" />
+                <span>Total de Depósitos</span>
+              </button>
               <div className="h-px bg-gray-100 my-1" />
               <button
                 onClick={() => {
@@ -1053,6 +1249,15 @@ export default function Recharge() {
                         /historico
                       </span>{' '}
                       — Acompanhar seus depósitos
+                      <br />
+                      •{' '}
+                      <span
+                        onClick={() => handleSendMessage('/total_deposito')}
+                        className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
+                      >
+                        /total_deposito
+                      </span>{' '}
+                      — Relatório e total de depósitos
                     </p>
                     <p className="text-[#707579] text-[13px] pt-1.5 border-t border-gray-100">
                       🟢 Depósitos abertos 24 horas por dia (24/24)! Clique em /depositar para começar 😊
@@ -1292,6 +1497,13 @@ export default function Recharge() {
                   </div>
                 )}
 
+                {/* RELATÓRIO DE TOTAL DE DEPÓSITOS */}
+                {msg.type === 'deposit_summary' && (
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
+                    {msg.text && renderBotText(msg.text)}
+                  </div>
+                )}
+
                 <div className="flex justify-end mt-1 text-[11px] text-[#707579] font-normal select-none">
                   <span>{msg.time}</span>
                 </div>
@@ -1359,22 +1571,58 @@ export default function Recharge() {
                   {/* Linha 3 — 2 colunas */}
                   <div className="grid grid-cols-2">
                     <button
+                      onClick={() => handleSendMessage('/total_deposito')}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-b border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      📊  Total Depósito
+                    </button>
+                    <button
                       onClick={() => handleSendMessage('/historico')}
-                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20"
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-b border-white/20"
                       style={{ background: '#5288c1' }}
                       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                     >
                       📋  Histórico
                     </button>
+                  </div>
+                  {/* Linha 4 — Horários */}
+                  <button
+                    onClick={() => handleSendMessage('/horario')}
+                    className="w-full py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
+                    style={{ background: '#5288c1' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                  >
+                    🕐  Horários (24/24)
+                  </button>
+                </div>
+              )}
+
+              {/* INLINE KEYBOARD APÓS RELATÓRIO DE TOTAL DE DEPÓSITOS — estilo BotFather oficial */}
+              {msg.type === 'deposit_summary' && (
+                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
+                  <div className="grid grid-cols-2">
                     <button
-                      onClick={() => handleSendMessage('/horario')}
+                      onClick={() => handleSendMessage('/depositar')}
+                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20"
+                      style={{ background: '#5288c1' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    >
+                      💳  Fazer Depósito
+                    </button>
+                    <button
+                      onClick={() => handleSendMessage('/saldo')}
                       className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
                       style={{ background: '#5288c1' }}
                       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
                     >
-                      🕐  Horários
+                      💰  Ver Saldo
                     </button>
                   </div>
                 </div>
