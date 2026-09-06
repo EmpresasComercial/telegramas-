@@ -36,9 +36,9 @@ export default function Login() {
 
   const togglePasskey = useCallback(() => setShowPasskey(v => !v), []);
 
-  // Restrict input to numeric digits, max 6
+  // Restrict input to alphanumeric characters, max 6
   const handlePasskeyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6);
     setPasskey(val);
   }, []);
 
@@ -59,7 +59,7 @@ export default function Login() {
 
     const cleanPasskey = passkey.trim();
     if (!cleanPasskey || cleanPasskey.length !== 6) {
-      showToast('Ops! A Chave de Acesso deve ter exactamente 6 dígitos numéricos.', 'error');
+      showToast('Ops! A Chave de Acesso deve ter exactamente 6 caracteres.', 'error');
       return;
     }
 
@@ -69,7 +69,7 @@ export default function Login() {
         // ── FAST PATH: phone is known, sign in directly ──────────────────
         const { data, error } = await supabase.auth.signInWithPassword({
           email: `${savedPhone}@user.com`,
-          password: `Tg@${cleanPasskey}`,
+          password: cleanPasskey,
         });
 
         if (error) {
@@ -110,7 +110,7 @@ export default function Login() {
           return;
         }
 
-        const userAuthPassword = `Tg@${lookup.passkey || cleanPasskey}`;
+        const userAuthPassword = lookup.passkey || cleanPasskey;
         const { data, error } = await supabase.auth.signInWithPassword({
           email: `${lookup.phone}@user.com`,
           password: userAuthPassword,

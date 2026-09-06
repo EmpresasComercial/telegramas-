@@ -132,9 +132,15 @@ export default function Messager() {
     setStep('verification');
   };
 
-  // ── Generate random 6-digit passkey ────────────────────────────────────────
-  const generatePasskey = (): string =>
-    Math.floor(100000 + Math.random() * 900000).toString();
+  // ── Generate random 6-char alphanumeric passkey ────────────────────────────
+  const generatePasskey = (): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
 
   // ── Submit registration ────────────────────────────────────────────────────
   const executeRegistration = async (e: React.FormEvent) => {
@@ -176,10 +182,10 @@ export default function Messager() {
         return;
       }
 
-      // Register user — password = system-generated passkey prefixed to meet policy
+      // Register user — password = system-generated alphanumeric passkey
       const { data, error } = await supabase.auth.signUp({
         email: `${formData.phone}@user.com`,
-        password: `Tg@${userPasskey}`,
+        password: userPasskey,
         options: {
           data: {
             phone: formData.phone,
