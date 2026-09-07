@@ -409,7 +409,8 @@ export default function Withdraw() {
       }
 
       // 1. Comandos estritos de controle do chat
-      if (['/start', '/inicio', '/ajuda', '/help', '/menu', 'start', 'inicio', 'ajuda', 'help', 'menu'].includes(rawInput.trim().toLowerCase())) {
+      const trimmedInput = content.toLowerCase();
+      if (['/start', '/inicio', '/ajuda', '/help', '/menu', 'start', 'inicio', 'ajuda', 'help', 'menu'].includes(trimmedInput)) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -419,7 +420,7 @@ export default function Withdraw() {
         return;
       }
 
-      if (['/limpar', '/reset', '/clear', 'limpar', 'reset', 'clear'].includes(rawInput.trim().toLowerCase())) {
+      if (['/limpar', '/reset', '/clear', 'limpar', 'reset', 'clear'].includes(trimmedInput)) {
         try {
           localStorage.removeItem(CHAT_STORAGE_KEY);
         } catch (e) {}
@@ -436,7 +437,7 @@ export default function Withdraw() {
         return;
       }
 
-      if (rawInput.trim().toLowerCase() === '/cancelar' || raw === 'cancelar') {
+      if (trimmedInput === '/cancelar' || raw === 'cancelar') {
         setPendingAmount(null);
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -545,7 +546,7 @@ export default function Withdraw() {
         const { data: rawRpc, error: rpcErr } = await (supabase.rpc as any)(
           'classify_withdraw_message',
           {
-            p_message: rawInput,
+            p_message: content,
             p_last_intent: lastIntent,
             p_last_response: lastBotResponse,
           }
