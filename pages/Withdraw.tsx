@@ -366,6 +366,11 @@ export default function Withdraw() {
       if (!textToSend) setInputText('');
       const raw = content.toLowerCase().replace(/^\//, '').trim();
 
+      const withCmds = (text: string) =>
+        text +
+        '\n\n─────────────────\n' +
+        '/retirar  /saldo  /historico\n/banco  /taxa  /horario  /ajuda';
+
       if (pendingAmount !== null) {
         if (['sim', 'confirmar', 'confirma', 'yes', 's', 'ok', 'prosseguir', 'quero'].includes(raw)) {
           processWithdrawal(pendingAmount);
@@ -378,7 +383,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: 'Tudo bem! Cancelei a solicitação. Quando quiser realizar uma nova retirada, é só me enviar /retirar. Tenha um ótimo dia! 😊',
+            text: withCmds('Tudo bem! Cancelei a solicitação. Quando quiser realizar uma nova retirada, é só enviar /retirar 😊'),
           }));
           return;
         }
@@ -390,7 +395,7 @@ export default function Withdraw() {
               sender: 'bot',
               time: nowTime(),
               type: 'text',
-              text: `Quase lá! Mas seu saldo disponível é de ${formatCurrency(info.balance, 'KZ')}. Que tal escolher um valor até esse limite? 😉`,
+              text: withCmds(`Quase lá! Mas seu saldo disponível é de ${formatCurrency(info.balance, 'KZ')}. Escolha um valor até esse limite 😉`),
             }));
             return;
           }
@@ -408,9 +413,9 @@ export default function Withdraw() {
         }
       }
 
-      // 1. Comandos estritos de controle do chat
       const trimmedInput = content.toLowerCase();
-      if (['/start', '/inicio', '/ajuda', '/help', '/menu', 'start', 'inicio', 'ajuda', 'help', 'menu'].includes(trimmedInput)) {
+
+      if (['/start', '/inicio', '/ajuda', '/help', '/menu', 'start', 'inicio', 'ajuda', 'help', 'menu', 'oi', 'olá', 'ola'].includes(trimmedInput)) {
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -421,18 +426,9 @@ export default function Withdraw() {
       }
 
       if (['/limpar', '/reset', '/clear', 'limpar', 'reset', 'clear'].includes(trimmedInput)) {
-        try {
-          localStorage.removeItem(CHAT_STORAGE_KEY);
-        } catch (e) {}
+        try { localStorage.removeItem(CHAT_STORAGE_KEY); } catch (e) {}
         setPendingAmount(null);
-        setMessages([
-          {
-            id: 'welcome-' + Date.now(),
-            sender: 'bot',
-            time: nowTime(),
-            type: 'welcome',
-          },
-        ]);
+        setMessages([{ id: 'welcome-' + Date.now(), sender: 'bot', time: nowTime(), type: 'welcome' }]);
         showToast('Conversa reiniciada!', 'success');
         return;
       }
@@ -444,7 +440,152 @@ export default function Withdraw() {
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text: 'Tudo bem! Operação cancelada. Se precisar de algo, é só me chamar 😊',
+          text: withCmds('Tudo bem! Operação cancelada. Se precisar de algo, é só me chamar 😊'),
+        }));
+        return;
+      }
+
+      if (['/saldo', '/carteira', 'saldo', 'carteira', 'meu saldo', 'ver saldo'].includes(trimmedInput)) {
+        const freshData = await fetchData();
+        const bal = freshData?.balance ?? info.balance;
+        botReply(() => ({
+          id: 'bot-' + Date.now(),
+          sender: 'bot',
+          time: nowTime(),
+          type: 'text',
+          text: withCmds(
+            `💰 **Seu saldo disponível:**\n\n**${formatCurrency(bal, 'KZ')}**\n\nPara realizar um saque, envie /retirar 😊`
+          ),
+        }));
+        return;
+      }
+
+      if (['/historico', '/registos', '/extrato', 'historico', 'histórico', 'registos', 'extrato', 'historicos', 'históricos'].includes(trimmedInput)) {
+        setIsTyping(true);
+        const history = await fetchRecentHistory();
+        setIsTyping(false);
+        botReply(() => ({
+          id: 'bot-' + Date.now(),
+          sender: 'bot',
+          time: nowTime(),
+          type: 'history_list',
+          text: withCmds('📋 Aqui estão seus últimos pedidos de retirada:'),
+          payload: { list: history },
+        }));
+        return;
+      }
+
+      if (['/banco', '/iban', '/conta', 'banco', 'iban', 'conta'].includes(trimmedInput)) {
+        if (!info.hasBank) {
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'no_bank',
+            text: withCmds('🏦 Você ainda não tem uma conta bancária cadastrada. Cadastre agora para poder realizar saques:'),
+          }));
+        } else {
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'text',
+            text: withCmds(
+              `🏦 **Sua conta bancária:**\n\n• **Banco:** ${info.bankName}\n• **IBAN:** \`${info.iban}\`\n\nPara sacar, envie /retirar 😊`
+            ),
+          }));
+        }
+        return;
+      }
+
+      if (['/horario', '/horarios', 'horario', 'horário', 'horarios', 'horários', 'horario de atendimento', 'horário de atendimento'].includes(trimmedInput)) {
+        const sched = getWithdrawScheduleStatus();
+        botReply(() => ({
+          id: 'bot-' + Date.now(),
+          sender: 'bot',
+          time: nowTime(),
+          type: 'text',
+          text: withCmds(
+            `🕐 **Horário de Retiradas:**\n\n• **Seg a Sex:** 09:00 às 18:00\n• **Sábado/Domingo:** Fechado\n\n${sched.isOpen ? '🟢 **Aberto agora!** Pode enviar /retirar 😊' : '🔴 **Fechado agora.** Retorne em horário comercial.'}`
+          ),
+        }));
+        return;
+      }
+
+      if (['/taxa', '/taxas', '/limites', '/regras', 'taxa', 'taxas', 'limites', 'regras', 'taxa de saque', 'taxa de retirada'].includes(trimmedInput)) {
+        botReply(() => ({
+          id: 'bot-' + Date.now(),
+          sender: 'bot',
+          time: nowTime(),
+          type: 'text',
+          text: withCmds(
+            `📋 **Regras e Taxas de Retirada:**\n\n• **Taxa operacional:** ${FEE_PERCENT}% sobre o valor solicitado\n• **Valor mínimo:** ${formatCurrency(MIN_WITHDRAW, 'KZ')}\n• **Valor máximo:** ${formatCurrency(MAX_WITHDRAW, 'KZ')} por operação\n• **Prazo de pagamento:** Até 24h úteis\n• **Horário:** Seg a Sex, 09:00 às 18:00\n\nPara sacar agora, envie /retirar 😊`
+          ),
+        }));
+        return;
+      }
+
+      const withdrawKeywords = [
+        '/retirar', '/sacar', '/retirada', '/saque',
+        'retirar', 'sacar', 'retirada', 'saque',
+        'quero retirar', 'quero sacar', 'quero levantar', 'quero fazer saque',
+        'quero fazer retirada', 'fazer retirada', 'fazer saque',
+        'levantar', 'levantamento', 'preciso sacar', 'preciso retirar',
+        'como retirar', 'como sacar', 'vou retirar', 'vou sacar',
+        'realizar retirada', 'realizar saque',
+      ];
+      const isWithdrawIntent =
+        withdrawKeywords.includes(trimmedInput) ||
+        withdrawKeywords.some((kw) => trimmedInput.includes(kw));
+
+      if (isWithdrawIntent) {
+        if (info.hasPending) {
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'text',
+            text: withCmds('⏳ Você já tem uma retirada em análise. Aguarde a aprovação antes de solicitar um novo saque 😊'),
+          }));
+          return;
+        }
+        if (!isWithdrawAllowed()) {
+          const sched = getWithdrawScheduleStatus();
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'text',
+            text: withCmds(`🕒 As retiradas estão fechadas no momento.\n\n${sched.text}\n\nVolta no horário comercial! 😊`),
+          }));
+          return;
+        }
+        if (!info.hasBank) {
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'no_bank',
+            text: withCmds('🏦 Para sacar, você precisa primeiro cadastrar sua conta bancária:'),
+          }));
+          return;
+        }
+        if (!info.hasBots) {
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'no_bots',
+            text: withCmds('🤖 Para liberar o saque, você precisa ter um robô de rendimento ativo:'),
+          }));
+          return;
+        }
+        botReply(() => ({
+          id: 'bot-' + Date.now(),
+          sender: 'bot',
+          time: nowTime(),
+          type: 'amount_selector',
+          text: `💸 Ótimo! Seu saldo disponível é **${formatCurrency(info.balance, 'KZ')}**.\n\nQual valor deseja retirar?\n\n*(Mín: ${formatCurrency(MIN_WITHDRAW, 'KZ')} | Máx: ${formatCurrency(MAX_WITHDRAW, 'KZ')} | Taxa: ${FEE_PERCENT}%)*`,
         }));
         return;
       }
@@ -459,31 +600,6 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: 'Olá! Você já tem uma retirada em análise no momento ⏳ Aguarde a aprovação antes de solicitar um novo saque, tá bem? 😊',
-          }));
-          return;
-        }
-
-        if (!isWithdrawAllowed()) {
-          botReply(() => ({
-            id: 'bot-' + Date.now(),
-            sender: 'bot',
-            time: nowTime(),
-            type: 'text',
-            text:
-              'Olá! Por favor, lamento... Neste momento as retiradas estão fechadas 🕒\n\n' +
-              'Nosso horário é de segunda a sexta, das 09:00 às 18:00. Retorne no horário comercial que terei muito gosto em ajudá-lo! 😊',
-          }));
-          return;
-        }
-
-        if (!info.hasBank) {
-          botReply(() => ({
-            id: 'bot-' + Date.now(),
-            sender: 'bot',
-            time: nowTime(),
-            type: 'no_bank',
-            text: 'Opa! Para retirar ' + formatCurrency(amount, 'KZ') + ', você só precisa cadastrar sua conta bancária primeiro 🏦 É bem rapidinho!',
           }));
           return;
         }
