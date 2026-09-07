@@ -449,6 +449,7 @@ export default function Withdraw() {
         return;
       }
 
+      const numericOnly = parseInt(raw.replace(/\D/g, ''), 10);
       if (!isNaN(numericOnly) && numericOnly >= 1 && raw.replace(/\D/g, '') === raw) {
         const amount = numericOnly;
 
