@@ -966,10 +966,10 @@ export default function Recharge() {
         return;
       }
 
-      // 13. MOTOR CONVERSACIONAL DE DEPÓSITO (sys_t1000 via RPC backend)
+      // 13. MOTOR CONVERSACIONAL DE DEPÓSITO (RPC backend classify_deposit_message)
       setIsTyping(true);
       try {
-        const { data: rawIntentData, error: intentError } = await (supabase.rpc as any)(
+        const { data: rawRpc, error: rpcErr } = await (supabase.rpc as any)(
           'classify_deposit_message',
           {
             p_message: rawInput,
@@ -980,15 +980,9 @@ export default function Recharge() {
 
         setIsTyping(false);
 
-        const intentData = rawIntentData as {
-          category: string;
-          response: string;
-          confidence: number;
-          action: string;
-          matched_keyword?: string | null;
-        } | null;
+        const intentData = (!rpcErr && rawRpc && rawRpc.response) ? rawRpc : null;
 
-        if (!intentError && intentData && intentData.category) {
+        if (intentData && intentData.response) {
           const { category, response, action } = intentData;
           setLastIntent(category);
           setLastBotResponse(response);
@@ -1045,7 +1039,7 @@ export default function Recharge() {
             return;
           }
 
-          // Resposta conversacional padrão (saudação, cortesia, usdt, segurança, taxas, prazos, etc.)
+          // Resposta conversacional padrão
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
