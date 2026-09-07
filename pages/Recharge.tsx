@@ -148,6 +148,54 @@ function formatDepositDateTime(isoStr?: string | null): string {
   return `dia ${day} de ${month} às ${hours}h${minutes}`;
 }
 
+const BotFormattedText = React.memo(function BotFormattedText({
+  text,
+  onCommandClick,
+}: {
+  text: string;
+  onCommandClick: (cmd: string) => void;
+}) {
+  return (
+    <>
+      {text.split('\n').map((line, lIdx, arr) => {
+        const parts = line.split(/(\*\*.*?\*\*|`[^`]+`|\/[-_a-zA-Z0-9]+)/g);
+        return (
+          <span key={lIdx}>
+            {parts.map((part, pIdx) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={pIdx}>{part.slice(2, -2)}</strong>;
+              }
+              if (part.startsWith('`') && part.endsWith('`')) {
+                return (
+                  <code
+                    key={pIdx}
+                    className="font-mono text-[12px] bg-gray-100 px-1 py-0.5 rounded text-[#2481cc]"
+                  >
+                    {part.slice(1, -1)}
+                  </code>
+                );
+              }
+              if (part.startsWith('/') && VALID_COMMANDS.has(part.toLowerCase())) {
+                return (
+                  <span
+                    key={pIdx}
+                    onClick={() => onCommandClick(part)}
+                    className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
+                  >
+                    {part}
+                  </span>
+                );
+              }
+              return part;
+            })}
+            {lIdx < arr.length - 1 && <br />}
+          </span>
+        );
+      })}
+    </>
+  );
+});
+
 export default function Recharge() {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -190,13 +238,21 @@ export default function Recharge() {
     }
   });
 
+  const [lastIntent, setLastIntent] = useState<string | null>(null);
+  const [lastBotResponse, setLastBotResponse] = useState<string | null>(null);
+
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const mainChatRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = chatBottomRef.current;
+    if (!el) return;
+    const frame = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [messages, isTyping]);
 
   useEffect(() => {
@@ -264,13 +320,13 @@ export default function Recharge() {
             type: 'welcome',
           },
         ]);
-      }, 500);
+      }, 100);
     }
 
     initChat();
   }, [fetchData]);
 
-  const botReply = useCallback((builder: () => ChatMessage, delay = 500) => {
+  const botReply = useCallback((builder: () => ChatMessage, delay = 160) => {
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
@@ -571,29 +627,28 @@ export default function Recharge() {
       const rawInput = (textToSend || inputText).trim();
       if (!rawInput) return;
 
-      let displayContent = rawInput;
-      const isPureNumeric = /^\d+$/.test(rawInput.replace(/\s+/g, ''));
-      if (isPureNumeric && !rawInput.startsWith('/')) {
-        displayContent = '/' + rawInput;
-      }
+      const isPureNumeric = /^\d+$/.test(rawInput.replace(/[\s.,KZkz]/g, ''));
+      const isSlashCmd = rawInput.startsWith('/');
 
       const userMsg: ChatMessage = {
         id: 'usr-' + Date.now(),
         sender: 'user',
         time: nowTime(),
-        text: displayContent,
+        text: rawInput,
         type: 'text',
       };
 
       setMessages((prev) => [...prev, userMsg]);
       if (!textToSend) setInputText('');
 
-      const cleanCmd = displayContent.toLowerCase().replace(/^\//, '').trim();
+      const cleanCmd = rawInput.toLowerCase().replace(/^\//, '').trim();
 
+      // 1. Cancelamento
       if (['cancelar', 'cancela', 'sair', 'deixa'].includes(cleanCmd)) {
         setDepositAmount(null);
         setSelectedBank(null);
         setActiveRechargeId(null);
+        setLastIntent(null);
         try {
           localStorage.removeItem('deposit_bot_recharge_id');
         } catch (e) {}
@@ -608,7 +663,12 @@ export default function Recharge() {
         return;
       }
 
-      if (['start', 'inicio', 'ajuda', 'help', 'menu', 'oi', 'ola'].includes(cleanCmd)) {
+      // 2. Menu / Início estático
+      if (
+        (isSlashCmd && ['start', 'inicio', 'início', 'ajuda', 'help', 'menu'].includes(cleanCmd)) ||
+        ['/start', '/inicio', '/início', '/ajuda', '/help', '/menu'].includes(rawInput.toLowerCase())
+      ) {
+        setLastIntent('menu');
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -618,7 +678,12 @@ export default function Recharge() {
         return;
       }
 
-      if (['saldo', 'carteira', 'ver saldo', 'meu saldo'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
+      // 3. Consulta de Saldo
+      if (
+        isSlashCmd &&
+        ['saldo', 'carteira', 'versaldo', 'meusaldo'].includes(cleanCmd)
+      ) {
+        setLastIntent('saldo');
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -633,7 +698,9 @@ export default function Recharge() {
         return;
       }
 
-      if (['bancos', 'banco', 'contas', 'bancos disponiveis'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
+      // 4. Lista de Bancos
+      if (isSlashCmd && ['bancos', 'banco', 'contas'].includes(cleanCmd)) {
+        setLastIntent('metodos_deposito');
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -644,7 +711,9 @@ export default function Recharge() {
         return;
       }
 
-      if (['horario', 'horarios', 'tempo', 'atendimento'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
+      // 5. Horários
+      if (isSlashCmd && ['horario', 'horarios'].includes(cleanCmd)) {
+        setLastIntent('horarios');
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -657,7 +726,9 @@ export default function Recharge() {
         return;
       }
 
-      if (['limites', 'regras', 'taxa', 'taxas', 'info'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
+      // 6. Limites e Regras
+      if (isSlashCmd && ['limites', 'regras', 'taxa', 'taxas', 'info'].includes(cleanCmd)) {
+        setLastIntent('limites');
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -678,7 +749,8 @@ export default function Recharge() {
         return;
       }
 
-      const isTotalDepositCmd = [
+      // 7. Relatório Total de Depósitos
+      const isTotalDepositCmd = isSlashCmd && [
         'total',
         'total_deposito',
         'total_depositos',
@@ -686,21 +758,9 @@ export default function Recharge() {
         'totaldepositos',
         'extrato',
         'meus_depositos',
-        'meus depositos',
-        'meus depósitos',
-        'total de deposito',
-        'total de depósito',
-        'total de depositos',
-        'total de depósitos',
-        'total deposito',
-        'total depósito',
-        'total depositos',
-        'total depósitos',
         'relatorio',
         'relatório',
-        'total de recargas',
-        'total recargas',
-      ].some((k) => cleanCmd === k || cleanCmd.includes(k));
+      ].includes(cleanCmd);
 
       if (isTotalDepositCmd) {
         setIsTyping(true);
@@ -776,7 +836,8 @@ export default function Recharge() {
         return;
       }
 
-      if (['historico', 'registos', 'depositos', 'recargas'].some((k) => cleanCmd === k || cleanCmd.includes(k))) {
+      // 8. Histórico de Depósitos
+      if (isSlashCmd && ['historico', 'registos'].includes(cleanCmd)) {
         setIsTyping(true);
         const recentList = await fetchRecentRecharges();
         setIsTyping(false);
@@ -791,7 +852,8 @@ export default function Recharge() {
         return;
       }
 
-      if (['limpar', 'reset', 'clear'].includes(cleanCmd)) {
+      // 9. Limpar Conversa
+      if (isSlashCmd && ['limpar', 'reset', 'clear'].includes(cleanCmd)) {
         try {
           localStorage.removeItem(CHAT_STORAGE_KEY);
           localStorage.removeItem('deposit_bot_recharge_id');
@@ -799,6 +861,8 @@ export default function Recharge() {
         setDepositAmount(null);
         setSelectedBank(null);
         setActiveRechargeId(null);
+        setLastIntent(null);
+        setLastBotResponse(null);
         setMessages([
           {
             id: 'welcome-' + Date.now(),
@@ -811,14 +875,12 @@ export default function Recharge() {
         return;
       }
 
-      if (
-        ['depositar', 'recarregar', 'deposito', 'recarga', 'quero depositar', 'adicionar saldo'].some(
-          (k) => cleanCmd === k || cleanCmd.includes(k)
-        )
-      ) {
+      // 10. Comando direto /depositar ou /deposito
+      if (isSlashCmd && ['depositar', 'recarregar', 'deposito', 'recarga'].includes(cleanCmd)) {
         setDepositAmount(null);
         setSelectedBank(null);
         setActiveRechargeId(null);
+        setLastIntent('como_depositar');
 
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -838,6 +900,7 @@ export default function Recharge() {
         return;
       }
 
+      // 11. Seleção de banco ativo se já houver valor definido
       const matchedBank = collectionBanks.find(
         (b) =>
           cleanCmd === b.nome_banco.toLowerCase() ||
@@ -850,9 +913,9 @@ export default function Recharge() {
         return;
       }
 
+      // 12. Entrada numérica direta de valor de depósito
       const numericVal = parseInt(cleanCmd.replace(/\D/g, ''), 10);
-
-      if (!isNaN(numericVal) && numericVal > 0) {
+      if (isPureNumeric && !isNaN(numericVal) && numericVal > 0) {
         if (numericVal < MIN_RECHARGE) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
@@ -882,6 +945,7 @@ export default function Recharge() {
         }
 
         setDepositAmount(numericVal);
+        setLastIntent('valor_deposito');
 
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -902,14 +966,108 @@ export default function Recharge() {
         return;
       }
 
+      // 13. MOTOR CONVERSACIONAL DE DEPÓSITO (sys_t1000 via RPC backend)
+      setIsTyping(true);
+      try {
+        const { data: rawIntentData, error: intentError } = await (supabase.rpc as any)(
+          'classify_deposit_message',
+          {
+            p_message: rawInput,
+            p_last_intent: lastIntent,
+            p_last_response: lastBotResponse,
+          }
+        );
+
+        setIsTyping(false);
+
+        const intentData = rawIntentData as {
+          category: string;
+          response: string;
+          confidence: number;
+          action: string;
+          matched_keyword?: string | null;
+        } | null;
+
+        if (!intentError && intentData && intentData.category) {
+          const { category, response, action } = intentData;
+          setLastIntent(category);
+          setLastBotResponse(response);
+
+          // Ação: Seletor de Valor
+          if (action === 'TRIGGER_AMOUNT_SELECTOR') {
+            setDepositAmount(null);
+            setSelectedBank(null);
+            setActiveRechargeId(null);
+            botReply(() => ({
+              id: 'bot-' + Date.now(),
+              sender: 'bot',
+              time: nowTime(),
+              type: 'amount_selector',
+              text:
+                response +
+                '\n\n' +
+                '*(Mínimo: ' +
+                formatCurrency(MIN_RECHARGE, 'KZ') +
+                ' | Máximo: ' +
+                formatCurrency(MAX_RECHARGE, 'KZ') +
+                ')*',
+            }));
+            return;
+          }
+
+          // Ação: Mostrar Bancos
+          if (action === 'TRIGGER_BANKS') {
+            botReply(() => ({
+              id: 'bot-' + Date.now(),
+              sender: 'bot',
+              time: nowTime(),
+              type: 'banks_list',
+              text: response,
+              payload: { banks: collectionBanks },
+            }));
+            return;
+          }
+
+          // Ação: Histórico de depósitos
+          if (action === 'TRIGGER_HISTORY') {
+            setIsTyping(true);
+            const recentList = await fetchRecentRecharges();
+            setIsTyping(false);
+
+            botReply(() => ({
+              id: 'bot-' + Date.now(),
+              sender: 'bot',
+              time: nowTime(),
+              type: 'history_list',
+              text: response,
+              payload: { list: recentList },
+            }));
+            return;
+          }
+
+          // Resposta conversacional padrão (saudação, cortesia, usdt, segurança, taxas, prazos, etc.)
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'text',
+            text: response,
+          }));
+          return;
+        }
+      } catch (err) {
+        console.error('Erro na classificação conversacional de depósito:', err);
+        setIsTyping(false);
+      }
+
+      // Fallback seguro caso o serviço backend fique temporariamente indisponível
       botReply(() => ({
         id: 'bot-' + Date.now(),
         sender: 'bot',
         time: nowTime(),
         type: 'text',
         text:
-          'Ops, não entendi direitinho! 😅\n\n' +
-          'Você pode me enviar /ajuda para ver o menu ou /depositar para fazer uma recarga. Estou à disposição! 😊',
+          'Quero te ajudar! 😊 Pode me explicar um pouco melhor o que você precisa sobre o seu depósito? Se preferir, envie /depositar para recarregar ou /ajuda para ver as opções.',
       }));
     },
     [
@@ -922,46 +1080,15 @@ export default function Recharge() {
       createRechargeOrder,
       fetchRecentRecharges,
       fetchDepositSummary,
+      lastIntent,
+      lastBotResponse,
     ]
   );
 
-  const renderBotText = (text: string) => {
-    return text.split('\n').map((line, lIdx, arr) => {
-      const parts = line.split(/(\*\*.*?\*\*|`[^`]+`|\/[-_a-zA-Z0-9]+)/g);
-      return (
-        <span key={lIdx}>
-          {parts.map((part, pIdx) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-              return <strong key={pIdx}>{part.slice(2, -2)}</strong>;
-            }
-            if (part.startsWith('`') && part.endsWith('`')) {
-              return (
-                <code
-                  key={pIdx}
-                  className="font-mono text-[12px] bg-gray-100 px-1 py-0.5 rounded text-[#2481cc]"
-                >
-                  {part.slice(1, -1)}
-                </code>
-              );
-            }
-            if (part.startsWith('/') && VALID_COMMANDS.has(part.toLowerCase())) {
-              return (
-                <span
-                  key={pIdx}
-                  onClick={() => handleSendMessage(part)}
-                  className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
-                >
-                  {part}
-                </span>
-              );
-            }
-            return part;
-          })}
-          {lIdx < arr.length - 1 && <br />}
-        </span>
-      );
-    });
-  };
+  const renderBotText = useCallback(
+    (text: string) => <BotFormattedText text={text} onCommandClick={handleSendMessage} />,
+    [handleSendMessage]
+  );
 
   return (
     <div
@@ -1013,7 +1140,9 @@ export default function Recharge() {
             style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
           >
             <ArrowDownToLine className="w-5 h-5 stroke-[2.4]" />
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full"></span>
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full flex items-center justify-center">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
+            </span>
           </div>
 
           <div className="flex flex-col min-w-0">
@@ -1022,6 +1151,9 @@ export default function Recharge() {
               <svg className="w-4 h-4 text-[#3390ec]" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
               </svg>
+              <span className="text-[10.5px] bg-emerald-50 text-emerald-700 font-semibold px-1.5 py-0.5 rounded-full border border-emerald-200/80 leading-none">
+                ⚡ Instantâneo
+              </span>
             </div>
             <span
               onClick={() => handleSendMessage('/saldo')}
