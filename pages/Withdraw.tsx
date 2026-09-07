@@ -121,6 +121,8 @@ export default function Withdraw() {
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [pendingAmount, setPendingAmount] = useState<number | null>(null);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
+  const [lastIntent, setLastIntent] = useState<string | null>(null);
+  const [lastBotResponse, setLastBotResponse] = useState<string | null>(null);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const mainChatRef = useRef<HTMLDivElement>(null);
@@ -714,17 +716,123 @@ export default function Withdraw() {
         return;
       }
 
+      // MOTOR CONVERSACIONAL DE RETIRADA (sys_t1000_retirada via RPC backend)
+      setIsTyping(true);
+      try {
+        const { data: rawRpc, error: rpcErr } = await (supabase.rpc as any)(
+          'classify_withdraw_message',
+          {
+            p_message: rawInput,
+            p_last_intent: lastIntent,
+            p_last_response: lastBotResponse,
+          }
+        );
+
+        setIsTyping(false);
+
+        const intentData = (!rpcErr && rawRpc && rawRpc.response) ? rawRpc : null;
+
+        if (intentData) {
+          const { category, response, action } = intentData;
+          setLastIntent(category);
+          setLastBotResponse(response);
+
+          // Ação: Seletor de Valor de Retirada
+          if (action === 'TRIGGER_AMOUNT_SELECTOR') {
+            if (!info.hasBank) {
+              botReply(() => ({
+                id: 'bot-' + Date.now(),
+                sender: 'bot',
+                time: nowTime(),
+                type: 'no_bank',
+                text: response + '\n\nPara começar, cadastre sua conta bancária:',
+              }));
+              return;
+            }
+            if (!info.hasBots) {
+              botReply(() => ({
+                id: 'bot-' + Date.now(),
+                sender: 'bot',
+                time: nowTime(),
+                type: 'no_bots',
+                text: response + '\n\nPara liberar o saque, ative um robô de rendimento:',
+              }));
+              return;
+            }
+            botReply(() => ({
+              id: 'bot-' + Date.now(),
+              sender: 'bot',
+              time: nowTime(),
+              type: 'amount_selector',
+              text:
+                response +
+                '\n\n' +
+                '*(Mínimo: ' +
+                formatCurrency(MIN_WITHDRAW, 'KZ') +
+                ' | Máximo: ' +
+                formatCurrency(MAX_WITHDRAW, 'KZ') +
+                ' | Taxa: ' +
+                FEE_PERCENT +
+                '%)*',
+            }));
+            return;
+          }
+
+          // Ação: Histórico de Saques
+          if (action === 'TRIGGER_HISTORY') {
+            setIsTyping(true);
+            const history = await fetchRecentHistory();
+            setIsTyping(false);
+            botReply(() => ({
+              id: 'bot-' + Date.now(),
+              sender: 'bot',
+              time: nowTime(),
+              type: 'history_list',
+              text: response,
+              payload: { list: history },
+            }));
+            return;
+          }
+
+          // Ação: Configuração de Banco
+          if (action === 'TRIGGER_BANK_CONFIG') {
+            if (!info.hasBank) {
+              botReply(() => ({
+                id: 'bot-' + Date.now(),
+                sender: 'bot',
+                time: nowTime(),
+                type: 'no_bank',
+                text: response,
+              }));
+              return;
+            }
+          }
+
+          // Resposta conversacional padrão
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'text',
+            text: response,
+          }));
+          return;
+        }
+      } catch (err) {
+        console.error('Erro na classificação de retirada:', err);
+        setIsTyping(false);
+      }
+
       botReply(() => ({
         id: 'bot-' + Date.now(),
         sender: 'bot',
         time: nowTime(),
         type: 'text',
         text:
-          'Ops, não entendi direitinho! 😅\n\n' +
-          'Você pode me enviar /ajuda para ver as opções ou /retirar para fazer um saque. Estou à disposição! 😊',
+          'Quero te ajudar! 😊 Pode me explicar um pouco melhor o que você precisa sobre o seu saque? Se preferir, envie /retirar para sacar ou /ajuda para ver as opções.',
       }));
     },
-    [inputText, info, pendingAmount, processWithdrawal, botReply, showToast, fetchRecentHistory]
+    [inputText, info, pendingAmount, processWithdrawal, botReply, showToast, fetchRecentHistory, lastIntent, lastBotResponse]
   );
 
   const handleConfirmButton = useCallback(() => {
