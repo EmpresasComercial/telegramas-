@@ -33,9 +33,9 @@ const VALID_COMMANDS = new Set([
   '/banco', '/iban', '/conta',
   '/horario', '/horarios',
   '/taxa', '/taxas', '/limites', '/regras',
-  '/historico', '/registos',
+  '/historico', '/registos', '/extrato',
   '/limpar', '/reset', '/clear',
-  '/cancelar'
+  '/cancelar', '/confirmar'
 ]);
 
 function isRecognizedCommand(text: string): boolean {
@@ -44,6 +44,138 @@ function isRecognizedCommand(text: string): boolean {
   if (!trimmed.startsWith('/')) return false;
   const cmd = trimmed.split(/\s+/)[0].toLowerCase();
   return VALID_COMMANDS.has(cmd);
+}
+
+function parseNaturalLanguage(rawInput: string): {
+  intent: 'balance' | 'withdraw' | 'history' | 'bank' | 'schedule' | 'fees' | 'help' | 'clear' | 'cancel' | 'confirm' | 'unknown';
+  amount?: number;
+  isAll?: boolean;
+} {
+  const clean = rawInput.trim();
+  const lower = clean.toLowerCase();
+  const norm = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+  // 1. Confirmar
+  if (
+    norm === '/confirmar' ||
+    ['sim', 'confirmar', 'confirma', 'confirmado', 'quero', 'yes', 's', 'ok', 'prosseguir', 'avancar', 'pode ser', 'pode mandar', 'exato', 'com certeza'].includes(norm)
+  ) {
+    return { intent: 'confirm' };
+  }
+
+  // 2. Cancelar
+  if (
+    norm === '/cancelar' ||
+    ['cancelar', 'cancela', 'cancelado', 'nao', 'abortar', 'deixa', 'deixa pra la', 'desistir', 'esquece', 'voltar'].includes(norm)
+  ) {
+    return { intent: 'cancel' };
+  }
+
+  // 3. Limpar / Reset
+  if (
+    norm === '/limpar' || norm === '/reset' || norm === '/clear' ||
+    ['limpar', 'reset', 'clear', 'limpar chat', 'limpar conversa', 'apagar conversa', 'reiniciar'].includes(norm)
+  ) {
+    return { intent: 'clear' };
+  }
+
+  // 4. Saldo em tempo real
+  if (
+    norm === '/saldo' || norm === '/carteira' ||
+    norm.includes('saldo') || norm.includes('carteira') ||
+    norm.includes('quanto tenho') || norm.includes('quanto eu tenho') ||
+    norm.includes('meu dinheiro') || norm.includes('dinheiro na conta') ||
+    norm.includes('ver saldo') || norm.includes('consultar saldo') ||
+    norm.includes('mostrar saldo') || norm.includes('quanto sobrou') ||
+    norm.includes('quanto posso')
+  ) {
+    return { intent: 'balance' };
+  }
+
+  // 5. Histórico de retiradas real
+  if (
+    norm === '/historico' || norm === '/registos' || norm === '/extrato' ||
+    norm.includes('historico') || norm.includes('extrato') ||
+    norm.includes('meus saques') || norm.includes('minhas retiradas') ||
+    norm.includes('ver historico') || norm.includes('ultimos saques') ||
+    norm.includes('ultimas retiradas') || norm.includes('registos') ||
+    norm.includes('pedidos de retirada') || norm.includes('registro de retirada') ||
+    norm.includes('saques anteriores')
+  ) {
+    return { intent: 'history' };
+  }
+
+  // 6. Dados bancários / Conta
+  if (
+    norm === '/banco' || norm === '/iban' || norm === '/conta' ||
+    norm.includes('meu banco') || norm.includes('minha conta') ||
+    norm.includes('qual meu banco') || norm.includes('qual meu iban') ||
+    norm.includes('dados bancarios') || norm.includes('conta cadastrada') ||
+    norm.includes('cadastrar banco') || norm.includes('trocar banco') ||
+    norm.includes('mudar banco')
+  ) {
+    return { intent: 'bank' };
+  }
+
+  // 7. Horário de funcionamento
+  if (
+    norm === '/horario' || norm === '/horarios' ||
+    norm.includes('horario') || norm.includes('que horas') ||
+    norm.includes('ta aberto') || norm.includes('esta aberto') ||
+    norm.includes('quando abre') || norm.includes('quando fecha') ||
+    norm.includes('atendimento') || norm.includes('funciona hoje')
+  ) {
+    return { intent: 'schedule' };
+  }
+
+  // 8. Taxas, regras e limites
+  if (
+    norm === '/taxa' || norm === '/taxas' || norm === '/limites' || norm === '/regras' ||
+    norm.includes('taxa') || norm.includes('qual a taxa') ||
+    norm.includes('quanto desconta') || norm.includes('limite') ||
+    norm.includes('regras') || norm.includes('valor minimo') ||
+    norm.includes('valor maximo') || norm.includes('qual o minimo')
+  ) {
+    return { intent: 'fees' };
+  }
+
+  // 9. Retirar tudo / Saldo total
+  if (
+    norm.includes('sacar tudo') || norm.includes('retirar tudo') ||
+    norm.includes('saldo total') || norm.includes('levantar tudo') ||
+    norm.includes('todo o saldo') || norm.includes('todo meu saldo')
+  ) {
+    return { intent: 'withdraw', isAll: true };
+  }
+
+  // 10. Saque com extração inteligente de valor
+  const withdrawTriggers = ['sacar', 'retirar', 'levantar', 'saque', 'retirada', 'quero', 'pedir', 'tirar', 'fazer'];
+  const hasWithdrawWord = withdrawTriggers.some(w => norm.includes(w)) || norm.startsWith('/retirar') || norm.startsWith('/sacar');
+
+  // Regex para capturar números digitados (ex: 500, 1.000, 2500 kz, sacar 300)
+  const numberMatch = norm.match(/(?:(?:kz|ao|akz)\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)(?:\s*(?:kz|kwanza|reais|ao|akz))?/i);
+  if (numberMatch && (hasWithdrawWord || /^\d+$/.test(clean.replace(/[\s.,]/g, '')))) {
+    const rawVal = numberMatch[1].replace(/\./g, '').replace(',', '.');
+    const parsedAmt = Math.floor(parseFloat(rawVal));
+    if (!isNaN(parsedAmt) && parsedAmt > 0) {
+      return { intent: 'withdraw', amount: parsedAmt };
+    }
+  }
+
+  if (hasWithdrawWord) {
+    return { intent: 'withdraw' };
+  }
+
+  // 11. Ajuda / Boas-vindas
+  if (
+    norm === '/ajuda' || norm === '/help' || norm === '/menu' || norm === '/start' || norm === '/inicio' ||
+    ['ajuda', 'help', 'menu', 'inicio', 'start', 'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'como funciona', 'o que voce faz', 'comandos'].includes(norm) ||
+    norm.startsWith('oi ') || norm.startsWith('ola ')
+  ) {
+    return { intent: 'help' };
+  }
+
+  return { intent: 'unknown' };
 }
 
 const isWithdrawAllowed = (): boolean => {
@@ -232,13 +364,13 @@ export default function Withdraw() {
             type: 'welcome',
           },
         ]);
-      }, 500);
+      }, 80);
     }
 
     initChat();
   }, [fetchData]);
 
-  const botReply = useCallback((builder: () => ChatMessage, delay = 600) => {
+  const botReply = useCallback((builder: () => ChatMessage, delay = 180) => {
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
@@ -297,7 +429,9 @@ export default function Withdraw() {
                 '• **Valor que vai cair na conta:** **' + formatCurrency(net, 'KZ') + '** 💵\n' +
                 '• **Banco:** ' + info.bankName + '\n' +
                 '• **IBAN:** `' + info.iban + '`\n\n' +
-                'O pagamento será conferido e creditado em até **24 horas úteis**. Terei muito gosto em atendê-lo novamente sempre que precisar! 😊',
+                'O pagamento será conferido e creditado em até **24 horas úteis**. Terei muito gosto em atendê-lo novamente sempre que precisar! 😊\n\n' +
+                '─────────────────\n' +
+                '/historico  •  /saldo  •  /retirar',
             },
           ]);
           setPendingAmount(null);
@@ -341,13 +475,74 @@ export default function Withdraw() {
   const fetchRecentHistory = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('get_my_withdrawals_mcpn');
-      if (error) throw error;
-      const list = Array.isArray(data) ? data.slice(0, 4) : [];
-      return list;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return data.slice(0, 10);
+      }
+      const { data: tableData } = await supabase
+        .from('retiradas_mcpn')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      return Array.isArray(tableData) ? tableData : [];
     } catch {
       return [];
     }
   }, []);
+
+  const formatHistoryAsText = useCallback((list: any[]) => {
+    const withCmds = (text: string) =>
+      text +
+      '\n\n─────────────────\n' +
+      '/retirar  •  /saldo  •  /historico\n/banco  •  /taxa  •  /horario  •  /ajuda';
+
+    if (!list || list.length === 0) {
+      return withCmds(
+        '📋 **Histórico Real de Retiradas:**\n\n' +
+        'Você ainda não realizou nenhum pedido de retirada registrado no sistema.\n\n' +
+        'Assim que realizar um pedido através do comando /retirar, ele aparecerá aqui com o status em tempo real! 😊'
+      );
+    }
+
+    const itemsText = list.map((item: any, idx: number) => {
+      const amount = Number(item.amount) || Number(item.valor) || 0;
+      const rawStatus = (item.status || 'pendente').toLowerCase();
+      let statusEmoji = '⏳';
+      let statusLabel = 'Em Análise (Pendente)';
+      if (rawStatus === 'concluido' || rawStatus === 'aprovado') {
+        statusEmoji = '🟢';
+        statusLabel = 'Aprovado / Pago';
+      } else if (rawStatus === 'rejeitado' || rawStatus === 'cancelado' || rawStatus === 'recusado') {
+        statusEmoji = '🔴';
+        statusLabel = 'Recusado / Cancelado';
+      }
+
+      const dateStr = item.created_at
+        ? new Date(item.created_at).toLocaleString('pt-AO', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : 'Recente';
+
+      const bankStr = item.bank_name || info.bankName || 'Conta Bancária';
+      const ibanStr = item.iban || (info.iban ? `...${info.iban.slice(-4)}` : '');
+
+      return (
+        `• **Pedido #${idx + 1}: ${formatCurrency(amount, 'KZ')}**\n` +
+        `  Status: ${statusEmoji} ${statusLabel}\n` +
+        `  Data: ${dateStr}\n` +
+        `  Destino: ${bankStr}${ibanStr ? ` • IBAN: ${ibanStr}` : ''}`
+      );
+    }).join('\n\n');
+
+    return withCmds(
+      `📋 **Histórico Real de Retiradas (${list.length} pedidos recentes):**\n\n` +
+      itemsText +
+      `\n\nPara solicitar um novo saque, envie /retirar 😊`
+    );
+  }, [info.bankName, info.iban]);
 
   const handleSendMessage = useCallback(
     async (textToSend?: string) => {
@@ -364,19 +559,22 @@ export default function Withdraw() {
 
       setMessages((prev) => [...prev, userMsg]);
       if (!textToSend) setInputText('');
-      const raw = content.toLowerCase().replace(/^\//, '').trim();
 
       const withCmds = (text: string) =>
         text +
         '\n\n─────────────────\n' +
-        '/retirar  /saldo  /historico\n/banco  /taxa  /horario  /ajuda';
+        '/retirar  •  /saldo  •  /historico\n/banco  •  /taxa  •  /horario  •  /ajuda';
 
+      // Interpretação inteligente em linguagem natural e comandos
+      const parsed = parseNaturalLanguage(content);
+
+      // FLUXO DE CONFIRMAÇÃO PENDENTE DE SAQUE
       if (pendingAmount !== null) {
-        if (['sim', 'confirmar', 'confirma', 'yes', 's', 'ok', 'prosseguir', 'quero'].includes(raw)) {
+        if (parsed.intent === 'confirm') {
           processWithdrawal(pendingAmount);
           return;
         }
-        if (['nao', 'não', 'cancelar', 'cancela', 'n', 'no', 'deixa'].includes(raw)) {
+        if (parsed.intent === 'cancel') {
           setPendingAmount(null);
           botReply(() => ({
             id: 'bot-' + Date.now(),
@@ -387,18 +585,44 @@ export default function Withdraw() {
           }));
           return;
         }
-        const newAmt = parseInt(raw.replace(/\D/g, ''));
-        if (!isNaN(newAmt) && newAmt >= MIN_WITHDRAW && newAmt <= MAX_WITHDRAW) {
-          if (newAmt > info.balance) {
+
+        // Usuário digitou um novo valor enquanto havia pedido pendente
+        if (parsed.intent === 'withdraw' && parsed.amount) {
+          const newAmt = parsed.amount;
+          const fresh = await fetchData();
+          const curBal = fresh?.balance ?? info.balance;
+
+          if (newAmt > curBal) {
             botReply(() => ({
               id: 'bot-' + Date.now(),
               sender: 'bot',
               time: nowTime(),
               type: 'text',
-              text: withCmds(`Quase lá! Mas seu saldo disponível é de ${formatCurrency(info.balance, 'KZ')}. Escolha um valor até esse limite 😉`),
+              text: withCmds(`⚠️ Quase lá! Seu saldo disponível é de **${formatCurrency(curBal, 'KZ')}**. Escolha um valor até esse limite 😉`),
             }));
             return;
           }
+          if (newAmt < MIN_WITHDRAW) {
+            botReply(() => ({
+              id: 'bot-' + Date.now(),
+              sender: 'bot',
+              time: nowTime(),
+              type: 'text',
+              text: withCmds(`⚠️ O valor mínimo para saque é de **${formatCurrency(MIN_WITHDRAW, 'KZ')}**. Por favor, escolha um valor a partir desse 😊`),
+            }));
+            return;
+          }
+          if (newAmt > MAX_WITHDRAW) {
+            botReply(() => ({
+              id: 'bot-' + Date.now(),
+              sender: 'bot',
+              time: nowTime(),
+              type: 'text',
+              text: withCmds(`⚠️ O limite máximo por retirada é de **${formatCurrency(MAX_WITHDRAW, 'KZ')}**. Por favor, escolha um valor dentro do limite 😊`),
+            }));
+            return;
+          }
+
           setPendingAmount(newAmt);
           const fee = Math.round((newAmt * FEE_PERCENT) / 100);
           const net = newAmt - fee;
@@ -413,9 +637,8 @@ export default function Withdraw() {
         }
       }
 
-      const trimmedInput = content.toLowerCase();
-
-      if (['/start', '/inicio', '/ajuda', '/help', '/menu', 'start', 'inicio', 'ajuda', 'help', 'menu', 'oi', 'olá', 'ola'].includes(trimmedInput)) {
+      // 1. INTENT: AJUDA / START / BOAS-VINDAS
+      if (parsed.intent === 'help') {
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
@@ -425,7 +648,8 @@ export default function Withdraw() {
         return;
       }
 
-      if (['/limpar', '/reset', '/clear', 'limpar', 'reset', 'clear'].includes(trimmedInput)) {
+      // 2. INTENT: LIMPAR CHAT
+      if (parsed.intent === 'clear') {
         try { localStorage.removeItem(CHAT_STORAGE_KEY); } catch (e) {}
         setPendingAmount(null);
         setMessages([{ id: 'welcome-' + Date.now(), sender: 'bot', time: nowTime(), type: 'welcome' }]);
@@ -433,20 +657,24 @@ export default function Withdraw() {
         return;
       }
 
-      if (trimmedInput === '/cancelar' || raw === 'cancelar') {
+      // 3. INTENT: CANCELAR
+      if (parsed.intent === 'cancel') {
         setPendingAmount(null);
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text: withCmds('Tudo bem! Operação cancelada. Se precisar de algo, é só me chamar 😊'),
+          text: withCmds('Tudo bem! Nenhuma operação pendente. Quando quiser realizar uma retirada ou consulta, estou às ordens 😊'),
         }));
         return;
       }
 
-      if (['/saldo', '/carteira', 'saldo', 'carteira', 'meu saldo', 'ver saldo'].includes(trimmedInput)) {
+      // 4. INTENT: CONSULTA DE SALDO REAL EM TEMPO REAL
+      if (parsed.intent === 'balance') {
+        setIsTyping(true);
         const freshData = await fetchData();
+        setIsTyping(false);
         const bal = freshData?.balance ?? info.balance;
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -454,13 +682,22 @@ export default function Withdraw() {
           time: nowTime(),
           type: 'text',
           text: withCmds(
-            `💰 **Seu saldo disponível:**\n\n**${formatCurrency(bal, 'KZ')}**\n\nPara realizar um saque, envie /retirar 😊`
+            `💰 **Consulta de Saldo Real:**\n\n` +
+            `Seu saldo disponível para retirada agora é de:\n` +
+            `👉 **${formatCurrency(bal, 'KZ')}**\n\n` +
+            `• **Mínimo por saque:** ${formatCurrency(MIN_WITHDRAW, 'KZ')}\n` +
+            `• **Máximo por saque:** ${formatCurrency(MAX_WITHDRAW, 'KZ')}\n` +
+            `• **Taxa operacional:** ${FEE_PERCENT}%\n\n` +
+            (bal >= MIN_WITHDRAW
+              ? `Você já tem saldo suficiente! Para retirar agora, envie /retirar ou digite diretamente quanto deseja sacar (ex: *sacar 500*). 😊`
+              : `O valor mínimo para retirada é de ${formatCurrency(MIN_WITHDRAW, 'KZ')}. Continue lucrando com seus robôs para liberar o saque! 😉`)
           ),
         }));
         return;
       }
 
-      if (['/historico', '/registos', '/extrato', 'historico', 'histórico', 'registos', 'extrato', 'historicos', 'históricos'].includes(trimmedInput)) {
+      // 5. INTENT: HISTÓRICO REAL DE RETIRADA (TEXTO NORMAL SEM SUBCARDS)
+      if (parsed.intent === 'history') {
         setIsTyping(true);
         const history = await fetchRecentHistory();
         setIsTyping(false);
@@ -468,21 +705,21 @@ export default function Withdraw() {
           id: 'bot-' + Date.now(),
           sender: 'bot',
           time: nowTime(),
-          type: 'history_list',
-          text: withCmds('📋 Aqui estão seus últimos pedidos de retirada:'),
-          payload: { list: history },
+          type: 'text',
+          text: formatHistoryAsText(history),
         }));
         return;
       }
 
-      if (['/banco', '/iban', '/conta', 'banco', 'iban', 'conta'].includes(trimmedInput)) {
+      // 6. INTENT: DADOS BANCÁRIOS / CONTA
+      if (parsed.intent === 'bank') {
         if (!info.hasBank) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'no_bank',
-            text: withCmds('🏦 Você ainda não tem uma conta bancária cadastrada. Cadastre agora para poder realizar saques:'),
+            text: withCmds('🏦 **Conta Bancária:**\n\nVocê ainda não possui uma conta bancária cadastrada no sistema. Cadastre seus dados para poder retirar:'),
           }));
         } else {
           botReply(() => ({
@@ -491,14 +728,18 @@ export default function Withdraw() {
             time: nowTime(),
             type: 'text',
             text: withCmds(
-              `🏦 **Sua conta bancária:**\n\n• **Banco:** ${info.bankName}\n• **IBAN:** \`${info.iban}\`\n\nPara sacar, envie /retirar 😊`
+              `🏦 **Sua Conta Bancária Cadastrada:**\n\n` +
+              `• **Titular/Banco:** ${info.bankName}\n` +
+              `• **IBAN:** \`${info.iban}\`\n\n` +
+              `Para solicitar um saque nesta conta, envie /retirar 😊`
             ),
           }));
         }
         return;
       }
 
-      if (['/horario', '/horarios', 'horario', 'horário', 'horarios', 'horários', 'horario de atendimento', 'horário de atendimento'].includes(trimmedInput)) {
+      // 7. INTENT: HORÁRIOS DE ATENDIMENTO
+      if (parsed.intent === 'schedule') {
         const sched = getWithdrawScheduleStatus();
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -506,49 +747,50 @@ export default function Withdraw() {
           time: nowTime(),
           type: 'text',
           text: withCmds(
-            `🕐 **Horário de Retiradas:**\n\n• **Seg a Sex:** 09:00 às 18:00\n• **Sábado/Domingo:** Fechado\n\n${sched.isOpen ? '🟢 **Aberto agora!** Pode enviar /retirar 😊' : '🔴 **Fechado agora.** Retorne em horário comercial.'}`
+            `🕐 **Horário de Retiradas:**\n\n` +
+            `• **Segunda a Sexta:** das 09:00 às 18:00\n` +
+            `• **Sábado e Domingo:** Fechado (sem liquidação)\n\n` +
+            `${sched.isOpen ? '🟢 **Aberto agora!** Pode enviar /retirar 😊' : '🔴 **Fechado agora.** ' + sched.text}`
           ),
         }));
         return;
       }
 
-      if (['/taxa', '/taxas', '/limites', '/regras', 'taxa', 'taxas', 'limites', 'regras', 'taxa de saque', 'taxa de retirada'].includes(trimmedInput)) {
+      // 8. INTENT: TAXAS E REGRAS
+      if (parsed.intent === 'fees') {
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
           time: nowTime(),
           type: 'text',
           text: withCmds(
-            `📋 **Regras e Taxas de Retirada:**\n\n• **Taxa operacional:** ${FEE_PERCENT}% sobre o valor solicitado\n• **Valor mínimo:** ${formatCurrency(MIN_WITHDRAW, 'KZ')}\n• **Valor máximo:** ${formatCurrency(MAX_WITHDRAW, 'KZ')} por operação\n• **Prazo de pagamento:** Até 24h úteis\n• **Horário:** Seg a Sex, 09:00 às 18:00\n\nPara sacar agora, envie /retirar 😊`
+            `📋 **Regras e Taxas de Retirada:**\n\n` +
+            `• **Taxa operacional:** ${FEE_PERCENT}% sobre o valor solicitado\n` +
+            `• **Valor mínimo:** ${formatCurrency(MIN_WITHDRAW, 'KZ')}\n` +
+            `• **Valor máximo:** ${formatCurrency(MAX_WITHDRAW, 'KZ')} por transação\n` +
+            `• **Prazo de crédito:** Em até 24h úteis na conta\n` +
+            `• **Horário:** Seg a Sex, das 09:00 às 18:00\n\n` +
+            `Para sacar agora, envie /retirar 😊`
           ),
         }));
         return;
       }
 
-      const withdrawKeywords = [
-        '/retirar', '/sacar', '/retirada', '/saque',
-        'retirar', 'sacar', 'retirada', 'saque',
-        'quero retirar', 'quero sacar', 'quero levantar', 'quero fazer saque',
-        'quero fazer retirada', 'fazer retirada', 'fazer saque',
-        'levantar', 'levantamento', 'preciso sacar', 'preciso retirar',
-        'como retirar', 'como sacar', 'vou retirar', 'vou sacar',
-        'realizar retirada', 'realizar saque',
-      ];
-      const isWithdrawIntent =
-        withdrawKeywords.includes(trimmedInput) ||
-        withdrawKeywords.some((kw) => trimmedInput.includes(kw));
-
-      if (isWithdrawIntent) {
+      // 9. INTENT: RETIRADA / SAQUE (COM OU SEM VALOR ESPECIFICADO)
+      if (parsed.intent === 'withdraw') {
+        // Validação 1: Pedido já em análise
         if (info.hasPending) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds('⏳ Você já tem uma retirada em análise. Aguarde a aprovação antes de solicitar um novo saque 😊'),
+            text: withCmds('⏳ **Atenção:** Você já tem um pedido de retirada em análise. Aguarde a aprovação antes de solicitar um novo saque 😊'),
           }));
           return;
         }
+
+        // Validação 2: Horário comercial
         if (!isWithdrawAllowed()) {
           const sched = getWithdrawScheduleStatus();
           botReply(() => ({
@@ -556,90 +798,102 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds(`🕒 As retiradas estão fechadas no momento.\n\n${sched.text}\n\nVolta no horário comercial! 😊`),
+            text: withCmds(`🕒 **Retiradas Fechadas:**\n\n${sched.text}\n\nVolte em horário comercial para realizar seu saque! 😊`),
           }));
           return;
         }
+
+        // Validação 3: Conta bancária cadastrada
         if (!info.hasBank) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'no_bank',
-            text: withCmds('🏦 Para sacar, você precisa primeiro cadastrar sua conta bancária:'),
+            text: withCmds('🏦 **Conta Bancária Necessária:**\n\nPara solicitar retiradas, cadastre primeiro sua conta bancária e IBAN oficial:'),
           }));
           return;
         }
+
+        // Validação 4: Robô de rendimento ativo
         if (!info.hasBots) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'no_bots',
-            text: withCmds('🤖 Para liberar o saque, você precisa ter um robô de rendimento ativo:'),
+            text: withCmds('🤖 **Robô Ativo Necessário:**\n\nPara liberar o saque de rendimentos, você precisa ter um robô ativo na plataforma:'),
           }));
           return;
         }
-        botReply(() => ({
-          id: 'bot-' + Date.now(),
-          sender: 'bot',
-          time: nowTime(),
-          type: 'amount_selector',
-          text: `💸 Ótimo! Seu saldo disponível é **${formatCurrency(info.balance, 'KZ')}**.\n\nQual valor deseja retirar?\n\n*(Mín: ${formatCurrency(MIN_WITHDRAW, 'KZ')} | Máx: ${formatCurrency(MAX_WITHDRAW, 'KZ')} | Taxa: ${FEE_PERCENT}%)*`,
-        }));
-        return;
-      }
 
-      const numericOnly = parseInt(raw.replace(/\D/g, ''), 10);
-      if (!isNaN(numericOnly) && numericOnly >= 1 && raw.replace(/\D/g, '') === raw) {
-        const amount = numericOnly;
+        // Buscar saldo fresco da conta
+        const fresh = await fetchData();
+        const currentBal = fresh?.balance ?? info.balance;
 
-        if (info.hasPending) {
+        // Determinar o valor pretendido
+        let targetAmount: number | null = null;
+        if (parsed.isAll) {
+          targetAmount = Math.floor(currentBal);
+        } else if (parsed.amount) {
+          targetAmount = parsed.amount;
+        }
+
+        // Se nenhum valor foi informado (ex: user enviou "/retirar" ou "quero sacar")
+        if (targetAmount === null) {
+          botReply(() => ({
+            id: 'bot-' + Date.now(),
+            sender: 'bot',
+            time: nowTime(),
+            type: 'amount_selector',
+            text:
+              `💸 **Solicitação de Retirada**\n\n` +
+              `Seu saldo disponível real é de **${formatCurrency(currentBal, 'KZ')}**.\n\n` +
+              `Qual valor você deseja retirar?\n\n` +
+              `*(Mín: ${formatCurrency(MIN_WITHDRAW, 'KZ')} | Máx: ${formatCurrency(MAX_WITHDRAW, 'KZ')} | Taxa: ${FEE_PERCENT}%)*\n\n` +
+              `💡 Você pode clicar nos valores rápidos abaixo ou digitar o valor diretamente (ex: *1500* ou *sacar 500*).`,
+          }));
+          return;
+        }
+
+        // Validações rigorosas de valor antes de prosseguir
+        if (targetAmount < MIN_WITHDRAW) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'text',
+            text: withCmds(`⚠️ O valor de **${formatCurrency(targetAmount, 'KZ')}** é inferior ao mínimo permitido.\n\nO valor mínimo para saque é de **${formatCurrency(MIN_WITHDRAW, 'KZ')}**. Por favor, escolha um valor a partir desse! 😊`),
           }));
           return;
         }
 
-        if (amount < MIN_WITHDRAW) {
+        if (targetAmount > MAX_WITHDRAW) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: 'Opa! O valor mínimo para saque é de ' + formatCurrency(MIN_WITHDRAW, 'KZ') + '. Por favor, escolha um valor a partir desse, tá bem? 😊',
+            text: withCmds(`⚠️ O valor de **${formatCurrency(targetAmount, 'KZ')}** excede o limite máximo permitido.\n\nO limite por operação é de **${formatCurrency(MAX_WITHDRAW, 'KZ')}**. Escolha um valor dentro desse teto 😊`),
           }));
           return;
         }
 
-        if (amount > MAX_WITHDRAW) {
+        if (targetAmount > currentBal) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: 'Opa! O limite máximo por retirada é de ' + formatCurrency(MAX_WITHDRAW, 'KZ') + '. Por favor, escolha um valor dentro do limite 😊',
+            text: withCmds(`⚠️ Saldo insuficiente!\n\nVocê solicitou **${formatCurrency(targetAmount, 'KZ')}**, mas possui **${formatCurrency(currentBal, 'KZ')}** disponível.\n\nEscolha um valor até o seu saldo ou envie /saldo para conferir 😉`),
           }));
           return;
         }
 
-        if (amount > info.balance) {
-          botReply(() => ({
-            id: 'bot-' + Date.now(),
-            sender: 'bot',
-            time: nowTime(),
-            type: 'text',
-            text: 'Quase lá! Você possui ' + formatCurrency(info.balance, 'KZ') + ' disponível. Que tal escolher um valor até o seu saldo? 😉',
-          }));
-          return;
-        }
-
-        const fee = Math.round((amount * FEE_PERCENT) / 100);
-        const net = amount - fee;
-        setPendingAmount(amount);
+        // Valor válido! Preparar confirmação
+        const fee = Math.round((targetAmount * FEE_PERCENT) / 100);
+        const net = targetAmount - fee;
+        setPendingAmount(targetAmount);
 
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -647,7 +901,7 @@ export default function Withdraw() {
           time: nowTime(),
           type: 'confirm_withdraw',
           payload: {
-            amount,
+            amount: targetAmount,
             fee,
             net,
             bankName: info.bankName,
@@ -657,7 +911,7 @@ export default function Withdraw() {
         return;
       }
 
-      // MOTOR CONVERSACIONAL DE RETIRADA (sys_t1000_retirada via RPC backend)
+      // 10. MOTOR CONVERSACIONAL DE RETIRADA (sys_t1000_retirada via RPC backend fallback)
       setIsTyping(true);
       try {
         const { data: rawRpc, error: rpcErr } = await (supabase.rpc as any)(
@@ -678,7 +932,6 @@ export default function Withdraw() {
           setLastIntent(category);
           setLastBotResponse(response);
 
-          // Ação: Seletor de Valor de Retirada
           if (action === 'TRIGGER_AMOUNT_SELECTOR') {
             if (!info.hasBank) {
               botReply(() => ({
@@ -719,7 +972,6 @@ export default function Withdraw() {
             return;
           }
 
-          // Ação: Histórico de Saques
           if (action === 'TRIGGER_HISTORY') {
             setIsTyping(true);
             const history = await fetchRecentHistory();
@@ -728,14 +980,12 @@ export default function Withdraw() {
               id: 'bot-' + Date.now(),
               sender: 'bot',
               time: nowTime(),
-              type: 'history_list',
-              text: response,
-              payload: { list: history },
+              type: 'text',
+              text: formatHistoryAsText(history),
             }));
             return;
           }
 
-          // Ação: Configuração de Banco
           if (action === 'TRIGGER_BANK_CONFIG') {
             if (!info.hasBank) {
               botReply(() => ({
@@ -749,18 +999,16 @@ export default function Withdraw() {
             }
           }
 
-          // Resposta conversacional padrão
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: response,
+            text: withCmds(response),
           }));
           return;
         }
       } catch (err) {
-        console.error('Erro na classificação de retirada:', err);
         setIsTyping(false);
       }
 
@@ -769,11 +1017,16 @@ export default function Withdraw() {
         sender: 'bot',
         time: nowTime(),
         type: 'text',
-        text:
-          'Quero te ajudar! 😊 Pode me explicar um pouco melhor o que você precisa sobre o seu saque? Se preferir, envie /retirar para sacar ou /ajuda para ver as opções.',
+        text: withCmds(
+          'Entendido! 😊 Sou o seu assistente inteligente de retiradas. Você pode me pedir coisas como:\n\n' +
+          '• *"Qual meu saldo?"* para consultar saldo real\n' +
+          '• *"Quero sacar 500"* para iniciar um saque desse valor\n' +
+          '• *"Ver histórico"* para acompanhar seus pedidos\n' +
+          '• Ou utilize os comandos abaixo:'
+        ),
       }));
     },
-    [inputText, info, pendingAmount, processWithdrawal, botReply, showToast, fetchRecentHistory, lastIntent, lastBotResponse]
+    [inputText, info, pendingAmount, processWithdrawal, botReply, showToast, fetchRecentHistory, formatHistoryAsText, fetchData, lastIntent, lastBotResponse]
   );
 
   const handleConfirmButton = useCallback(() => {
@@ -836,7 +1089,7 @@ export default function Withdraw() {
                 <span
                   key={pIdx}
                   onClick={() => handleSendMessage(part)}
-                  className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
+                  className="text-[#00c853] font-semibold cursor-pointer hover:underline"
                 >
                   {part}
                 </span>
@@ -1020,7 +1273,7 @@ export default function Withdraw() {
                 >
                   <p
                     className={`text-[14.5px] leading-snug whitespace-pre-line ${
-                      isValid ? 'text-[#2481cc] font-medium' : 'text-black font-normal'
+                      isValid ? 'text-[#00c853] font-semibold' : 'text-black font-normal'
                     }`}
                   >
                     {msg.text}
@@ -1047,43 +1300,52 @@ export default function Withdraw() {
                 {msg.type === 'welcome' && (
                   <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
                     <p className="mb-2">
-                      Olá! Que bom ver você por aqui! 😊 Sou o <strong>WithdrawBot</strong> 💸, seu assistente oficial de retiradas.
+                      Olá! Que bom ver você por aqui! 😊 Sou o <strong>WithdrawBot</strong> 💸, seu assistente inteligente e oficial de retiradas.
                     </p>
-                    <p className="mb-2.5 text-gray-800">
-                      Como posso te ajudar hoje? Você pode escolher uma das opções abaixo:
+                    <p className="mb-2 text-gray-800">
+                      Entendo texto normal e comandos. Escolha um comando abaixo ou digite sua dúvida:
                     </p>
                     <p className="mb-2.5">
                       •{' '}
                       <span
                         onClick={() => handleSendMessage('/saldo')}
-                        className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
+                        className="text-[#00c853] font-semibold cursor-pointer hover:underline"
                       >
                         /saldo
                       </span>{' '}
-                      — Ver seu saldo disponível
+                      — Consulta de saldo real disponível
                       <br />
                       •{' '}
                       <span
                         onClick={() => handleSendMessage('/retirar')}
-                        className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
+                        className="text-[#00c853] font-semibold cursor-pointer hover:underline"
                       >
                         /retirar
                       </span>{' '}
-                      — Fazer um saque agora
+                      — Iniciar pedido de retirada
+                      <br />
+                      •{' '}
+                      <span
+                        onClick={() => handleSendMessage('/historico')}
+                        className="text-[#00c853] font-semibold cursor-pointer hover:underline"
+                      >
+                        /historico
+                      </span>{' '}
+                      — Histórico real de retiradas em texto
                       <br />
                       •{' '}
                       <span
                         onClick={() => handleSendMessage('/banco')}
-                        className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
+                        className="text-[#00c853] font-semibold cursor-pointer hover:underline"
                       >
                         /banco
                       </span>{' '}
-                      — Ver sua conta cadastrada
+                      — Sua conta cadastrada
                       <br />
                       •{' '}
                       <span
                         onClick={() => handleSendMessage('/horario')}
-                        className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
+                        className="text-[#00c853] font-semibold cursor-pointer hover:underline"
                       >
                         /horario
                       </span>{' '}
@@ -1092,20 +1354,14 @@ export default function Withdraw() {
                       •{' '}
                       <span
                         onClick={() => handleSendMessage('/taxa')}
-                        className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
+                        className="text-[#00c853] font-semibold cursor-pointer hover:underline"
                       >
                         /taxa
                       </span>{' '}
-                      — Regras e taxas
-                      <br />
-                      •{' '}
-                      <span
-                        onClick={() => handleSendMessage('/historico')}
-                        className="text-[#3390ec] font-semibold cursor-pointer hover:underline"
-                      >
-                        /historico
-                      </span>{' '}
-                      — Seus últimos pedidos
+                      — Regras e taxas de saque
+                    </p>
+                    <p className="text-[13px] text-gray-600 mb-2">
+                      💡 <em>Dica: você também pode digitar mensagens comuns como <strong>"qual meu saldo"</strong> ou <strong>"quero sacar 500"</strong>.</em>
                     </p>
                     <p className="text-[#707579] text-[13px] pt-1.5 border-t border-gray-100">
                       {isWithdrawAllowed()
@@ -1192,58 +1448,10 @@ export default function Withdraw() {
                   </div>
                 )}
 
-                {/* HISTÓRICO RECENTE */}
-                {msg.type === 'history_list' && msg.payload && (
-                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
-                    <p className="font-bold text-[15px] text-[#2481cc] mb-1.5">
-                      Aqui estão seus últimos pedidos: 📑
-                    </p>
-                    {msg.payload.list && msg.payload.list.length > 0 ? (
-                      <div className="space-y-1.5 mt-2">
-                        {msg.payload.list.map((item: any, idx: number) => {
-                          const status = (item.status || 'pendente').toLowerCase();
-                          const isApproved = status === 'concluido' || status === 'aprovado';
-                          const isRejected = status === 'rejeitado' || status === 'cancelado';
-                          return (
-                            <div
-                              key={idx}
-                              className="p-2 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-between text-[13px]"
-                            >
-                              <div>
-                                <span className="font-semibold text-black">
-                                  {formatCurrency(Number(item.amount) || Number(item.valor) || 0, 'KZ')}
-                                </span>
-                                <span className="text-[11px] text-gray-500 block">
-                                  {item.created_at
-                                    ? new Date(item.created_at).toLocaleDateString('pt-AO', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      })
-                                    : 'Recente'}
-                                </span>
-                              </div>
-                              <span
-                                className={`text-[11.5px] font-bold px-2 py-0.5 rounded-full ${
-                                  isApproved
-                                    ? 'bg-green-100 text-green-700'
-                                    : isRejected
-                                    ? 'bg-red-100 text-red-700'
-                                    : 'bg-yellow-100 text-yellow-800'
-                                }`}
-                              >
-                                {isApproved ? 'Aprovado' : isRejected ? 'Rejeitado' : 'Pendente'}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-[13px] text-gray-600">
-                        Você ainda não realizou nenhum pedido de retirada por aqui 😊
-                      </p>
-                    )}
+                {/* HISTÓRICO REAL EM TEXTO NORMAL SEM SUBCARDS */}
+                {msg.type === 'history_list' && msg.text && (
+                  <div className="text-[14px] text-black leading-relaxed font-normal">
+                    {renderBotText(msg.text)}
                   </div>
                 )}
 
@@ -1260,19 +1468,19 @@ export default function Withdraw() {
                       onClick={handleConfirmButton}
                       disabled={isProcessing}
                       className="py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20 disabled:opacity-60"
-                      style={{ background: '#5288c1' }}
-                      onMouseEnter={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                      onMouseLeave={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                      style={{ background: '#25ae60' }}
+                      onMouseEnter={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#1e8f4f'; }}
+                      onMouseLeave={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#25ae60'; }}
                     >
-                      {isProcessing ? '⏳  Processando...' : '✅  Confirmar'}
+                      {isProcessing ? '⏳  Processando...' : '✅  Confirmar Retirada'}
                     </button>
                     <button
                       onClick={handleCancelButton}
                       disabled={isProcessing}
                       className="py-2.5 px-3 text-[13.5px] font-semibold text-white/90 transition-all cursor-pointer flex items-center justify-center disabled:opacity-60"
-                      style={{ background: '#5288c1' }}
-                      onMouseEnter={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                      onMouseLeave={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                      style={{ background: '#707579' }}
+                      onMouseEnter={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#5a5e62'; }}
+                      onMouseLeave={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#707579'; }}
                     >
                       ✕  Cancelar
                     </button>
@@ -1286,9 +1494,9 @@ export default function Withdraw() {
                   <button
                     onClick={() => navigate('/adicionar-banco?redirect=/retirada')}
                     className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
-                    style={{ background: '#5288c1' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    style={{ background: '#00c853' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#00b050'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#00c853'; }}
                   >
                     ➕  Cadastrar Conta Bancária
                   </button>
@@ -1301,85 +1509,12 @@ export default function Withdraw() {
                   <button
                     onClick={() => navigate('/bot-pay')}
                     className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
-                    style={{ background: '#5288c1' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
+                    style={{ background: '#00c853' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#00b050'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#00c853'; }}
                   >
                     🤖  Ir para o Catálogo de Robôs
                   </button>
-                </div>
-              )}
-
-              {/* INLINE KEYBOARD: HISTÓRICO COMPLETO */}
-              {msg.type === 'history_list' && (
-                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
-                  <button
-                    onClick={() => navigate('/registro-retirada')}
-                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
-                    style={{ background: '#5288c1' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
-                  >
-                    📋  Ver Histórico Completo
-                  </button>
-                </div>
-              )}
-
-              {/* INLINE KEYBOARD WELCOME — WithdrawBot estilo BotFather */}
-              {msg.type === 'welcome' && (
-                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
-                  {/* Linha 1 — largura total */}
-                  <button
-                    onClick={() => handleSendMessage('/retirar')}
-                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-b border-white/20"
-                    style={{ background: '#5288c1' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
-                  >
-                    💸  Iniciar Retirada
-                  </button>
-                  {/* Linha 2 — 2 colunas */}
-                  <div className="grid grid-cols-2">
-                    <button
-                      onClick={() => handleSendMessage('/saldo')}
-                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-b border-white/20"
-                      style={{ background: '#5288c1' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
-                    >
-                      💰  Ver Saldo
-                    </button>
-                    <button
-                      onClick={() => handleSendMessage('/banco')}
-                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-b border-white/20"
-                      style={{ background: '#5288c1' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
-                    >
-                      🏦  Meu Banco
-                    </button>
-                  </div>
-                  {/* Linha 3 — 2 colunas */}
-                  <div className="grid grid-cols-2">
-                    <button
-                      onClick={() => handleSendMessage('/historico')}
-                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20"
-                      style={{ background: '#5288c1' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
-                    >
-                      📋  Histórico
-                    </button>
-                    <button
-                      onClick={() => handleSendMessage('/horario')}
-                      className="py-2.5 px-3 text-[13px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
-                      style={{ background: '#5288c1' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#4278b1'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#5288c1'; }}
-                    >
-                      🕐  Horários
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
