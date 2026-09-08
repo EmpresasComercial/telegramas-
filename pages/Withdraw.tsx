@@ -47,7 +47,7 @@ function isRecognizedCommand(text: string): boolean {
 }
 
 function parseNaturalLanguage(rawInput: string): {
-  intent: 'balance' | 'withdraw' | 'history' | 'bank' | 'schedule' | 'fees' | 'help' | 'clear' | 'cancel' | 'confirm' | 'unknown';
+  intent: 'balance' | 'withdraw' | 'history' | 'bank' | 'schedule' | 'fees' | 'help' | 'clear' | 'cancel' | 'confirm' | 'greeting' | 'unknown';
   amount?: number;
   isAll?: boolean;
 } {
@@ -58,7 +58,7 @@ function parseNaturalLanguage(rawInput: string): {
   // 1. Confirmar
   if (
     norm === '/confirmar' ||
-    ['sim', 'confirmar', 'confirma', 'confirmado', 'quero', 'yes', 's', 'ok', 'prosseguir', 'avancar', 'pode ser', 'pode mandar', 'exato', 'com certeza'].includes(norm)
+    ['sim', 'confirmar', 'confirma', 'confirmado', 'quero', 'yes', 's', 'ok', 'prosseguir', 'avancar', 'pode ser', 'pode mandar', 'exato', 'com certeza', 'claro'].includes(norm)
   ) {
     return { intent: 'confirm' };
   }
@@ -66,7 +66,7 @@ function parseNaturalLanguage(rawInput: string): {
   // 2. Cancelar
   if (
     norm === '/cancelar' ||
-    ['cancelar', 'cancela', 'cancelado', 'nao', 'abortar', 'deixa', 'deixa pra la', 'desistir', 'esquece', 'voltar'].includes(norm)
+    ['cancelar', 'cancela', 'cancelado', 'nao', 'abortar', 'deixa', 'deixa pra la', 'desistir', 'esquece', 'voltar', 'sair'].includes(norm)
   ) {
     return { intent: 'cancel' };
   }
@@ -79,7 +79,13 @@ function parseNaturalLanguage(rawInput: string): {
     return { intent: 'clear' };
   }
 
-  // 4. Saldo em tempo real
+  // 4. Saudações conversacionais
+  const greetings = ['oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'opa', 'e ai', 'tudo bem', 'tudo bom', 'como vai', 'fala', 'alo'];
+  if (greetings.includes(norm) || greetings.some(g => norm.startsWith(g + ' ') || norm.endsWith(' ' + g))) {
+    return { intent: 'greeting' };
+  }
+
+  // 5. Saldo em tempo real (consultas conversacionais e comandos)
   if (
     norm === '/saldo' || norm === '/carteira' ||
     norm.includes('saldo') || norm.includes('carteira') ||
@@ -87,12 +93,13 @@ function parseNaturalLanguage(rawInput: string): {
     norm.includes('meu dinheiro') || norm.includes('dinheiro na conta') ||
     norm.includes('ver saldo') || norm.includes('consultar saldo') ||
     norm.includes('mostrar saldo') || norm.includes('quanto sobrou') ||
-    norm.includes('quanto posso')
+    norm.includes('quanto posso') || norm.includes('meu saldo') ||
+    norm.includes('saldo disponivel') || norm.includes('saldo atual')
   ) {
     return { intent: 'balance' };
   }
 
-  // 5. Histórico de retiradas real
+  // 6. Histórico de retiradas real (consultas conversacionais e comandos)
   if (
     norm === '/historico' || norm === '/registos' || norm === '/extrato' ||
     norm.includes('historico') || norm.includes('extrato') ||
@@ -100,46 +107,51 @@ function parseNaturalLanguage(rawInput: string): {
     norm.includes('ver historico') || norm.includes('ultimos saques') ||
     norm.includes('ultimas retiradas') || norm.includes('registos') ||
     norm.includes('pedidos de retirada') || norm.includes('registro de retirada') ||
-    norm.includes('saques anteriores')
+    norm.includes('saques anteriores') || norm.includes('status do meu saque') ||
+    norm.includes('consultar historico') || norm.includes('ver retiradas') ||
+    norm.includes('meu saque caiu') || norm.includes('onde esta meu saque')
   ) {
     return { intent: 'history' };
   }
 
-  // 6. Dados bancários / Conta
+  // 7. Dados bancários / Conta
   if (
     norm === '/banco' || norm === '/iban' || norm === '/conta' ||
     norm.includes('meu banco') || norm.includes('minha conta') ||
     norm.includes('qual meu banco') || norm.includes('qual meu iban') ||
     norm.includes('dados bancarios') || norm.includes('conta cadastrada') ||
     norm.includes('cadastrar banco') || norm.includes('trocar banco') ||
-    norm.includes('mudar banco')
+    norm.includes('mudar banco') || norm.includes('meu iban') ||
+    norm.includes('adicionar banco')
   ) {
     return { intent: 'bank' };
   }
 
-  // 7. Horário de funcionamento
+  // 8. Horário de funcionamento
   if (
     norm === '/horario' || norm === '/horarios' ||
     norm.includes('horario') || norm.includes('que horas') ||
     norm.includes('ta aberto') || norm.includes('esta aberto') ||
     norm.includes('quando abre') || norm.includes('quando fecha') ||
-    norm.includes('atendimento') || norm.includes('funciona hoje')
+    norm.includes('atendimento') || norm.includes('funciona hoje') ||
+    norm.includes('posso sacar agora') || norm.includes('ta fechado') || norm.includes('esta fechado')
   ) {
     return { intent: 'schedule' };
   }
 
-  // 8. Taxas, regras e limites
+  // 9. Taxas, regras e limites
   if (
     norm === '/taxa' || norm === '/taxas' || norm === '/limites' || norm === '/regras' ||
     norm.includes('taxa') || norm.includes('qual a taxa') ||
     norm.includes('quanto desconta') || norm.includes('limite') ||
     norm.includes('regras') || norm.includes('valor minimo') ||
-    norm.includes('valor maximo') || norm.includes('qual o minimo')
+    norm.includes('valor maximo') || norm.includes('qual o minimo') ||
+    norm.includes('quanto posso sacar') || norm.includes('minimo de saque')
   ) {
     return { intent: 'fees' };
   }
 
-  // 9. Retirar tudo / Saldo total
+  // 10. Retirar tudo / Saldo total
   if (
     norm.includes('sacar tudo') || norm.includes('retirar tudo') ||
     norm.includes('saldo total') || norm.includes('levantar tudo') ||
@@ -148,8 +160,8 @@ function parseNaturalLanguage(rawInput: string): {
     return { intent: 'withdraw', isAll: true };
   }
 
-  // 10. Saque com extração inteligente de valor
-  const withdrawTriggers = ['sacar', 'retirar', 'levantar', 'saque', 'retirada', 'quero', 'pedir', 'tirar', 'fazer'];
+  // 11. Saque com extração inteligente de valor
+  const withdrawTriggers = ['sacar', 'retirar', 'levantar', 'saque', 'retirada', 'quero', 'pedir', 'tirar', 'fazer', 'manda', 'enviar'];
   const hasWithdrawWord = withdrawTriggers.some(w => norm.includes(w)) || norm.startsWith('/retirar') || norm.startsWith('/sacar');
 
   // Regex para capturar números digitados (ex: 500, 1.000, 2500 kz, sacar 300)
@@ -166,11 +178,10 @@ function parseNaturalLanguage(rawInput: string): {
     return { intent: 'withdraw' };
   }
 
-  // 11. Ajuda / Boas-vindas
+  // 12. Ajuda / Boas-vindas
   if (
     norm === '/ajuda' || norm === '/help' || norm === '/menu' || norm === '/start' || norm === '/inicio' ||
-    ['ajuda', 'help', 'menu', 'inicio', 'start', 'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'como funciona', 'o que voce faz', 'comandos'].includes(norm) ||
-    norm.startsWith('oi ') || norm.startsWith('ola ')
+    ['ajuda', 'help', 'menu', 'inicio', 'start', 'como funciona', 'o que voce faz', 'comandos', 'instrucoes'].includes(norm)
   ) {
     return { intent: 'help' };
   }
@@ -438,15 +449,10 @@ export default function Withdraw() {
               time: nowTime(),
               type: 'text',
               text:
-                'Maravilha! Seu pedido de retirada foi enviado com sucesso! 🎉🥳\n\n' +
-                '• **Valor solicitado:** ' + formatCurrency(amount, 'KZ') + '\n' +
-                '• **Taxa operacional (10%):** -' + formatCurrency(fee, 'KZ') + '\n' +
-                '• **Valor que vai cair na conta:** **' + formatCurrency(net, 'KZ') + '** 💵\n' +
-                '• **Banco:** ' + info.bankName + '\n' +
-                '• **IBAN:** `' + info.iban + '`\n\n' +
-                'O pagamento será conferido e creditado em até **24 horas úteis**. Terei muito gosto em atendê-lo novamente sempre que precisar! 😊\n\n' +
-                '─────────────────\n' +
-                '/historico  •  /saldo  •  /retirar',
+                'Pedido de retirada enviado com sucesso! 🎉\n' +
+                'Valor solicitado: ' + formatCurrency(amount, 'KZ') + ' (Líquido: ' + formatCurrency(net, 'KZ') + ', Taxa: ' + formatCurrency(fee, 'KZ') + ').\n' +
+                'Destino: ' + info.bankName + ' (IBAN: ' + info.iban + ').\n' +
+                'O pagamento será creditado em até 24 horas úteis.',
             },
           ]);
           setPendingAmount(null);
@@ -489,46 +495,57 @@ export default function Withdraw() {
 
   const fetchRecentHistory = useCallback(async () => {
     try {
-      const { data, error } = await supabase.rpc('get_my_withdrawals_mcpn');
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data.slice(0, 10);
+      // 1. Tenta buscar via RPC oficial de retiradas do usuário
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_my_withdrawals_mcpn');
+      if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+        return rpcData.slice(0, 10);
       }
-      const { data: tableData } = await supabase
-        .from('retiradas_mcpn')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      return Array.isArray(tableData) ? tableData : [];
+
+      // 2. Busca pelo user_id autenticado diretamente na tabela retiradas_mcpn
+      const { data: userAuth } = await supabase.auth.getUser();
+      if (userAuth?.user?.id) {
+        const { data: tableData } = await supabase
+          .from('retiradas_mcpn')
+          .select('*')
+          .eq('user_id', userAuth.user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        if (Array.isArray(tableData) && tableData.length > 0) {
+          return tableData;
+        }
+      }
+
+      // 3. Fallback via histórico geral filtrando apenas 'retiradas'
+      const { data: genData } = await supabase.rpc('get_general_history_mcpn');
+      if (Array.isArray(genData)) {
+        const filtered = genData.filter((item: any) => item.type === 'retiradas');
+        if (filtered.length > 0) {
+          return filtered.slice(0, 10);
+        }
+      }
+
+      return [];
     } catch {
       return [];
     }
   }, []);
 
   const formatHistoryAsText = useCallback((list: any[]) => {
-    const withCmds = (text: string) =>
-      text +
-      '\n\n─────────────────\n' +
-      '/retirar  •  /saldo  •  /historico\n/banco  •  /taxa  •  /horario  •  /ajuda';
-
     if (!list || list.length === 0) {
-      return withCmds(
-        '📋 **Histórico Real de Retiradas:**\n\n' +
-        'Você ainda não realizou nenhum pedido de retirada registrado no sistema.\n\n' +
-        'Assim que realizar um pedido através do comando /retirar, ele aparecerá aqui com o status em tempo real! 😊'
-      );
+      return 'Histórico de Retiradas:\nNenhum saque registado ainda na sua conta. Para realizar uma retirada, envie /retirar.';
     }
 
     const itemsText = list.map((item: any, idx: number) => {
-      const amount = Number(item.amount) || Number(item.valor) || 0;
+      const amount = Number(item.valor_bruto) || Number(item.amount) || Number(item.valor) || 0;
       const rawStatus = (item.status || 'pendente').toLowerCase();
       let statusEmoji = '⏳';
-      let statusLabel = 'Em Análise (Pendente)';
-      if (rawStatus === 'concluido' || rawStatus === 'aprovado') {
+      let statusLabel = 'Pendente';
+      if (rawStatus === 'concluido' || rawStatus === 'aprovado' || rawStatus === 'approved') {
         statusEmoji = '🟢';
-        statusLabel = 'Aprovado / Pago';
-      } else if (rawStatus === 'rejeitado' || rawStatus === 'cancelado' || rawStatus === 'recusado') {
+        statusLabel = 'Aprovado';
+      } else if (rawStatus === 'rejeitado' || rawStatus === 'cancelado' || rawStatus === 'recusado' || rawStatus === 'failed') {
         statusEmoji = '🔴';
-        statusLabel = 'Recusado / Cancelado';
+        statusLabel = 'Recusado';
       }
 
       const dateStr = item.created_at
@@ -541,22 +558,13 @@ export default function Withdraw() {
           })
         : 'Recente';
 
-      const bankStr = item.bank_name || info.bankName || 'Conta Bancária';
-      const ibanStr = item.iban || (info.iban ? `...${info.iban.slice(-4)}` : '');
+      const bankStr = item.banco_destino || item.bank_name || info.bankName || 'Conta Bancária';
+      const ibanStr = item.iban_snapshot || item.iban || (info.iban ? `...${info.iban.slice(-4)}` : '');
 
-      return (
-        `• **Pedido #${idx + 1}: ${formatCurrency(amount, 'KZ')}**\n` +
-        `  Status: ${statusEmoji} ${statusLabel}\n` +
-        `  Data: ${dateStr}\n` +
-        `  Destino: ${bankStr}${ibanStr ? ` • IBAN: ${ibanStr}` : ''}`
-      );
-    }).join('\n\n');
+      return `${idx + 1}. ${formatCurrency(amount, 'KZ')} | ${statusEmoji} ${statusLabel} | ${dateStr} | ${bankStr}${ibanStr ? ` (${ibanStr})` : ''}`;
+    }).join('\n');
 
-    return withCmds(
-      `📋 **Histórico Real de Retiradas (${list.length} pedidos recentes):**\n\n` +
-      itemsText +
-      `\n\nPara solicitar um novo saque, envie /retirar 😊`
-    );
+    return `Histórico de Retiradas (${list.length} registos):\n\n${itemsText}\n\nPara solicitar um novo saque, envie /retirar.`;
   }, [info.bankName, info.iban]);
 
   const handleSendMessage = useCallback(
@@ -596,7 +604,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds('Tudo bem! Cancelei a solicitação. Quando quiser realizar uma nova retirada, é só enviar /retirar 😊'),
+            text: 'Solicitação de retirada cancelada. Quando quiser realizar um saque, envie /retirar.',
           }));
           return;
         }
@@ -613,7 +621,7 @@ export default function Withdraw() {
               sender: 'bot',
               time: nowTime(),
               type: 'text',
-              text: withCmds(`⚠️ Quase lá! Seu saldo disponível é de **${formatCurrency(curBal, 'KZ')}**. Escolha um valor até esse limite 😉`),
+              text: `Saldo insuficiente. Seu saldo disponível é de ${formatCurrency(curBal, 'KZ')}.`,
             }));
             return;
           }
@@ -623,7 +631,7 @@ export default function Withdraw() {
               sender: 'bot',
               time: nowTime(),
               type: 'text',
-              text: withCmds(`⚠️ O valor mínimo para saque é de **${formatCurrency(MIN_WITHDRAW, 'KZ')}**. Por favor, escolha um valor a partir desse 😊`),
+              text: `O valor mínimo para saque é de ${formatCurrency(MIN_WITHDRAW, 'KZ')}.`,
             }));
             return;
           }
@@ -633,7 +641,7 @@ export default function Withdraw() {
               sender: 'bot',
               time: nowTime(),
               type: 'text',
-              text: withCmds(`⚠️ O limite máximo por retirada é de **${formatCurrency(MAX_WITHDRAW, 'KZ')}**. Por favor, escolha um valor dentro do limite 😊`),
+              text: `O limite máximo por retirada é de ${formatCurrency(MAX_WITHDRAW, 'KZ')}.`,
             }));
             return;
           }
@@ -652,7 +660,19 @@ export default function Withdraw() {
         }
       }
 
-      // 1. INTENT: AJUDA / START / BOAS-VINDAS
+      // 1. INTENT: SAUDAÇÃO CONVERSACIONAL (resposta humana e natural)
+      if (parsed.intent === 'greeting') {
+        botReply(() => ({
+          id: 'bot-' + Date.now(),
+          sender: 'bot',
+          time: nowTime(),
+          type: 'text',
+          text: 'Olá! Como posso ajudar você hoje? Pode perguntar seu saldo, pedir um saque ou consultar seu histórico.',
+        }));
+        return;
+      }
+
+      // 2. INTENT: AJUDA / START / BOAS-VINDAS
       if (parsed.intent === 'help') {
         botReply(() => ({
           id: 'bot-' + Date.now(),
@@ -663,7 +683,7 @@ export default function Withdraw() {
         return;
       }
 
-      // 2. INTENT: LIMPAR CHAT
+      // 3. INTENT: LIMPAR CHAT
       if (parsed.intent === 'clear') {
         try { localStorage.removeItem(CHAT_STORAGE_KEY); } catch (e) {}
         setPendingAmount(null);
@@ -672,7 +692,7 @@ export default function Withdraw() {
         return;
       }
 
-      // 3. INTENT: CANCELAR
+      // 4. INTENT: CANCELAR
       if (parsed.intent === 'cancel') {
         setPendingAmount(null);
         botReply(() => ({
@@ -680,12 +700,12 @@ export default function Withdraw() {
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text: withCmds('Tudo bem! Nenhuma operação pendente. Quando quiser realizar uma retirada ou consulta, estou às ordens 😊'),
+          text: 'Tudo bem! Nenhuma operação pendente.',
         }));
         return;
       }
 
-      // 4. INTENT: CONSULTA DE SALDO REAL EM TEMPO REAL
+      // 5. INTENT: CONSULTA DE SALDO REAL EM TEMPO REAL (direto e sem extras)
       if (parsed.intent === 'balance') {
         setIsTyping(true);
         const freshData = await fetchData();
@@ -696,22 +716,12 @@ export default function Withdraw() {
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text: withCmds(
-            `💰 **Consulta de Saldo Real:**\n\n` +
-            `Seu saldo disponível para retirada agora é de:\n` +
-            `👉 **${formatCurrency(bal, 'KZ')}**\n\n` +
-            `• **Mínimo por saque:** ${formatCurrency(MIN_WITHDRAW, 'KZ')}\n` +
-            `• **Máximo por saque:** ${formatCurrency(MAX_WITHDRAW, 'KZ')}\n` +
-            `• **Taxa operacional:** ${FEE_PERCENT}%\n\n` +
-            (bal >= MIN_WITHDRAW
-              ? `Você já tem saldo suficiente! Para retirar agora, envie /retirar ou digite diretamente quanto deseja sacar (ex: *sacar 500*). 😊`
-              : `O valor mínimo para retirada é de ${formatCurrency(MIN_WITHDRAW, 'KZ')}. Continue lucrando com seus robôs para liberar o saque! 😉`)
-          ),
+          text: `Seu saldo é de ${formatCurrency(bal, 'KZ')}. Para fazer um saque, envie /retirar ou digite o valor (ex: sacar 500).`,
         }));
         return;
       }
 
-      // 5. INTENT: HISTÓRICO REAL DE RETIRADA (TEXTO NORMAL SEM SUBCARDS)
+      // 6. INTENT: HISTÓRICO REAL DE RETIRADA
       if (parsed.intent === 'history') {
         setIsTyping(true);
         const history = await fetchRecentHistory();
@@ -726,7 +736,7 @@ export default function Withdraw() {
         return;
       }
 
-      // 6. INTENT: DADOS BANCÁRIOS / CONTA
+      // 7. INTENT: DADOS BANCÁRIOS / CONTA (direto)
       if (parsed.intent === 'bank') {
         if (!info.hasBank) {
           botReply(() => ({
@@ -734,7 +744,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'no_bank',
-            text: withCmds('🏦 **Conta Bancária:**\n\nVocê ainda não possui uma conta bancária cadastrada no sistema. Cadastre seus dados para poder retirar:'),
+            text: 'Você ainda não possui uma conta bancária cadastrada. Cadastre seus dados para poder retirar:',
           }));
         } else {
           botReply(() => ({
@@ -742,18 +752,13 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds(
-              `🏦 **Sua Conta Bancária Cadastrada:**\n\n` +
-              `• **Titular/Banco:** ${info.bankName}\n` +
-              `• **IBAN:** \`${info.iban}\`\n\n` +
-              `Para solicitar um saque nesta conta, envie /retirar 😊`
-            ),
+            text: `Seu banco cadastrado é ${info.bankName}, IBAN: ${info.iban}.`,
           }));
         }
         return;
       }
 
-      // 7. INTENT: HORÁRIOS DE ATENDIMENTO
+      // 8. INTENT: HORÁRIOS DE ATENDIMENTO (direto)
       if (parsed.intent === 'schedule') {
         const sched = getWithdrawScheduleStatus();
         botReply(() => ({
@@ -761,39 +766,25 @@ export default function Withdraw() {
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text: withCmds(
-            `🕐 **Horário de Retiradas:**\n\n` +
-            `• **Segunda a Sexta:** das 09:00 às 18:00\n` +
-            `• **Sábado e Domingo:** Fechado (sem liquidação)\n\n` +
-            `${sched.isOpen ? '🟢 **Aberto agora!** Pode enviar /retirar 😊' : '🔴 **Fechado agora.** ' + sched.text}`
-          ),
+          text: `Horário de retiradas: Segunda a Sexta, das 09:00 às 18:00. ${sched.isOpen ? 'Aberto agora.' : sched.text}`,
         }));
         return;
       }
 
-      // 8. INTENT: TAXAS E REGRAS
+      // 9. INTENT: TAXAS E REGRAS (direto)
       if (parsed.intent === 'fees') {
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text: withCmds(
-            `📋 **Regras e Taxas de Retirada:**\n\n` +
-            `• **Taxa operacional:** ${FEE_PERCENT}% sobre o valor solicitado\n` +
-            `• **Valor mínimo:** ${formatCurrency(MIN_WITHDRAW, 'KZ')}\n` +
-            `• **Valor máximo:** ${formatCurrency(MAX_WITHDRAW, 'KZ')} por transação\n` +
-            `• **Prazo de crédito:** Em até 24h úteis na conta\n` +
-            `• **Horário:** Seg a Sex, das 09:00 às 18:00\n\n` +
-            `Para sacar agora, envie /retirar 😊`
-          ),
+          text: `Taxa operacional: ${FEE_PERCENT}%. Valor mínimo: ${formatCurrency(MIN_WITHDRAW, 'KZ')}. Valor máximo: ${formatCurrency(MAX_WITHDRAW, 'KZ')}. Prazo: até 24h úteis.`,
         }));
         return;
       }
 
-      // 9. INTENT: RETIRADA / SAQUE (COM OU SEM VALOR ESPECIFICADO)
+      // 10. INTENT: RETIRADA / SAQUE (COM OU SEM VALOR ESPECIFICADO)
       if (parsed.intent === 'withdraw') {
-        // ─── BUSCAR DADOS FRESCOS DO SERVIDOR (evita state desatualizado) ───
         setIsTyping(true);
         const fresh = await fetchData();
         setIsTyping(false);
@@ -812,7 +803,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds('⏳ **Atenção:** Você já tem um pedido de retirada em análise. Aguarde a aprovação antes de solicitar um novo saque 😊'),
+            text: 'Você já possui um pedido de retirada em análise. Aguarde a aprovação.',
           }));
           return;
         }
@@ -825,7 +816,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds(`🕒 **Retiradas Fechadas:**\n\n${sched.text}\n\nVolte em horário comercial para realizar seu saque! 😊`),
+            text: `Retiradas indisponíveis no momento. ${sched.text}`,
           }));
           return;
         }
@@ -837,23 +828,19 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'no_bank',
-            text: withCmds('🏦 **Conta Bancária Necessária:**\n\nPara solicitar retiradas, cadastre primeiro sua conta bancária e IBAN oficial:'),
+            text: 'Cadastre primeiro sua conta bancária para solicitar retiradas:',
           }));
           return;
         }
 
-        // Validação 4: Robô de rendimento ATIVO e não expirado (dados frescos do servidor)
+        // Validação 4: Robô de rendimento ATIVO e não expirado
         if (!hasBots) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'no_bots',
-            text: withCmds(
-              '🤖 **Robô Ativo Necessário:**\n\n' +
-              'Para liberar saques de rendimentos, você precisa ter pelo menos **um robô ativo** e dentro do prazo de validade na plataforma.\n\n' +
-              'Se já comprou um robô, verifique se ele ainda está dentro do período de actividade. Robôs expirados não contam para liberação de saques.'
-            ),
+            text: 'Para liberar retiradas, você precisa ter pelo menos um robô ativo na plataforma.',
           }));
           return;
         }
@@ -873,12 +860,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'amount_selector',
-            text:
-              `💸 **Solicitação de Retirada**\n\n` +
-              `Seu saldo disponível real é de **${formatCurrency(currentBal, 'KZ')}**.\n\n` +
-              `Qual valor você deseja retirar?\n\n` +
-              `*(Mín: ${formatCurrency(MIN_WITHDRAW, 'KZ')} | Máx: ${formatCurrency(MAX_WITHDRAW, 'KZ')} | Taxa: ${FEE_PERCENT}%)*\n\n` +
-              `💡 Você pode clicar nos valores rápidos abaixo ou digitar o valor diretamente (ex: *1500* ou *sacar 500*).`,
+            text: `Seu saldo disponível é de ${formatCurrency(currentBal, 'KZ')}. Escolha um valor rápido abaixo ou digite quanto quer sacar (mínimo: ${formatCurrency(MIN_WITHDRAW, 'KZ')}, taxa: ${FEE_PERCENT}%):`,
           }));
           return;
         }
@@ -890,7 +872,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds(`⚠️ O valor de **${formatCurrency(targetAmount, 'KZ')}** é inferior ao mínimo permitido.\n\nO valor mínimo para saque é de **${formatCurrency(MIN_WITHDRAW, 'KZ')}**. Por favor, escolha um valor a partir desse! 😊`),
+            text: `O valor mínimo para saque é de ${formatCurrency(MIN_WITHDRAW, 'KZ')}.`,
           }));
           return;
         }
@@ -901,7 +883,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds(`⚠️ O valor de **${formatCurrency(targetAmount, 'KZ')}** excede o limite máximo permitido.\n\nO limite por operação é de **${formatCurrency(MAX_WITHDRAW, 'KZ')}**. Escolha um valor dentro desse teto 😊`),
+            text: `O valor excede o limite máximo permitido de ${formatCurrency(MAX_WITHDRAW, 'KZ')}.`,
           }));
           return;
         }
@@ -912,7 +894,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds(`⚠️ Saldo insuficiente!\n\nVocê solicitou **${formatCurrency(targetAmount, 'KZ')}**, mas possui **${formatCurrency(currentBal, 'KZ')}** disponível.\n\nEscolha um valor até o seu saldo ou envie /saldo para conferir 😉`),
+            text: `Saldo insuficiente. Você solicitou ${formatCurrency(targetAmount, 'KZ')}, mas possui ${formatCurrency(currentBal, 'KZ')}.`,
           }));
           return;
         }
@@ -931,14 +913,14 @@ export default function Withdraw() {
             amount: targetAmount,
             fee,
             net,
-            bankName: info.bankName,
-            iban: info.iban,
+            bankName: bankName || info.bankName,
+            iban: iban || info.iban,
           },
         }));
         return;
       }
 
-      // 10. MOTOR CONVERSACIONAL DE RETIRADA (sys_t1000_retirada via RPC backend fallback)
+      // 11. MOTOR CONVERSACIONAL DE RETIRADA (sys_t1000_retirada via RPC backend fallback)
       setIsTyping(true);
       try {
         const { data: rawRpc, error: rpcErr } = await (supabase.rpc as any)(
@@ -959,6 +941,9 @@ export default function Withdraw() {
           setLastIntent(category);
           setLastBotResponse(response);
 
+          // Limpar qualquer asterisco ou cerquilha que possa vir do banco
+          const cleanResp = (response || '').replace(/[*#]/g, '').trim();
+
           if (action === 'TRIGGER_AMOUNT_SELECTOR') {
             if (!info.hasBank) {
               botReply(() => ({
@@ -966,7 +951,7 @@ export default function Withdraw() {
                 sender: 'bot',
                 time: nowTime(),
                 type: 'no_bank',
-                text: response + '\n\nPara começar, cadastre sua conta bancária:',
+                text: cleanResp || 'Cadastre sua conta bancária para solicitar o saque:',
               }));
               return;
             }
@@ -976,7 +961,7 @@ export default function Withdraw() {
                 sender: 'bot',
                 time: nowTime(),
                 type: 'no_bots',
-                text: response + '\n\nPara liberar o saque, ative um robô de rendimento:',
+                text: cleanResp || 'Para liberar o saque, ative um robô de rendimento:',
               }));
               return;
             }
@@ -985,16 +970,7 @@ export default function Withdraw() {
               sender: 'bot',
               time: nowTime(),
               type: 'amount_selector',
-              text:
-                response +
-                '\n\n' +
-                '*(Mínimo: ' +
-                formatCurrency(MIN_WITHDRAW, 'KZ') +
-                ' | Máximo: ' +
-                formatCurrency(MAX_WITHDRAW, 'KZ') +
-                ' | Taxa: ' +
-                FEE_PERCENT +
-                '%)*',
+              text: cleanResp || `Qual valor deseja retirar? (Mínimo: ${formatCurrency(MIN_WITHDRAW, 'KZ')}, taxa: ${FEE_PERCENT}%)`,
             }));
             return;
           }
@@ -1020,7 +996,7 @@ export default function Withdraw() {
                 sender: 'bot',
                 time: nowTime(),
                 type: 'no_bank',
-                text: response,
+                text: cleanResp || 'Cadastre sua conta bancária:',
               }));
               return;
             }
@@ -1031,7 +1007,7 @@ export default function Withdraw() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: withCmds(response),
+            text: cleanResp,
           }));
           return;
         }
@@ -1039,18 +1015,13 @@ export default function Withdraw() {
         setIsTyping(false);
       }
 
+      // Resposta padrão conversacional quando não identificou
       botReply(() => ({
         id: 'bot-' + Date.now(),
         sender: 'bot',
         time: nowTime(),
         type: 'text',
-        text: withCmds(
-          'Entendido! 😊 Sou o seu assistente inteligente de retiradas. Você pode me pedir coisas como:\n\n' +
-          '• *"Qual meu saldo?"* para consultar saldo real\n' +
-          '• *"Quero sacar 500"* para iniciar um saque desse valor\n' +
-          '• *"Ver histórico"* para acompanhar seus pedidos\n' +
-          '• Ou utilize os comandos abaixo:'
-        ),
+        text: 'Não entendi com clareza. Você pode pedir seu saldo, solicitar um saque (ex: sacar 500) ou enviar /historico.',
       }));
     },
     [inputText, info, pendingAmount, processWithdrawal, botReply, showToast, fetchRecentHistory, formatHistoryAsText, fetchData, lastIntent, lastBotResponse]
