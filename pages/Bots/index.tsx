@@ -4,13 +4,16 @@ import {
   MoreVertical,
   Send,
   Loader2,
-  HelpCircle,
   Clock,
-  ChevronDown
+  ChevronDown,
+  X
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../components/Toast";
 import { formatCurrency } from "../../lib/currency";
+
+/* ─── SVG Doodle Background (Telegram BotFather style) ─────────── */
+const DOODLE_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='none' stroke='%2372a072' stroke-width='1.2' opacity='0.45'%3E%3Ccircle cx='30' cy='28' r='10'/%3E%3Cpath d='M22 20L19 13L25 19'/%3E%3Cpath d='M38 20L41 13L35 19'/%3E%3Ccircle cx='26' cy='25' r='1.5' fill='%2372a072'/%3E%3Ccircle cx='34' cy='25' r='1.5' fill='%2372a072'/%3E%3Cpath d='M30 31L28 33L30 32L32 33Z'/%3E%3Cpath d='M19 27L24 28'/%3E%3Cpath d='M41 27L36 28'/%3E%3Cpath d='M164 15L167 7L170 15L178 15L172 20L174 28L167 23L160 28L162 20L156 15Z'/%3E%3Cpath d='M95 52C95 44 84 38 84 49C84 58 95 67 95 67C95 67 106 58 106 49C106 38 95 44 95 52Z'/%3E%3Ccircle cx='20' cy='112' r='7'/%3E%3Ccircle cx='10' cy='103' r='3.5'/%3E%3Ccircle cx='30' cy='103' r='3.5'/%3E%3Ccircle cx='14' cy='97' r='3'/%3E%3Ccircle cx='26' cy='97' r='3'/%3E%3Crect x='150' cy='100' width='26' height='19' rx='2'/%3E%3Crect x='148' y='93' width='30' height='9' rx='2'/%3E%3Cline x1='163' y1='93' x2='163' y2='119'/%3E%3Cpath d='M159 93C156 87 163 84 163 93'/%3E%3Cpath d='M167 93C170 87 163 84 163 93'/%3E%3Ccircle cx='163' cy='162' r='10'/%3E%3Cpath d='M155 154L152 146L158 153'/%3E%3Cpath d='M171 154L174 146L168 153'/%3E%3Ccircle cx='159' cy='160' r='1.5' fill='%2372a072'/%3E%3Ccircle cx='167' cy='160' r='1.5' fill='%2372a072'/%3E%3Cpath d='M163 164L161 166L163 165L165 166Z'/%3E%3Cpath d='M152 162L158 163'/%3E%3Cpath d='M174 162L168 163'/%3E%3Cpath d='M57 143C57 138 51 135 51 140C51 145 57 150 57 150C57 150 63 145 63 140C63 135 57 138 57 143Z'/%3E%3Cpath d='M140 44C140 39 134 36 134 41C134 46 140 51 140 51C140 51 146 46 146 41C146 36 140 39 140 44Z'/%3E%3Cpath d='M64 72L66 64L68 72L76 72L70 77L72 85L66 81L60 85L62 77L56 72Z'/%3E%3Cpath d='M127 134L129 126L131 134L139 134L133 139L135 147L129 143L123 147L125 139L119 134Z'/%3E%3Cpath d='M95 110L95 128'/%3E%3Ccircle cx='92' cy='129' r='4'/%3E%3Cpath d='M95 110L106 106L106 120'/%3E%3Ccircle cx='103' cy='121' r='4'/%3E%3C/g%3E%3C/svg%3E")`;
 
 /* ─── Interfaces ─────────────────────────────────────────── */
 export interface ProductItem {
@@ -47,50 +50,13 @@ interface ChatMessage {
   payload?: any;
 }
 
-/* ─── Lista de Comandos Válidos (para destacar em azul como Telegram oficial) ─── */
+/* ─── Lista de Comandos Válidos ─── */
 const VALID_COMMANDS = new Set([
-  "/start",
-  "/inicio",
-  "/início",
-  "/help",
-  "/ajuda",
-  "/menu",
-  "/bots",
-  "/catalogo",
-  "/catálogo",
-  "/comprar",
-  "/loja",
-  "/produtos",
-  "/robos",
-  "/robôs",
-  "/meusbots",
-  "/mybots",
-  "/ativos",
-  "/compras",
-  "/minhascompras",
-  "/saldo",
-  "/carteira",
-  "/rendas",
-  "/historico",
-  "/histórico",
-  "/limites",
-  "/limite",
-  "/spam",
-  "/spambot",
-  "/skeddy",
-  "/skeddybot",
-  "/botfather",
-  "/father",
-  "/combot",
-  "/com",
-  "/ia",
-  "/botsdeia",
-  "/botia",
-  "/premium",
-  "/premiumbot",
-  "/limpar",
-  "/reset",
-  "/clear"
+  "/start", "/inicio", "/início", "/help", "/ajuda", "/menu",
+  "/bots", "/catalogo", "/catálogo", "/comprar", "/loja", "/produtos", "/robos", "/robôs",
+  "/meusbots", "/mybots", "/ativos", "/compras", "/minhascompras",
+  "/saldo", "/carteira", "/rendas", "/historico", "/histórico",
+  "/limites", "/limite", "/limpar", "/reset", "/clear"
 ]);
 
 function isRecognizedCommand(text: string): boolean {
@@ -142,9 +108,80 @@ function PurchasedBotCountdown({ dataInicio }: { dataInicio: string }) {
   }, [dataInicio]);
 
   return (
-    <span className="font-mono text-[12px] font-bold text-[#1e6dc8] tabular-nums bg-white px-1.5 py-0.5 rounded border border-[#d6e3f3]">
+    <span className="font-mono text-[12px] font-bold text-[#2481cc] tabular-nums bg-[#e8f4fd] px-1.5 py-0.5 rounded">
       {formatCountdown(sec)}
     </span>
+  );
+}
+
+/* ─── Bot Bubble with tail ────────────────────────────────────────── */
+function BotBubble({ children, time }: { children: React.ReactNode; time: string }) {
+  return (
+    <div className="flex flex-col items-start mb-2 max-w-[88%] sm:max-w-[80%]">
+      <div className="relative w-full">
+        <div
+          style={{
+            position: "absolute", top: 0, left: -7,
+            width: 0, height: 0,
+            borderRight: "7px solid #ffffff",
+            borderTop: "9px solid transparent",
+          }}
+        />
+        <div
+          className="bg-white rounded-[18px] rounded-tl-[3px] px-3.5 py-2.5 select-text w-full"
+          style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.12)" }}
+        >
+          {children}
+          <div className="flex justify-end mt-1">
+            <span className="text-[11px] text-[#8a8a8a] select-none">{time}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── User Bubble with tail ───────────────────────────────────────── */
+function UserBubble({ text, time }: { text: string; time: string }) {
+  const isCmd = text?.trim().startsWith("/");
+  return (
+    <div className="flex justify-end mb-1.5">
+      <div className="relative max-w-[80%]">
+        <div
+          className="bg-[#c8e6c5] rounded-[18px] rounded-br-[3px] px-3.5 py-2 select-text"
+          style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.12)" }}
+        >
+          <p className={`text-[15px] leading-snug ${isCmd ? "text-[#1a7ac7] font-medium" : "text-black font-normal"}`}>
+            {text}
+          </p>
+          <div className="flex justify-end items-center gap-1 mt-0.5 select-none">
+            <span className="text-[11px] text-[#6a9a6a]">{time}</span>
+            <span className="text-[11px] text-[#4fae4e] font-bold leading-none">✓✓</span>
+          </div>
+        </div>
+        <div
+          style={{
+            position: "absolute", bottom: 0, right: -7,
+            width: 0, height: 0,
+            borderLeft: "7px solid #c8e6c5",
+            borderBottom: "9px solid transparent",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Inline Buttons for actions ────────────────────────────────── */
+function GrayButton({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="bg-[#6b7b8a] bg-opacity-70 text-white rounded-lg px-4 py-2 text-[14px] font-medium active:bg-opacity-90 transition-colors disabled:opacity-50 w-full flex items-center justify-center gap-1.5"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -162,6 +199,7 @@ export default function TelegramBotsChat() {
   const [inputText, setInputText] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [showCommandsModal, setShowCommandsModal] = useState(false);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const mainChatRef = useRef<HTMLDivElement>(null);
@@ -192,7 +230,6 @@ export default function TelegramBotsChat() {
   /* ── Buscar Dados Iniciais do Supabase ── */
   const loadData = useCallback(async () => {
     try {
-      // 1. Produtos disponíveis
       const { data: prodsData } = await supabase.rpc("get_available_products_mcpn");
       const cleanProducts: ProductItem[] = Array.isArray(prodsData)
         ? prodsData.map((p: any) => ({
@@ -209,7 +246,6 @@ export default function TelegramBotsChat() {
         : [];
       setProducts(cleanProducts);
 
-      // 2. Bots comprados com fallback robusto na tabela sys_600
       let cleanPurchased: PurchasedBotItem[] = [];
       try {
         const { data: myData, error: rpcErr } = await supabase.rpc("get_my_purchased_products_mcpn");
@@ -228,10 +264,9 @@ export default function TelegramBotsChat() {
           }));
         }
       } catch (e) {
-        console.warn("RPC get_my_purchased_products_mcpn falhou, tentando fallback direto:", e);
+        console.warn("RPC get_my_purchased_products_mcpn falhou", e);
       }
 
-      // Fallback direto na tabela sys_600 se RPC retornar vazio
       if (cleanPurchased.length === 0) {
         const { data: sessionData } = await supabase.auth.getSession();
         const uid = sessionData?.session?.user?.id;
@@ -266,7 +301,6 @@ export default function TelegramBotsChat() {
       }
       setPurchasedBots(cleanPurchased);
 
-      // 3. Saldo do usuário
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData.session?.user) {
         const { data: userData } = await supabase
@@ -296,7 +330,6 @@ export default function TelegramBotsChat() {
     async function initConversation() {
       await loadData();
 
-      // Verificar se já temos mensagens salvas no dispositivo
       try {
         const saved = localStorage.getItem(CHAT_STORAGE_KEY);
         if (saved) {
@@ -310,7 +343,6 @@ export default function TelegramBotsChat() {
         console.error("Erro ao restaurar histórico salvo:", e);
       }
 
-      // Se não tiver mensagens salvas, exibir mensagem única de tutorial inicial
       setIsTyping(true);
       setTimeout(() => {
         setIsTyping(false);
@@ -328,7 +360,6 @@ export default function TelegramBotsChat() {
     initConversation();
   }, [loadData]);
 
-  /* ── Simulação de Resposta do BotFather ── */
   const simulateBotReply = useCallback((builder: () => ChatMessage, delay = 650) => {
     setIsTyping(true);
     setTimeout(() => {
@@ -356,7 +387,6 @@ export default function TelegramBotsChat() {
 
       const normalized = content.toLowerCase().replace(/^\//, "").trim();
 
-      // Helper para contagem de compras de um produto específico
       const getPurchasedCountForProduct = (prod: ProductItem) => {
         return purchasedBots.filter(
           (b) =>
@@ -365,54 +395,30 @@ export default function TelegramBotsChat() {
         ).length;
       };
 
-      // 1. Comando Início / Ajuda (sem conversa humana, estritamente comandos)
       if (
-        normalized === "start" ||
-        normalized === "inicio" ||
-        normalized === "início" ||
-        normalized === "help" ||
-        normalized === "ajuda" ||
-        normalized === "menu" ||
-        normalized === "comandos"
+        normalized === "start" || normalized === "inicio" || normalized === "início" ||
+        normalized === "help" || normalized === "ajuda" || normalized === "menu" || normalized === "comandos"
       ) {
         simulateBotReply(() => ({
-          id: "bot-" + Date.now(),
-          sender: "bot",
-          time: getCurrentTime(),
-          type: "welcome"
+          id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "welcome"
         }));
         return;
       }
 
-      // 2. Comando Ver Bots / Catálogo / Comprar
       if (
-        normalized === "bots" ||
-        normalized === "catalogo" ||
-        normalized === "catálogo" ||
-        normalized === "comprar" ||
-        normalized === "newbot" ||
-        normalized === "produtos" ||
-        normalized === "loja" ||
-        normalized === "robos" ||
-        normalized === "robôs"
+        normalized === "bots" || normalized === "catalogo" || normalized === "catálogo" ||
+        normalized === "comprar" || normalized === "newbot" || normalized === "produtos" ||
+        normalized === "loja" || normalized === "robos" || normalized === "robôs"
       ) {
         simulateBotReply(() => ({
-          id: "bot-" + Date.now(),
-          sender: "bot",
-          time: getCurrentTime(),
-          type: "catalog",
-          payload: { products }
+          id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "catalog", payload: { products }
         }));
         return;
       }
 
-      // 3. Comando Meus Bots Comprados / Ativos
       if (
-        normalized === "meusbots" ||
-        normalized === "mybots" ||
-        normalized === "ativos" ||
-        normalized === "compras" ||
-        normalized === "minhascompras"
+        normalized === "meusbots" || normalized === "mybots" || normalized === "ativos" ||
+        normalized === "compras" || normalized === "minhascompras"
       ) {
         let currentBots = purchasedBots;
         if (!currentBots || currentBots.length === 0) {
@@ -421,28 +427,19 @@ export default function TelegramBotsChat() {
         }
 
         simulateBotReply(() => ({
-          id: "bot-" + Date.now(),
-          sender: "bot",
-          time: getCurrentTime(),
-          type: "my_bots",
-          payload: { bots: currentBots }
+          id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "my_bots", payload: { bots: currentBots }
         }));
         return;
       }
 
-      // 4. Comando Saldo (resposta direta e concisa, sem asteriscos ou textos extras)
       if (normalized === "saldo" || normalized === "carteira") {
         simulateBotReply(() => ({
-          id: "bot-" + Date.now(),
-          sender: "bot",
-          time: getCurrentTime(),
-          type: "text",
+          id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "text",
           text: `Saldo disponível na carteira: ${formatCurrency(userBalance, "KZ")}. Envie /bots para ver o catálogo.`
         }));
         return;
       }
 
-      // 5. Comando Limites de Compra (direto, sem asteriscos ou cardinais)
       if (normalized === "limites" || normalized === "limite") {
         const limitsText = products
           .map((prod) => {
@@ -454,21 +451,13 @@ export default function TelegramBotsChat() {
           .join("\n");
 
         simulateBotReply(() => ({
-          id: "bot-" + Date.now(),
-          sender: "bot",
-          time: getCurrentTime(),
-          type: "text",
+          id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "text",
           text: `Limites de compra por robô:\n\n${limitsText}\n\nEnvie /bots para ver o catálogo.`
         }));
         return;
       }
 
-      // 6. Comando Histórico de Rendas (direto e conciso)
-      if (
-        normalized === "rendas" ||
-        normalized === "historico" ||
-        normalized === "histórico"
-      ) {
+      if (normalized === "rendas" || normalized === "historico" || normalized === "histórico") {
         let currentBots = purchasedBots;
         if (!currentBots || currentBots.length === 0) {
           const res = await loadData();
@@ -481,58 +470,31 @@ export default function TelegramBotsChat() {
 
         if (activeBots.length === 0) {
           simulateBotReply(() => ({
-            id: "bot-" + Date.now(),
-            sender: "bot",
-            time: getCurrentTime(),
-            type: "text",
+            id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "text",
             text: `Você não possui robôs ativos no momento. Envie /bots para ver as opções disponíveis.`
           }));
           return;
         }
 
         const botsSummary = activeBots
-          .map(
-            (b) =>
-              `• ${b.produto_nome}: +${formatCurrency(b.renda_diaria, "KZ")}/dia (${b.dias_restantes} dias restantes)`
-          )
+          .map((b) => `• ${b.produto_nome}: +${formatCurrency(b.renda_diaria, "KZ")}/dia (${b.dias_restantes} dias restantes)`)
           .join("\n");
 
         simulateBotReply(() => ({
-          id: "bot-" + Date.now(),
-          sender: "bot",
-          time: getCurrentTime(),
-          type: "text",
+          id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "text",
           text: `Rendimentos ativos:\n• Robôs ativos: ${activeBots.length}\n• Renda diária total: +${formatCurrency(totalDaily, "KZ")}/dia\n• Total investido: ${formatCurrency(totalInvested, "KZ")}\n\nDetalhamento:\n${botsSummary}`
         }));
         return;
       }
 
-      // 7. Comando Limpar Chat
       if (normalized === "limpar" || normalized === "reset" || normalized === "clear") {
-        try {
-          localStorage.removeItem(CHAT_STORAGE_KEY);
-        } catch (e) {
-          console.error("Erro ao limpar storage:", e);
-        }
-        setMessages([
-          {
-            id: "welcome-botfather-" + Date.now(),
-            sender: "bot",
-            time: getCurrentTime(),
-            type: "welcome"
-          }
-        ]);
+        try { localStorage.removeItem(CHAT_STORAGE_KEY); } catch (e) {}
+        setMessages([{ id: "welcome-botfather-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "welcome" }]);
         showToast("Histórico de conversa reiniciado.", "success");
         return;
       }
 
-      // 8. Consulta de Robô Específico por Comando (/spam, /skeddy, /botfather, /combot, /ia, /premium)
-      let cleanQuery = normalized
-        .replace(/^info\s+/i, "")
-        .replace(/^bot\s+/i, "")
-        .replace(/\s+bot$/i, "")
-        .trim();
-
+      let cleanQuery = normalized.replace(/^info\s+/i, "").replace(/^bot\s+/i, "").replace(/\s+bot$/i, "").trim();
       if (cleanQuery === "ia" || cleanQuery === "botsdeia" || cleanQuery === "botia") cleanQuery = "ia";
       if (cleanQuery === "father" || cleanQuery === "botfather") cleanQuery = "botfother";
 
@@ -540,12 +502,7 @@ export default function TelegramBotsChat() {
         const pNome = p.nome.toLowerCase();
         const pClean = pNome.replace(/\s+bot/i, "").trim();
         const pNoSpace = pNome.replace(/\s+/g, "");
-        return (
-          cleanQuery === pNome ||
-          cleanQuery === pClean ||
-          cleanQuery === pNoSpace ||
-          (cleanQuery.length >= 3 && (pNome.includes(cleanQuery) || pClean.includes(cleanQuery)))
-        );
+        return (cleanQuery === pNome || cleanQuery === pClean || cleanQuery === pNoSpace || (cleanQuery.length >= 3 && (pNome.includes(cleanQuery) || pClean.includes(cleanQuery))));
       });
 
       if (matchedProd) {
@@ -554,27 +511,15 @@ export default function TelegramBotsChat() {
         const remaining = Math.max(0, maxLimit - boughtCount);
 
         simulateBotReply(() => ({
-          id: "bot-" + Date.now(),
-          sender: "bot",
-          time: getCurrentTime(),
-          type: "single_bot",
-          payload: {
-            product: matchedProd,
-            boughtCount,
-            maxLimit,
-            remaining
-          }
+          id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "single_bot",
+          payload: { product: matchedProd, boughtCount, maxLimit, remaining }
         }));
         return;
       }
 
-      // 9. Fallback: Estritamente Comandos (Não conversa como humano)
       simulateBotReply(() => ({
-        id: "bot-" + Date.now(),
-        sender: "bot",
-        time: getCurrentTime(),
-        type: "text",
-        text: `Comando não reconhecido. Envie /ajuda para ver a lista de comandos disponíveis.`
+        id: "bot-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "text",
+        text: `Unrecognized command. Say what?`
       }));
     },
     [inputText, products, purchasedBots, userBalance, simulateBotReply, loadData]
@@ -584,7 +529,6 @@ export default function TelegramBotsChat() {
   const handleBuyProduct = useCallback(
     async (product: ProductItem) => {
       setBuyingId(product.id);
-
       const userMsg: ChatMessage = {
         id: "buy-usr-" + Date.now(),
         sender: "user",
@@ -593,59 +537,30 @@ export default function TelegramBotsChat() {
         type: "text"
       };
       setMessages((prev) => [...prev, userMsg]);
-
       setIsTyping(true);
 
       try {
-        const { data, error } = await supabase.rpc("buy_product_mcpn", {
-          p_product_id: product.id
-        });
-
+        const { data, error } = await supabase.rpc("buy_product_mcpn", { p_product_id: product.id });
         if (error) throw error;
-
         const result = data as { success: boolean; message: string };
 
         if (result?.success) {
           showToast(result.message, "success");
-
-          // Atualiza dados
           await loadData();
-
           setIsTyping(false);
           setMessages((prev) => [
             ...prev,
-            {
-              id: "success-" + Date.now(),
-              sender: "bot",
-              time: getCurrentTime(),
-              type: "purchase_success",
-              payload: { product }
-            }
+            { id: "success-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "purchase_success", payload: { product } }
           ]);
         } else {
           setIsTyping(false);
           const raw = (result?.message || "Falha ao processar compra.").replace(/[*#]/g, "");
           const isNoBalance = /saldo\s+insuficiente/i.test(raw);
-
           setMessages((prev) => [
             ...prev,
-            {
-              id: "err-" + Date.now(),
-              sender: "bot",
-              time: getCurrentTime(),
-              type: "text",
-              text: isNoBalance
-                ? `Saldo insuficiente. O robô custa ${formatCurrency(
-                    product.preco,
-                    "KZ"
-                  )} e seu saldo atual é de ${formatCurrency(
-                    userBalance,
-                    "KZ"
-                  )}. Recarregue sua carteira para continuar.`
-                : `Erro: ${raw}`
-            }
+            { id: "err-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "text",
+              text: isNoBalance ? `Saldo insuficiente. O robô custa ${formatCurrency(product.preco, "KZ")} e seu saldo atual é de ${formatCurrency(userBalance, "KZ")}. Recarregue sua carteira para continuar.` : `Erro: ${raw}` }
           ]);
-
           showToast(isNoBalance ? "Saldo insuficiente, recarregue primeiro." : raw, "error");
         }
       } catch (err: any) {
@@ -653,13 +568,7 @@ export default function TelegramBotsChat() {
         const raw = (err.message || "Erro de conexão ao comprar bot.").replace(/[*#]/g, "");
         setMessages((prev) => [
           ...prev,
-          {
-            id: "err-catch-" + Date.now(),
-            sender: "bot",
-            time: getCurrentTime(),
-            type: "text",
-            text: `Erro ao ativar robô: ${raw}`
-          }
+          { id: "err-catch-" + Date.now(), sender: "bot", time: getCurrentTime(), type: "text", text: `Erro ao ativar robô: ${raw}` }
         ]);
         showToast(raw, "error");
       } finally {
@@ -669,179 +578,144 @@ export default function TelegramBotsChat() {
     [loadData, showToast, userBalance]
   );
 
+  function renderTextWithLinks(text: string) {
+    return text.replace(/[*#]/g, "").split("\n").map((line, lIdx, arr) => {
+      const parts = line.split(/(\/[-_a-zA-Z0-9]+)/g);
+      return (
+        <span key={lIdx}>
+          {parts.map((part, pIdx) =>
+            part.startsWith("/") ? (
+              <span key={pIdx} onClick={() => handleSendMessage(part)} className="text-[#1a7ac7] underline cursor-pointer">{part}</span>
+            ) : part
+          )}
+          {lIdx < arr.length - 1 && <br />}
+        </span>
+      );
+    });
+  }
+
   return (
     <div
       className="w-full h-[100dvh] flex flex-col overflow-hidden select-none"
-      style={{
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif"
-      }}
+      style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif" }}
     >
-      {/* ── HEADER TELEGRAM BOTFATHER ── */}
-      <header className="w-full bg-white px-3 py-2 shrink-0 z-30 flex items-center justify-between border-b border-gray-200/60 shadow-2xs">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-1 -ml-1 text-[#000000] hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors cursor-pointer relative"
-            aria-label="Voltar"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M5 12l7-7M5 12l7 7" />
-            </svg>
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#3390ec] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-              1
-            </span>
-          </button>
-
-          <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-200 shadow-2xs">
-            <img
-              src="/botfather.png"
-              alt="BotFather"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg";
-              }}
-            />
+      {/* ── MODAL DE COMANDOS ── */}
+      {showCommandsModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowCommandsModal(false)}>
+          <div className="absolute inset-0 bg-black/35" />
+          <div className="relative bg-white w-full max-w-md rounded-t-[20px] px-4 pt-4 pb-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[16px] font-bold text-gray-900">Comandos</span>
+              <button onClick={() => setShowCommandsModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-1">
+              {[
+                { cmd: "/bots", label: "Ver catálogo de robôs" },
+                { cmd: "/meusbots", label: "Meus robôs ativos" },
+                { cmd: "/saldo", label: "Consultar saldo" },
+                { cmd: "/rendas", label: "Rendimentos diários" },
+                { cmd: "/limites", label: "Limites de compra" },
+                { cmd: "/ajuda", label: "Lista de comandos" },
+                { cmd: "/limpar", label: "Limpar conversa" },
+              ].map(({ cmd, label }) => (
+                <button
+                  key={cmd}
+                  onClick={() => { setShowCommandsModal(false); handleSendMessage(cmd); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer text-left"
+                >
+                  <span className="text-[#1a7ac7] font-medium text-[14px] min-w-[100px]">{cmd}</span>
+                  <span className="text-gray-500 text-[13.5px]">{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
+        </div>
+      )}
 
+      {/* ── HEADER ── */}
+      <header className="w-full bg-white px-3 py-2 shrink-0 z-30 flex items-center gap-3 border-b border-gray-200/70"
+        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+        <button onClick={() => navigate(-1)} className="p-1 -ml-1 text-[#1c1c1e] hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors cursor-pointer shrink-0" aria-label="Voltar">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer" onClick={() => handleSendMessage("/saldo")}>
+          <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-200">
+            <img src="/botfather.png" alt="BotFather" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg"; }} />
+          </div>
           <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[16px] font-bold text-[#000000] leading-tight">
-                BotFather
-              </span>
-              <svg className="w-4 h-4 text-[#3390ec]" viewBox="0 0 24 24" fill="currentColor">
+            <div className="flex items-center gap-1">
+              <span className="text-[16px] font-bold text-[#000000] leading-tight">BotFather</span>
+              <svg className="w-[15px] h-[15px] text-[#3390ec] shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
               </svg>
             </div>
-            <span
-              onClick={() => handleSendMessage("/saldo")}
-              className="text-[12px] text-[#707579] truncate cursor-pointer hover:text-[#3390ec] transition-colors"
-            >
-              Saldo: {formatCurrency(userBalance, "KZ")}
-            </span>
+            <span className="text-[11.5px] text-[#8a8a8e] truncate leading-tight">8,885,239 usuários mensais</span>
           </div>
         </div>
 
-        <button className="p-1.5 text-[#707579] hover:bg-gray-100 rounded-full cursor-pointer">
+        <button onClick={() => setShowCommandsModal(true)} className="p-1.5 text-[#8a8a8e] hover:bg-gray-100 rounded-full cursor-pointer shrink-0">
           <MoreVertical className="w-5 h-5" />
         </button>
       </header>
 
-      {/* ── CORPO DO CHAT COM WALLPAPER OFICIAL TELEGRAM ── */}
+      {/* ── CHAT ── */}
       <main
         ref={mainChatRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2 relative select-text"
-        style={{
-          backgroundColor: "#8ea78f",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%236f8a70' fill-opacity='0.22'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")`
-        }}
+        className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1 relative select-text"
+        style={{ backgroundColor: "#afc8af", backgroundImage: DOODLE_BG }}
       >
-        {/* Chip de data */}
-        <div className="flex justify-center my-1 select-none">
-          <span className="bg-[#5b7a5e]/70 text-white text-[11.5px] font-medium px-3 py-0.5 rounded-full shadow-2xs backdrop-blur-xs">
+        <div className="flex justify-center my-2 select-none">
+          <span className="text-white text-[12px] font-medium px-3.5 py-0.5 rounded-full" style={{ backgroundColor: "rgba(74, 100, 74, 0.72)", backdropFilter: "blur(4px)" }}>
             Wednesday
           </span>
         </div>
 
-        {/* Mensagens */}
         {messages.map((msg) => {
-          const isUser = msg.sender === "user";
+          if (msg.sender === "user") return <UserBubble key={msg.id} text={msg.text || ""} time={msg.time} />;
 
-          if (isUser) {
-            const isCmd = msg.text?.trim().startsWith("/");
-            const isValid = isCmd && isRecognizedCommand(msg.text || "");
-
-            return (
-              <div key={msg.id} className="flex justify-end mb-1">
-                <div
-                  className="bg-[#effdde] rounded-[16px] rounded-br-[4px] px-3.5 py-1.5 max-w-[85%] relative select-text flex items-baseline gap-2"
-                  style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
-                >
-                  <p
-                    className={`text-[15px] leading-snug whitespace-pre-line ${
-                      isValid ? "text-[#2481cc] font-medium" : "text-[#000000] font-normal"
-                    }`}
-                  >
-                    {msg.text}
-                  </p>
-                  <div className="flex items-center gap-1 shrink-0 text-[11px] text-[#537c3e] select-none ml-1">
-                    <span>{msg.time}</span>
-                    <span className="text-[#3ca3e8] font-bold text-[12px] leading-none">✓✓</span>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // Mensagens do BotFather (Texto limpo)
           return (
-            <div key={msg.id} className="flex flex-col items-start mb-2 max-w-[92%] sm:max-w-[85%]">
-              <div
-                className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2.5 text-gray-900 w-full relative select-text"
-                style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
-              >
-                {/* 1. Guia Oficial de Comandos do BotFather */}
+            <React.Fragment key={msg.id}>
+              <BotBubble time={msg.time}>
                 {msg.type === "welcome" && (
-                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
-                    <p className="font-bold text-[15px] mb-1.5 text-gray-900">
-                      BotFather - Central de Comandos
+                  <div className="text-[14px] text-[#1c1c1e] leading-relaxed font-normal">
+                    <p className="mb-2 text-[14px] text-[#1c1c1e]">
+                      Olá, eu sou o BOTFATHER! Posso te ajudar a consultar seu saldo, histórico de rendimentos, compras e suporte.
                     </p>
-                    <p className="mb-2 text-gray-700">
-                      Envie um dos comandos abaixo para interagir:
-                    </p>
-                    <div className="space-y-1 mb-2.5">
-                      <div>• <span onClick={() => handleSendMessage("/bots")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/bots</span> — Catálogo de robôs</div>
-                      <div>• <span onClick={() => handleSendMessage("/saldo")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/saldo</span> — Saldo disponível</div>
-                      <div>• <span onClick={() => handleSendMessage("/meusbots")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/meusbots</span> — Robôs ativos</div>
-                      <div>• <span onClick={() => handleSendMessage("/limites")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/limites</span> — Limites por robô</div>
-                      <div>• <span onClick={() => handleSendMessage("/rendas")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/rendas</span> — Rendimentos diários</div>
-                      <div>• <span onClick={() => handleSendMessage("/limpar")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/limpar</span> — Limpar conversa</div>
-                      <div>• <span onClick={() => handleSendMessage("/ajuda")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/ajuda</span> — Lista de comandos</div>
-                    </div>
-                    <p className="font-bold text-[13.5px] text-gray-900 mb-1">
-                      Consultar robô individual:
-                    </p>
-                    <p className="text-[13px] text-gray-600">
-                      <span onClick={() => handleSendMessage("/spam")} className="text-[#3390ec] cursor-pointer hover:underline">/spam</span>,{" "}
-                      <span onClick={() => handleSendMessage("/skeddy")} className="text-[#3390ec] cursor-pointer hover:underline">/skeddy</span>,{" "}
-                      <span onClick={() => handleSendMessage("/botfather")} className="text-[#3390ec] cursor-pointer hover:underline">/botfather</span>,{" "}
-                      <span onClick={() => handleSendMessage("/combot")} className="text-[#3390ec] cursor-pointer hover:underline">/combot</span>,{" "}
-                      <span onClick={() => handleSendMessage("/ia")} className="text-[#3390ec] cursor-pointer hover:underline">/ia</span>,{" "}
-                      <span onClick={() => handleSendMessage("/premium")} className="text-[#3390ec] cursor-pointer hover:underline">/premium</span>
+                    <p className="text-[13.5px]">
+                      <span onClick={() => handleSendMessage("/bots")} className="text-[#1a7ac7] underline cursor-pointer">Catálogo</span>{" · "}
+                      <span onClick={() => handleSendMessage("/saldo")} className="text-[#1a7ac7] underline cursor-pointer">Saldo</span>{" · "}
+                      <span onClick={() => handleSendMessage("/meusbots")} className="text-[#1a7ac7] underline cursor-pointer">Meus Bots</span>{" · "}
+                      <span onClick={() => handleSendMessage("/rendas")} className="text-[#1a7ac7] underline cursor-pointer">Rendimentos</span>{" · "}
+                      <span onClick={() => handleSendMessage("/limites")} className="text-[#1a7ac7] underline cursor-pointer">Limites</span>{" · "}
+                      <span onClick={() => handleSendMessage("/ajuda")} className="text-[#1a7ac7] underline cursor-pointer">Ajuda</span>
                     </p>
                   </div>
                 )}
 
-                {/* 2. Meus Bots Comprados */}
                 {msg.type === "my_bots" && (
-                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
-                    <p className="font-bold text-[15px] mb-1.5">
-                      Robôs em Execução ({msg.payload?.bots?.length || 0}):
-                    </p>
-
+                  <div className="text-[14px] text-[#1c1c1e] leading-relaxed font-normal">
+                    <p className="font-bold text-[14.5px] mb-1.5">Robôs em Execução ({msg.payload?.bots?.length || 0}):</p>
                     {!msg.payload?.bots || msg.payload.bots.length === 0 ? (
-                      <p className="text-gray-600">
-                        Você não possui robôs comprados. Envie <span onClick={() => handleSendMessage("/bots")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/bots</span> para abrir o catálogo.
-                      </p>
+                      <p className="text-[#3a3a3c]">Você não possui robôs comprados. Envie /bots para abrir o catálogo.</p>
                     ) : (
-                      <div className="space-y-2.5 my-1">
+                      <div className="space-y-3">
                         {msg.payload.bots.map((bot: PurchasedBotItem, idx: number) => (
-                          <div key={bot.id || idx} className="text-[13.5px] leading-relaxed border-b border-gray-100 pb-2 last:border-0 last:pb-0">
-                            <p className="font-bold text-gray-900">
-                              {idx + 1}. {bot.produto_nome} <span className="text-[#25ae60] text-[12px] font-semibold">• Ativo</span>
-                            </p>
-                            <p className="text-gray-600">
-                              • ID Contrato: <span className="font-mono text-[12px] text-gray-800">{bot.id?.slice(0, 6).toUpperCase()}</span>
-                              <br />
-                              • Renda Diária: <span className="text-[#25ae60] font-semibold">+{formatCurrency(bot.renda_diaria, "KZ")}</span> / dia
-                              <br />
-                              • Valor Pago: {formatCurrency(bot.preco_pago, "KZ")}
-                              <br />
-                              • Dias Restantes: {bot.dias_restantes} dias
+                          <div key={bot.id || idx} className="text-[13.5px] border-b border-gray-100 pb-2.5 last:border-0 last:pb-0">
+                            <p className="font-bold text-[#1c1c1e] mb-0.5">{idx + 1}. {bot.produto_nome} <span className="text-[#25ae60] text-[12px] font-semibold">● Ativo</span></p>
+                            <p className="text-[#3a3a3c] text-[13px] space-y-0.5">
+                              ID: <span className="font-mono text-[12px]">{bot.id?.slice(0, 8).toUpperCase()}</span><br />
+                              Renda Diária: <span className="text-[#25ae60] font-semibold">+{formatCurrency(bot.renda_diaria, "KZ")}/dia</span><br />
+                              Valor Pago: {formatCurrency(bot.preco_pago, "KZ")}<br />
+                              Dias Restantes: {bot.dias_restantes} dias
                             </p>
                             {bot.ativo && (
-                              <div className="mt-1 flex items-center gap-1.5 text-[12.5px] text-[#2481cc]">
+                              <div className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-[#2481cc]">
                                 <Clock className="w-3.5 h-3.5" />
                                 <span>Próximo crédito em:</span>
                                 <PurchasedBotCountdown dataInicio={bot.data_inicio} />
@@ -854,18 +728,14 @@ export default function TelegramBotsChat() {
                   </div>
                 )}
 
-                {/* 3. Catálogo de Bots */}
                 {msg.type === "catalog" && (
-                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
-                    <p className="font-bold text-[15px] mb-1.5">
-                      Robôs Disponíveis para Compra:
-                    </p>
-                    <div className="space-y-2 mb-1">
+                  <div className="text-[14px] text-[#1c1c1e] leading-relaxed font-normal">
+                    <p className="font-bold text-[14.5px] mb-1.5">Robôs Disponíveis para Compra:</p>
+                    <div className="space-y-3">
                       {msg.payload?.products?.map((prod: ProductItem, idx: number) => (
-                        <div key={prod.id || idx} className="text-[13.5px] text-gray-800">
-                          <span className="font-bold">{idx + 1}. {prod.nome}</span> — {formatCurrency(prod.preco, "KZ")}
-                          <br />
-                          <span className="text-gray-500 text-[12.5px]">
+                        <div key={prod.id || idx} className="text-[13.5px] text-[#3a3a3c]">
+                          <span className="font-bold text-[#1c1c1e]">{idx + 1}. {prod.nome}</span> — {formatCurrency(prod.preco, "KZ")}<br />
+                          <span className="text-[#8a8a8e] text-[12.5px]">
                             Renda: <span className="text-[#25ae60] font-medium">+{formatCurrency(prod.renda_diaria, "KZ")}/dia</span> • Duração: {prod.duracao_dias} dias • Renda Total: {formatCurrency(prod.renda_diaria * prod.duracao_dias, "KZ")}
                           </span>
                         </div>
@@ -874,173 +744,80 @@ export default function TelegramBotsChat() {
                   </div>
                 )}
 
-                {/* 4. Detalhe de Bot Específico */}
                 {msg.type === "single_bot" && msg.payload?.product && (
-                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
-                    <p className="font-bold text-[15px] text-[#2481cc] mb-1.5">
-                      Informações do {msg.payload.product.nome}:
-                    </p>
-                    <p className="text-[13.5px] text-gray-800 space-y-1 my-1">
-                      • Preço de Compra: {formatCurrency(msg.payload.product.preco, "KZ")}
-                      <br />
-                      • Renda Diária: <span className="text-[#25ae60] font-semibold">+{formatCurrency(msg.payload.product.renda_diaria, "KZ")} / dia</span>
-                      <br />
-                      • Duração do Contrato: {msg.payload.product.duracao_dias} dias
-                      <br />
-                      • Renda Total no Período: <span className="text-[#2481cc] font-semibold">{formatCurrency(msg.payload.product.renda_diaria * msg.payload.product.duracao_dias, "KZ")}</span>
-                      <br />
-                      • Limite de Compras:{" "}
-                      {msg.payload.boughtCount >= msg.payload.maxLimit ? (
-                        <span className="text-amber-600 font-semibold">
-                          Limite atingido ({msg.payload.boughtCount}/{msg.payload.maxLimit} comprados)
-                        </span>
+                  <div className="text-[14px] text-[#1c1c1e] leading-relaxed font-normal">
+                    <p className="font-bold text-[14.5px] text-[#1a7ac7] mb-1.5">Informações do {msg.payload.product.nome}:</p>
+                    <p className="text-[13.5px] text-[#3a3a3c] space-y-1">
+                      • Preço: {formatCurrency(msg.payload.product.preco, "KZ")}<br />
+                      • Renda Diária: <span className="text-[#25ae60] font-semibold">+{formatCurrency(msg.payload.product.renda_diaria, "KZ")} / dia</span><br />
+                      • Duração: {msg.payload.product.duracao_dias} dias<br />
+                      • Renda Total: <span className="text-[#1a7ac7] font-semibold">{formatCurrency(msg.payload.product.renda_diaria * msg.payload.product.duracao_dias, "KZ")}</span><br />
+                      • Limite: {msg.payload.boughtCount >= msg.payload.maxLimit ? (
+                        <span className="text-amber-600 font-semibold">Atingido ({msg.payload.boughtCount}/{msg.payload.maxLimit})</span>
                       ) : (
-                        <span>
-                          {msg.payload.boughtCount}/{msg.payload.maxLimit} comprados ({msg.payload.remaining} disponível)
-                        </span>
+                        <span>{msg.payload.boughtCount}/{msg.payload.maxLimit} comprados</span>
                       )}
                     </p>
                   </div>
                 )}
 
-                {/* 5. Sucesso de Compra */}
                 {msg.type === "purchase_success" && (
-                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
-                    <p className="font-bold text-[#25ae60] text-[15px] mb-1">
-                      Robô Comprado com Sucesso!
-                    </p>
-                    <p className="mb-1 text-gray-700">
-                      Chave de Ativação do Robô (HTTP API):
-                    </p>
-                    <div className="bg-[#e8eff5] rounded-[8px] px-2.5 py-1 font-mono text-[12.5px] text-[#2481cc] select-all my-1.5">
+                  <div className="text-[14px] text-[#1c1c1e] leading-relaxed font-normal">
+                    <p className="font-bold text-[#25ae60] text-[14.5px] mb-1">Robô Comprado com Sucesso!</p>
+                    <p className="mb-1 text-[#3a3a3c]">Chave de Ativação (HTTP API):</p>
+                    <div className="bg-[#e8f4fd] rounded-[8px] px-2.5 py-1 font-mono text-[12.5px] text-[#1a7ac7] select-all my-1.5">
                       8723751541:AAF1i3n8zKtRJd5_mJmVDw0vQvJhMjzUjWU
                     </div>
-                    <p className="text-[13px] text-gray-600">
-                      O robô <span className="font-semibold">{msg.payload?.product?.nome}</span> está ativo. Rendimento de <span className="font-semibold text-[#25ae60]">+{formatCurrency(msg.payload?.product?.renda_diaria, "KZ")}</span> creditado diariamente a cada 24 horas no saldo.
+                    <p className="text-[13px] text-[#8a8a8e]">
+                      O robô <span className="font-semibold text-[#1c1c1e]">{msg.payload?.product?.nome}</span> está ativo. Rendimento de <span className="font-semibold text-[#25ae60]">+{formatCurrency(msg.payload?.product?.renda_diaria, "KZ")}</span> creditado diariamente.
                     </p>
                   </div>
                 )}
 
-                {/* 6. Texto livre sem asteriscos ou cardinais */}
                 {msg.type === "text" && (
-                  <div className="text-[14px] text-[#000000] leading-relaxed whitespace-pre-line font-normal">
-                    {msg.text
-                      ?.replace(/[*#]/g, "")
-                      .split("\n")
-                      .map((line, lIdx) => {
-                        const parts = line.split(/(\/[-_a-zA-Z0-9]+)/g);
-                        return (
-                          <span key={lIdx}>
-                            {parts.map((part, pIdx) => {
-                              if (part.startsWith("/")) {
-                                return (
-                                  <span
-                                    key={pIdx}
-                                    onClick={() => handleSendMessage(part)}
-                                    className="text-[#3390ec] font-medium cursor-pointer hover:underline"
-                                  >
-                                    {part}
-                                  </span>
-                                );
-                              }
-                              return part;
-                            })}
-                            {lIdx < (msg.text?.replace(/[*#]/g, "").split("\n").length || 1) - 1 && <br />}
-                          </span>
-                        );
-                      })}
+                  <div className="text-[14px] text-[#1c1c1e] leading-relaxed whitespace-pre-line font-normal">
+                    {renderTextWithLinks(msg.text || "")}
                   </div>
                 )}
+              </BotBubble>
 
-                <div className="flex justify-end mt-1 text-[11px] text-[#707579] font-normal select-none">
-                  <span>{msg.time}</span>
-                </div>
-              </div>
-
-              {/* Botão Inline no Welcome para Ver Catálogo */}
+              {/* Botões Inline anexados à mensagem */}
               {msg.type === "welcome" && (
-                <div className="w-full mt-1.5 select-none">
-                  <button
-                    onClick={() => handleSendMessage("/bots")}
-                    className="w-full bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2.5 px-3 text-center text-[13.5px] font-bold text-[#2481cc] transition-colors cursor-pointer flex items-center justify-center gap-2"
-                    style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
-                  >
-                    <span>🛍️ Ver Robôs Disponíveis para Compra</span>
-                  </button>
+                <div className="w-full max-w-[80%] flex items-center justify-center -mt-1.5 mb-2 pl-2">
+                  <GrayButton onClick={() => handleSendMessage("/bots")}>
+                    « Back to Bot List
+                  </GrayButton>
                 </div>
               )}
-
-              {/* Botões Inline do Catálogo */}
               {msg.type === "catalog" && msg.payload?.products && (
-                <div className="w-full mt-1.5 space-y-1 select-none">
+                <div className="w-full max-w-[80%] flex flex-col items-center justify-center gap-1 -mt-1.5 mb-2 pl-2">
                   {msg.payload.products.map((prod: ProductItem) => {
                     const isBuyingThis = buyingId === prod.id;
                     return (
-                      <button
-                        key={"btn-" + prod.id}
-                        onClick={() => handleBuyProduct(prod)}
-                        disabled={isBuyingThis}
-                        className="w-full bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-3 text-center text-[13.5px] font-semibold text-[#2481cc] transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
-                        style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
-                      >
-                        {isBuyingThis ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin text-[#2481cc]" />
-                            <span>Comprando robô...</span>
-                          </>
-                        ) : (
-                          <span>🛒 Comprar {prod.nome} — {formatCurrency(prod.preco, "KZ")}</span>
-                        )}
-                      </button>
+                      <GrayButton key={prod.id} onClick={() => handleBuyProduct(prod)} disabled={isBuyingThis}>
+                        {isBuyingThis ? <><Loader2 className="w-4 h-4 animate-spin" /> Comprando...</> : `Comprar ${prod.nome}`}
+                      </GrayButton>
                     );
                   })}
                 </div>
               )}
-
-              {/* Botão Inline para um bot específico */}
               {msg.type === "single_bot" && msg.payload?.product && (
-                <div className="w-full mt-1.5 select-none">
-                  {msg.payload.remaining <= 0 ? (
-                    <div
-                      className="w-full bg-gray-100 rounded-[8px] py-2 px-3 text-center text-[13px] font-semibold text-gray-500"
-                      style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
-                    >
-                      ⚠️ Limite de compras atingido para este robô
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleBuyProduct(msg.payload.product)}
-                      disabled={buyingId === msg.payload.product.id}
-                      className="w-full bg-white hover:bg-gray-50 active:bg-gray-100 rounded-[8px] py-2 px-3 text-center text-[13.5px] font-semibold text-[#2481cc] transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
-                      style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
-                    >
-                      {buyingId === msg.payload.product.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin text-[#2481cc]" />
-                          <span>Comprando robô...</span>
-                        </>
-                      ) : (
-                        <span>🛒 Comprar {msg.payload.product.nome} — {formatCurrency(msg.payload.product.preco, "KZ")}</span>
-                      )}
-                    </button>
-                  )}
+                <div className="w-full max-w-[80%] flex items-center justify-center -mt-1.5 mb-2 pl-2">
+                  <GrayButton onClick={() => handleBuyProduct(msg.payload.product)} disabled={buyingId === msg.payload.product.id || msg.payload.remaining <= 0}>
+                    {buyingId === msg.payload.product.id ? <><Loader2 className="w-4 h-4 animate-spin" /> Comprando...</> : msg.payload.remaining <= 0 ? "⚠️ Limite atingido" : `Comprar ${msg.payload.product.nome}`}
+                  </GrayButton>
                 </div>
               )}
-            </div>
+            </React.Fragment>
           );
         })}
 
-        {/* Indicador de Digitando */}
         {isTyping && (
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <div
-              className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2 flex items-center gap-1.5"
-              style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-[#707579] animate-bounce" style={{ animationDelay: "300ms" }} />
-              <span className="text-[11.5px] text-[#707579] ml-1">BotFather está digitando...</span>
+          <div className="flex items-center gap-2 mb-2 pl-2">
+            <div className="bg-white rounded-[18px] rounded-tl-[3px] px-3.5 py-2 flex items-center gap-1.5" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.12)" }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8a8a8e] animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8a8a8e] animate-bounce" style={{ animationDelay: "160ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8a8a8e] animate-bounce" style={{ animationDelay: "320ms" }} />
             </div>
           </div>
         )}
@@ -1048,58 +825,35 @@ export default function TelegramBotsChat() {
         <div ref={chatBottomRef} />
       </main>
 
-      {/* Botão flutuante para rolar para baixo */}
       {showScrollDown && (
-        <button
-          onClick={() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" })}
-          className="absolute right-3.5 bottom-16 w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-[#707579] hover:bg-gray-50 active:scale-95 transition-all z-20 cursor-pointer"
-        >
+        <button onClick={() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" })} className="absolute right-3.5 bottom-16 w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-[#8a8a8e] hover:bg-gray-50 active:scale-95 transition-all z-20 cursor-pointer">
           <ChevronDown className="w-5 h-5" />
         </button>
       )}
 
-      {/* ── BARRA INFERIOR DE INPUT TELEGRAM ── */}
-      <footer className="bg-white px-2 py-2 shrink-0 z-30 flex items-center gap-2 border-t border-gray-200">
-        <button
-          onClick={() => handleSendMessage("/meusbots")}
-          className="h-[38px] px-3.5 rounded-[8px] bg-[#3390ec] hover:bg-[#2881dc] active:bg-[#1d6fae] text-white text-[13.5px] font-medium flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer shadow-xs"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-          </svg>
-          <span>Meus Bots</span>
+      {/* ── FOOTER ── */}
+      <footer className="bg-white px-3 py-2 shrink-0 z-30 flex items-center gap-2.5 border-t border-gray-200">
+        <button onClick={() => handleSendMessage("/meusbots")} className="text-[#1a7ac7] text-[13.5px] font-medium shrink-0 cursor-pointer hover:underline">
+          Meus Bots
         </button>
 
-        <div className="flex-1 flex items-center bg-transparent px-1">
+        <div className="flex-1">
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            placeholder="Digite um comando (/bots, /saldo)..."
-            className="w-full bg-transparent text-[15px] text-[#000000] placeholder-gray-400 outline-none"
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSendMessage(); } }}
+            placeholder="Mensagem"
+            className="w-full bg-transparent text-[15px] text-[#1c1c1e] placeholder-[#8a8a8e] outline-none"
           />
         </div>
 
-        <button
-          onClick={() => handleSendMessage("/ajuda")}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[#707579] hover:text-[#3390ec] hover:bg-gray-100 active:scale-95 transition-all cursor-pointer shrink-0"
-          title="Ajuda e Comandos"
-        >
-          <HelpCircle className="w-5 h-5" />
+        <button onClick={() => handleSendMessage("/ajuda")} className="text-[#1a7ac7] text-[13.5px] font-medium shrink-0 cursor-pointer hover:underline">
+          Ajuda
         </button>
 
-        <button
-          onClick={() => handleSendMessage()}
-          className="w-10 h-10 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-xs"
-          aria-label="Enviar mensagem"
-        >
-          <Send className="w-4 h-4 -ml-0.5" />
+        <button onClick={() => handleSendMessage()} className="w-9 h-9 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer" aria-label="Enviar">
+          <Send className="w-[17px] h-[17px] -ml-0.5" />
         </button>
       </footer>
     </div>
