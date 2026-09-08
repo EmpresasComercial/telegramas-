@@ -117,19 +117,20 @@ function PurchasedBotCountdown({ dataInicio }: { dataInicio: string }) {
 /* ─── Bot Bubble with tail ────────────────────────────────────────── */
 function BotBubble({ children, time }: { children: React.ReactNode; time: string }) {
   return (
-    <div className="flex flex-col items-start mb-2 max-w-[88%] sm:max-w-[80%]">
+    <div className="flex flex-col items-start mb-2 max-w-[88%] sm:max-w-[80%] pl-2">
       <div className="relative w-full">
+        <svg
+          width="9"
+          height="20"
+          viewBox="0 0 9 20"
+          className="absolute"
+          style={{ top: 0, left: -8, fill: "white" }}
+        >
+          <path d="M9 0H0C4.5 0 8 4 9 12V0Z" />
+        </svg>
         <div
-          style={{
-            position: "absolute", top: 0, left: -7,
-            width: 0, height: 0,
-            borderRight: "7px solid #ffffff",
-            borderTop: "9px solid transparent",
-          }}
-        />
-        <div
-          className="bg-white rounded-[18px] rounded-tl-[3px] px-3.5 py-2.5 select-text w-full"
-          style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.12)" }}
+          className="bg-white rounded-[16px] rounded-tl-none px-3.5 py-2.5 select-text w-full"
+          style={{ boxShadow: "0 1px 2px rgba(16,35,47,0.15)" }}
         >
           {children}
           <div className="flex justify-end mt-1">
@@ -145,11 +146,11 @@ function BotBubble({ children, time }: { children: React.ReactNode; time: string
 function UserBubble({ text, time }: { text: string; time: string }) {
   const isCmd = text?.trim().startsWith("/");
   return (
-    <div className="flex justify-end mb-1.5">
+    <div className="flex justify-end mb-1.5 pr-2">
       <div className="relative max-w-[80%]">
         <div
-          className="bg-[#c8e6c5] rounded-[18px] rounded-br-[3px] px-3.5 py-2 select-text"
-          style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.12)" }}
+          className="bg-[#eeffde] rounded-[16px] rounded-br-none px-3.5 py-2 select-text"
+          style={{ boxShadow: "0 1px 2px rgba(16,35,47,0.15)" }}
         >
           <p className={`text-[15px] leading-snug ${isCmd ? "text-[#1a7ac7] font-medium" : "text-black font-normal"}`}>
             {text}
@@ -159,14 +160,15 @@ function UserBubble({ text, time }: { text: string; time: string }) {
             <span className="text-[11px] text-[#4fae4e] font-bold leading-none">✓✓</span>
           </div>
         </div>
-        <div
-          style={{
-            position: "absolute", bottom: 0, right: -7,
-            width: 0, height: 0,
-            borderLeft: "7px solid #c8e6c5",
-            borderBottom: "9px solid transparent",
-          }}
-        />
+        <svg
+          width="9"
+          height="20"
+          viewBox="0 0 9 20"
+          className="absolute"
+          style={{ bottom: 0, right: -8, fill: "#eeffde" }}
+        >
+          <path d="M0 20H9C4.5 20 1 16 0 8V20Z" />
+        </svg>
       </div>
     </div>
   );
