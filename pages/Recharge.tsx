@@ -51,7 +51,7 @@ function isRecognizedCommand(text: string): boolean {
 }
 
 function parseDepositNaturalLanguage(rawInput: string): {
-  intent: 'balance' | 'deposit' | 'history' | 'banks' | 'schedule' | 'limits' | 'help' | 'clear' | 'cancel' | 'total' | 'unknown';
+  intent: 'balance' | 'deposit' | 'history' | 'banks' | 'schedule' | 'limits' | 'help' | 'clear' | 'cancel' | 'total' | 'greeting' | 'unknown';
   amount?: number;
 } {
   const clean = rawInput.trim();
@@ -66,13 +66,21 @@ function parseDepositNaturalLanguage(rawInput: string): {
   if (['limpar', 'reset', 'clear', 'limpar chat', 'limpar conversa', 'apagar conversa', 'reiniciar'].includes(norm))
     return { intent: 'clear' };
 
+  // Saudações conversacionais
+  const greetings = ['oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'opa', 'e ai', 'tudo bem', 'tudo bom', 'como vai', 'fala', 'alo'];
+  if (greetings.includes(norm) || greetings.some(g => norm.startsWith(g + ' ') || norm.endsWith(' ' + g))) {
+    return { intent: 'greeting' };
+  }
+
   // Saldo
   if (
     norm === '/saldo' || norm === '/carteira' ||
     norm.includes('saldo') || norm.includes('carteira') ||
-    norm.includes('quanto tenho') || norm.includes('meu dinheiro') ||
+    norm.includes('quanto tenho') || norm.includes('quanto eu tenho') ||
+    norm.includes('meu dinheiro') || norm.includes('dinheiro na conta') ||
     norm.includes('ver saldo') || norm.includes('consultar saldo') ||
-    norm.includes('quanto posso') || norm.includes('quanto sobrou')
+    norm.includes('quanto posso') || norm.includes('quanto sobrou') ||
+    norm.includes('meu saldo') || norm.includes('saldo disponivel')
   ) return { intent: 'balance' };
 
   // Histórico
@@ -81,12 +89,14 @@ function parseDepositNaturalLanguage(rawInput: string): {
     norm.includes('historico') || norm.includes('extrato') ||
     norm.includes('meus depositos') || norm.includes('minhas recargas') ||
     norm.includes('ver historico') || norm.includes('ultimos depositos') ||
-    norm.includes('depositos anteriores') || norm.includes('registos')
+    norm.includes('ultimas recargas') || norm.includes('depositos anteriores') ||
+    norm.includes('registos') || norm.includes('status do meu deposito') ||
+    norm.includes('comprovativo')
   ) return { intent: 'history' };
 
   // Total / Relatório
   if (
-    norm === '/total' || norm === '/relatorio' || norm === '/extrato' ||
+    norm === '/total' || norm === '/relatorio' ||
     norm.includes('total deposito') || norm.includes('total de deposito') ||
     norm.includes('relatorio') || norm.includes('resumo') || norm.includes('quanto depositei')
   ) return { intent: 'total' };
@@ -97,7 +107,8 @@ function parseDepositNaturalLanguage(rawInput: string): {
     norm.includes('qual banco') || norm.includes('bancos disponiveis') ||
     norm.includes('contas disponiveis') || norm.includes('lista de bancos') ||
     norm.includes('quais bancos') || norm.includes('metodos de pagamento') ||
-    norm.includes('para onde transferir')
+    norm.includes('para onde transferir') || norm.includes('dados bancarios') ||
+    norm.includes('onde depositar') || norm.includes('onde pagar')
   ) return { intent: 'banks' };
 
   // Horário
@@ -105,7 +116,8 @@ function parseDepositNaturalLanguage(rawInput: string): {
     norm === '/horario' || norm === '/horarios' ||
     norm.includes('horario') || norm.includes('que horas') ||
     norm.includes('ta aberto') || norm.includes('esta aberto') ||
-    norm.includes('quando abre') || norm.includes('atendimento') || norm.includes('funciona')
+    norm.includes('quando abre') || norm.includes('atendimento') || norm.includes('funciona') ||
+    norm.includes('posso depositar agora')
   ) return { intent: 'schedule' };
 
   // Limites
@@ -113,11 +125,12 @@ function parseDepositNaturalLanguage(rawInput: string): {
     norm === '/limites' || norm === '/regras' || norm === '/taxa' ||
     norm.includes('taxa') || norm.includes('limite') ||
     norm.includes('valor minimo') || norm.includes('valor maximo') ||
-    norm.includes('regras') || norm.includes('quanto posso depositar')
+    norm.includes('regras') || norm.includes('quanto posso depositar') ||
+    norm.includes('qual o minimo') || norm.includes('minimo de deposito')
   ) return { intent: 'limits' };
 
   // Depósito com valor extraído
-  const depositTriggers = ['depositar', 'recarregar', 'deposito', 'recarga', 'quero depositar', 'fazer deposito', 'enviar', 'transferir'];
+  const depositTriggers = ['depositar', 'recarregar', 'deposito', 'recarga', 'quero depositar', 'fazer deposito', 'enviar', 'transferir', 'por saldo', 'colocar dinheiro'];
   const hasDepositWord = depositTriggers.some(w => norm.includes(w)) || norm.startsWith('/depositar') || norm.startsWith('/recarregar');
   const numberMatch = norm.match(/(?:(?:kz|ao|akz)\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)(?:\s*(?:kz|kwanza|reais|ao|akz))?/i);
   if (numberMatch && (hasDepositWord || /^\d+$/.test(clean.replace(/[\s.,]/g, '')))) {
@@ -130,8 +143,7 @@ function parseDepositNaturalLanguage(rawInput: string): {
   // Ajuda
   if (
     norm === '/ajuda' || norm === '/help' || norm === '/menu' || norm === '/start' || norm === '/inicio' ||
-    ['ajuda', 'help', 'menu', 'inicio', 'start', 'oi', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'como funciona', 'comandos'].includes(norm) ||
-    norm.startsWith('oi ') || norm.startsWith('ola ')
+    ['ajuda', 'help', 'menu', 'inicio', 'start', 'como funciona', 'comandos', 'o que voce faz'].includes(norm)
   ) return { intent: 'help' };
 
   return { intent: 'unknown' };
@@ -631,10 +643,7 @@ export default function Recharge() {
         sender: 'bot',
         time: nowTime(),
         type: 'text',
-        text:
-          'Ops! ' +
-          (err.message || 'Falha de conexão.') +
-          '\n\nPor favor, tente anexar a foto novamente ou envie /depositar para recomeçar 😊',
+        text: 'Erro ao enviar comprovativo: ' + (err.message || 'Falha de conexão.') + ' Tente anexar novamente ou envie /depositar.',
       }));
     } finally {
       setIsUploading(false);
@@ -643,16 +652,36 @@ export default function Recharge() {
 
   const fetchRecentRecharges = useCallback(async () => {
     try {
+      // 1. Tenta buscar via RPC oficial de recargas do usuário
       const { data, error } = await supabase.rpc('get_my_recharges_mcpn');
-      if (!error && Array.isArray(data)) {
-        return data.slice(0, 4);
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return data.slice(0, 10);
       }
-      const { data: tableData } = await supabase
-        .from('recargas_mcpn')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(4);
-      return tableData || [];
+
+      // 2. Busca pelo user_id autenticado na tabela recargas_mcpn
+      const { data: userAuth } = await supabase.auth.getUser();
+      if (userAuth?.user?.id) {
+        const { data: tableData } = await supabase
+          .from('recargas_mcpn')
+          .select('*')
+          .eq('user_id', userAuth.user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        if (Array.isArray(tableData) && tableData.length > 0) {
+          return tableData;
+        }
+      }
+
+      // 3. Fallback no histórico geral filtrando por 'recargas'
+      const { data: genData } = await supabase.rpc('get_general_history_mcpn');
+      if (Array.isArray(genData)) {
+        const filtered = genData.filter((item: any) => item.type === 'recargas');
+        if (filtered.length > 0) {
+          return filtered.slice(0, 10);
+        }
+      }
+
+      return [];
     } catch {
       return [];
     }
@@ -751,13 +780,24 @@ export default function Recharge() {
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text:
-            'Tudo bem! Cancelei o processo de depósito. Quando quiser recarregar, é só me enviar /depositar. Estou sempre por aqui! 😊',
+          text: 'Processo de depósito cancelado. Quando quiser recarregar, envie /depositar.',
         }));
         return;
       }
 
-      // 2. Menu / Início estático (comando ou NLP)
+      // 2. Saudação conversacional (resposta humana e natural)
+      if (nlp?.intent === 'greeting') {
+        botReply(() => ({
+          id: 'bot-' + Date.now(),
+          sender: 'bot',
+          time: nowTime(),
+          type: 'text',
+          text: 'Olá! Como posso ajudar você hoje? Pode consultar seu saldo, ver os bancos ou fazer um depósito.',
+        }));
+        return;
+      }
+
+      // 3. Menu / Início estático (comando ou NLP)
       if (
         (isSlashCmd && ['start', 'inicio', 'início', 'ajuda', 'help', 'menu'].includes(cleanCmd)) ||
         ['/start', '/inicio', '/início', '/ajuda', '/help', '/menu'].includes(rawInput.toLowerCase()) ||
@@ -773,7 +813,7 @@ export default function Recharge() {
         return;
       }
 
-      // 3. Consulta de Saldo — busca saldo real em tempo real
+      // 4. Consulta de Saldo — busca saldo real em tempo real (direto e sem extras)
       if (
         (isSlashCmd && ['saldo', 'carteira', 'versaldo', 'meusaldo'].includes(cleanCmd)) ||
         nlp?.intent === 'balance'
@@ -790,10 +830,7 @@ export default function Recharge() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text:
-              'Seu saldo disponível na carteira é de **' +
-              formatCurrency(realBalance, 'KZ') +
-              '** 💰\n\nDeseja adicionar mais saldo? Envie /depositar 😊',
+            text: `Seu saldo é de ${formatCurrency(realBalance, 'KZ')}. Para recarregar, envie /depositar ou digite o valor (ex: depositar 1000).`,
           }));
         } catch {
           setIsTyping(false);
@@ -802,29 +839,29 @@ export default function Recharge() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: 'Seu saldo disponível é de **' + formatCurrency(userBalance, 'KZ') + '** 💰\n\nPara recarregar, envie /depositar 😊',
+            text: `Seu saldo é de ${formatCurrency(userBalance, 'KZ')}. Para recarregar, envie /depositar.`,
           }));
         }
         return;
       }
 
-      // 4. Lista de Bancos (comando ou NLP)
+      // 5. Lista de Bancos (direto)
       if ((isSlashCmd && ['bancos', 'banco', 'contas'].includes(cleanCmd)) || nlp?.intent === 'banks') {
         setLastIntent('metodos_deposito');
         const banksText = collectionBanks.length > 0
-          ? collectionBanks.map((b, i) => `${i + 1}. **${b.nome_banco}** — Titular: ${b.nome_proprietario}\n   IBAN: \`${b.iban}\``).join('\n\n')
+          ? collectionBanks.map((b, i) => `${i + 1}. ${b.nome_banco} | Titular: ${b.nome_proprietario} | IBAN: ${b.iban}`).join('\n')
           : 'Nenhum banco disponível no momento.';
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text: '🏦 **Bancos disponíveis para recarga:**\n\n' + banksText + '\n\nPara iniciar um depósito, envie /depositar 😊',
+          text: `Bancos disponíveis para recarga:\n\n${banksText}\n\nPara iniciar um depósito, envie /depositar.`,
         }));
         return;
       }
 
-      // 5. Horários (comando ou NLP)
+      // 6. Horários (direto)
       if ((isSlashCmd && ['horario', 'horarios'].includes(cleanCmd)) || nlp?.intent === 'schedule') {
         setLastIntent('horarios');
         botReply(() => ({
@@ -832,14 +869,12 @@ export default function Recharge() {
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text:
-            'Os depósitos funcionam **24 horas por dia, 7 dias por semana**! ⏰\n\n' +
-            'Pode fazer a transferência a qualquer hora — nossa equipe libera o saldo rapidamente! 😊',
+          text: 'Os depósitos funcionam 24 horas por dia, 7 dias por semana.',
         }));
         return;
       }
 
-      // 6. Limites e Regras (comando ou NLP)
+      // 7. Limites e Regras (direto)
       if ((isSlashCmd && ['limites', 'regras', 'taxa', 'taxas', 'info'].includes(cleanCmd)) || nlp?.intent === 'limits') {
         setLastIntent('limites');
         botReply(() => ({
@@ -847,18 +882,12 @@ export default function Recharge() {
           sender: 'bot',
           time: nowTime(),
           type: 'text',
-          text:
-            'Regras de depósito:\n\n' +
-            '• **Mínimo:** ' + formatCurrency(MIN_RECHARGE, 'KZ') + '\n' +
-            '• **Máximo:** ' + formatCurrency(MAX_RECHARGE, 'KZ') + ' por transação\n' +
-            '• **Taxa:** 0% (gratuito!)\n' +
-            '• **Horário:** 24h/7 dias\n\n' +
-            'Pronto para recarregar? Envie /depositar 😊',
+          text: `Regras de depósito: Mínimo: ${formatCurrency(MIN_RECHARGE, 'KZ')}. Máximo: ${formatCurrency(MAX_RECHARGE, 'KZ')}. Taxa: 0%. Horário: 24h.`,
         }));
         return;
       }
 
-      // 7. Relatório Total de Depósitos
+      // 8. Relatório Total de Depósitos (direto)
       const isTotalDepositCmd = isSlashCmd && [
         'total',
         'total_deposito',
@@ -871,7 +900,7 @@ export default function Recharge() {
         'relatório',
       ].includes(cleanCmd);
 
-      if (isTotalDepositCmd) {
+      if (isTotalDepositCmd || nlp?.intent === 'total') {
         setIsTyping(true);
         const summary = await fetchDepositSummary();
         setIsTyping(false);
@@ -882,89 +911,54 @@ export default function Recharge() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: 'Ops! Não consegui consultar seu relatório de depósitos no momento. Por favor, tente novamente em instantes ou envie /historico 😊',
+            text: 'Não foi possível consultar o relatório no momento. Tente novamente em instantes.',
           }));
           return;
         }
 
         const count = summary.approvedDepositsCount;
         const totalStr = formatCurrency(summary.totalApprovedAmount, 'KZ');
-        const accountDateStr = formatAccountDate(summary.userCreatedAt);
 
-        let reportText = '';
-
-        if (count > 0) {
-          reportText = `📊 **Relatório Geral de Depósitos**\n\n`;
-          reportText += `Desde a data de criação da sua conta em **${accountDateStr}**, você realizou um total de **${count} ${count === 1 ? 'depósito confirmado' : 'depósitos confirmados'}**.\n\n`;
-
-          if (summary.firstDeposit) {
-            const v1 = formatCurrency(Number(summary.firstDeposit.amount) || Number(summary.firstDeposit.valor) || 0, 'KZ');
-            reportText += `• **1º Depósito:** ${v1} realizado no ${formatDepositDateTime(summary.firstDeposit.created_at)}\n`;
-          }
-
-          if (summary.secondDeposit && count > 1) {
-            const v2 = formatCurrency(Number(summary.secondDeposit.amount) || Number(summary.secondDeposit.valor) || 0, 'KZ');
-            reportText += `• **2º Depósito:** ${v2} realizado no ${formatDepositDateTime(summary.secondDeposit.created_at)}\n`;
-          }
-
-          if (count > 2) {
-            const lastDeposit = summary.allApproved[summary.allApproved.length - 1];
-            const vLast = formatCurrency(Number(lastDeposit.amount) || Number(lastDeposit.valor) || 0, 'KZ');
-            reportText += `• **Último Depósito:** ${vLast} realizado no ${formatDepositDateTime(lastDeposit.created_at)}\n`;
-          }
-
-          reportText += `\nNo total, isso prefaz um valor total de **${totalStr}** em fundos aqui que você depositou no Telegram Bot! 🚀✨\n\n`;
-
-          if (summary.pendingDepositsCount > 0) {
-            reportText += `*(Nota: você possui ${summary.pendingDepositsCount} depósito em conferência pendente)*\n\n`;
-          }
-
-          reportText += `Para fazer uma nova recarga, basta enviar /depositar 😊`;
-        } else {
-          if (summary.pendingDepositsCount > 0) {
-            reportText = `📊 **Relatório Geral de Depósitos**\n\n` +
-              `Sua conta foi criada em **${accountDateStr}**.\n\n` +
-              `Você possui **${summary.pendingDepositsCount} depósito(s) em análise pendente**. Assim que conferido pela equipe, o saldo entrará na sua carteira!\n\n` +
-              `Para enviar um novo comprovativo ou recarregar, envie /depositar 😊`;
-          } else {
-            reportText = `📊 **Relatório Geral de Depósitos**\n\n` +
-              `Desde a data de criação da sua conta em **${accountDateStr}**, você ainda não realizou depósitos confirmados.\n\n` +
-              `O valor total de fundos depositados até o momento é de **${formatCurrency(0, 'KZ')}**.\n\n` +
-              `Quando quiser fazer sua primeira recarga a partir de ${formatCurrency(MIN_RECHARGE, 'KZ')}, é só enviar /depositar que te ajudo passo a passo! 😊`;
-          }
-        }
+        const reportText = count > 0
+          ? `Relatório de depósitos: ${count} depósito(s) confirmado(s), total de ${totalStr}. Para recarregar, envie /depositar.`
+          : `Relatório de depósitos: Nenhum depósito confirmado até o momento. Para fazer sua primeira recarga, envie /depositar.`;
 
         botReply(() => ({
           id: 'bot-' + Date.now(),
           sender: 'bot',
           time: nowTime(),
-          type: 'deposit_summary',
+          type: 'text',
           text: reportText,
-          payload: summary,
         }));
         return;
       }
 
-      // 8. Histórico de Depósitos — exibido como texto normal (sem subcards)
+      // 9. Histórico de Depósitos Real (direto, sem asteriscos, sem cardinais)
       if ((isSlashCmd && ['historico', 'registos'].includes(cleanCmd)) || nlp?.intent === 'history') {
         setIsTyping(true);
         const recentList = await fetchRecentRecharges();
         setIsTyping(false);
 
-        let histText = '📋 **Seus últimos depósitos:**\n\n';
+        let histText = '';
         if (recentList && recentList.length > 0) {
-          recentList.forEach((item: any, idx: number) => {
+          const items = recentList.map((item: any, idx: number) => {
             const val = formatCurrency(Number(item.amount) || Number(item.valor) || 0, 'KZ');
             const st = (item.status || 'pendente').toLowerCase();
-            const statusLabel = (st === 'aprovado' || st === 'concluido') ? '✅ Aprovado' : (st === 'rejeitado' || st === 'cancelado') ? '❌ Rejeitado' : '⏳ Pendente';
+            const statusLabel = (st === 'aprovado' || st === 'concluido' || st === 'approved')
+              ? 'Aprovado'
+              : (st === 'rejeitado' || st === 'cancelado' || st === 'failed')
+              ? 'Recusado'
+              : 'Pendente';
             const dateStr = item.created_at
               ? new Date(item.created_at).toLocaleDateString('pt-AO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
               : 'Recente';
-            histText += `${idx + 1}. **${val}** — ${statusLabel}\n   ${dateStr}\n`;
-          });
-          histText += '\nPara fazer uma nova recarga, envie /depositar 😊';
+            const bankStr = item.banco_origem || item.bank_name || 'Transferência';
+            return `${idx + 1}. ${val} | ${statusLabel} | ${dateStr} | ${bankStr}`;
+          }).join('\n');
+
+          histText = `Histórico de Depósitos (${recentList.length} registos):\n\n${items}\n\nPara fazer uma nova recarga, envie /depositar.`;
         } else {
-          histText = 'Você ainda não possui nenhum depósito registrado.\n\nQuer fazer sua primeira recarga? Envie /depositar 😊';
+          histText = 'Histórico de Depósitos:\nNenhum depósito registado na sua conta. Para recarregar, envie /depositar.';
         }
 
         botReply(() => ({
@@ -977,7 +971,7 @@ export default function Recharge() {
         return;
       }
 
-      // 9. Limpar Conversa
+      // 10. Limpar Conversa
       if (isSlashCmd && ['limpar', 'reset', 'clear'].includes(cleanCmd)) {
         try {
           localStorage.removeItem(CHAT_STORAGE_KEY);
@@ -1000,7 +994,7 @@ export default function Recharge() {
         return;
       }
 
-      // 10. Comando direto /depositar ou /deposito (ou NLP com intent deposit sem valor)
+      // 11. Comando direto /depositar ou /deposito (ou NLP com intent deposit sem valor)
       if (
         (isSlashCmd && ['depositar', 'recarregar', 'deposito', 'recarga'].includes(cleanCmd)) ||
         (nlp?.intent === 'deposit' && !nlp.amount)
@@ -1015,28 +1009,25 @@ export default function Recharge() {
           sender: 'bot',
           time: nowTime(),
           type: 'amount_selector',
-          text:
-            'Ótimo! Qual valor deseja depositar? 😊\n' +
-            'Digite o valor ou clique numa opção abaixo:\n' +
-            '*(Mínimo: ' + formatCurrency(MIN_RECHARGE, 'KZ') + ' | Máximo: ' + formatCurrency(MAX_RECHARGE, 'KZ') + ')*',
+          text: `Qual valor deseja depositar? Digite o valor ou escolha uma opção abaixo (Mínimo: ${formatCurrency(MIN_RECHARGE, 'KZ')}, Máximo: ${formatCurrency(MAX_RECHARGE, 'KZ')}):`,
         }));
         return;
       }
 
-      // 10b. NLP com valor de depósito extraído (ex: "depositar 5000")
+      // 12. NLP com valor de depósito extraído (ex: "depositar 5000")
       if (nlp?.intent === 'deposit' && nlp.amount) {
         const amt = nlp.amount;
         if (amt < MIN_RECHARGE) {
           botReply(() => ({
             id: 'bot-' + Date.now(), sender: 'bot', time: nowTime(), type: 'text',
-            text: 'Valor mínimo para recarga é **' + formatCurrency(MIN_RECHARGE, 'KZ') + '**. Por favor, escolha um valor maior 😊',
+            text: `O valor mínimo para recarga é de ${formatCurrency(MIN_RECHARGE, 'KZ')}.`,
           }));
           return;
         }
         if (amt > MAX_RECHARGE) {
           botReply(() => ({
             id: 'bot-' + Date.now(), sender: 'bot', time: nowTime(), type: 'text',
-            text: 'O limite máximo por recarga é **' + formatCurrency(MAX_RECHARGE, 'KZ') + '**. Por favor, escolha um valor dentro do limite 😊',
+            text: `O limite máximo por recarga é de ${formatCurrency(MAX_RECHARGE, 'KZ')}.`,
           }));
           return;
         }
@@ -1044,31 +1035,13 @@ export default function Recharge() {
         setLastIntent('valor_deposito');
         botReply(() => ({
           id: 'bot-' + Date.now(), sender: 'bot', time: nowTime(), type: 'bank_selector',
-          text: 'Depósito de **' + formatCurrency(amt, 'KZ') + '**! Qual banco prefere usar?',
+          text: `Depósito de ${formatCurrency(amt, 'KZ')}. Escolha o banco abaixo:`,
           payload: { amount: amt, banks: collectionBanks },
         }));
         return;
       }
 
-      // 10c. NLP total/relatório
-      if (nlp?.intent === 'total') {
-        setIsTyping(true);
-        const summary = await fetchDepositSummary();
-        setIsTyping(false);
-        if (!summary) {
-          botReply(() => ({ id: 'bot-' + Date.now(), sender: 'bot', time: nowTime(), type: 'text', text: 'Não foi possível carregar o relatório agora. Tente /total_deposito 😊' }));
-          return;
-        }
-        const count = summary.approvedDepositsCount;
-        const totalStr = formatCurrency(summary.totalApprovedAmount, 'KZ');
-        let reportText = count > 0
-          ? `📊 **Relatório de Depósitos**\n\nTotal confirmado: **${count}** depósito${count > 1 ? 's' : ''}\nValor total: **${totalStr}**\n\nPara nova recarga, envie /depositar 😊`
-          : `📊 **Relatório de Depósitos**\n\nAinda não há depósitos confirmados.\nEnvie /depositar para fazer sua primeira recarga 😊`;
-        botReply(() => ({ id: 'bot-' + Date.now(), sender: 'bot', time: nowTime(), type: 'text', text: reportText }));
-        return;
-      }
-
-      // 11. Seleção de banco ativo se já houver valor definido
+      // 13. Seleção de banco ativo se já houver valor definido
       const matchedBank = collectionBanks.find(
         (b) =>
           cleanCmd === b.nome_banco.toLowerCase() ||
@@ -1081,7 +1054,7 @@ export default function Recharge() {
         return;
       }
 
-      // 12. Entrada numérica direta de valor de depósito
+      // 14. Entrada numérica direta de valor de depósito
       const numericVal = parseInt(cleanCmd.replace(/\D/g, ''), 10);
       if (isPureNumeric && !isNaN(numericVal) && numericVal > 0) {
         if (numericVal < MIN_RECHARGE) {
@@ -1090,10 +1063,7 @@ export default function Recharge() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text:
-              'Opa! O valor mínimo para recarga é de **' +
-              formatCurrency(MIN_RECHARGE, 'KZ') +
-              '**.\n\nPor favor, escolha um valor a partir desse, tá bem? 😊',
+            text: `O valor mínimo para recarga é de ${formatCurrency(MIN_RECHARGE, 'KZ')}.`,
           }));
           return;
         }
@@ -1104,10 +1074,7 @@ export default function Recharge() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text:
-              'Opa! O limite máximo por recarga é de **' +
-              formatCurrency(MAX_RECHARGE, 'KZ') +
-              '**.\n\nPor favor, escolha um valor dentro do limite para continuarmos 😊',
+            text: `O limite máximo por recarga é de ${formatCurrency(MAX_RECHARGE, 'KZ')}.`,
           }));
           return;
         }
@@ -1120,12 +1087,7 @@ export default function Recharge() {
           sender: 'bot',
           time: nowTime(),
           type: 'bank_selector',
-          text:
-            'Vejo que deseja depositar **' +
-            formatCurrency(numericVal, 'KZ') +
-            '**, excelente escolha! 🎉\n\n' +
-            'Por favor, qual banco você prefere usar?\n' +
-            'Temos os seguintes bancos disponíveis para depósito. Clique no banco de sua preferência:',
+          text: `Depósito de ${formatCurrency(numericVal, 'KZ')}. Escolha o banco para onde vai transferir:`,
           payload: {
             amount: numericVal,
             banks: collectionBanks,
@@ -1134,7 +1096,7 @@ export default function Recharge() {
         return;
       }
 
-      // 13. MOTOR CONVERSACIONAL DE DEPÓSITO (RPC backend classify_deposit_message)
+      // 15. MOTOR CONVERSACIONAL DE DEPÓSITO (RPC backend classify_deposit_message)
       setIsTyping(true);
       try {
         const { data: rawRpc, error: rpcErr } = await (supabase.rpc as any)(
@@ -1155,6 +1117,9 @@ export default function Recharge() {
           setLastIntent(category);
           setLastBotResponse(response);
 
+          // Limpar asteriscos e cardinais vindos do backend
+          const cleanResp = (response || '').replace(/[*#]/g, '').trim();
+
           // Ação: Seletor de Valor
           if (action === 'TRIGGER_AMOUNT_SELECTOR') {
             setDepositAmount(null);
@@ -1165,14 +1130,7 @@ export default function Recharge() {
               sender: 'bot',
               time: nowTime(),
               type: 'amount_selector',
-              text:
-                response +
-                '\n\n' +
-                '*(Mínimo: ' +
-                formatCurrency(MIN_RECHARGE, 'KZ') +
-                ' | Máximo: ' +
-                formatCurrency(MAX_RECHARGE, 'KZ') +
-                ')*',
+              text: cleanResp || `Qual valor deseja depositar? (Mínimo: ${formatCurrency(MIN_RECHARGE, 'KZ')}, Máximo: ${formatCurrency(MAX_RECHARGE, 'KZ')})`,
             }));
             return;
           }
@@ -1184,7 +1142,7 @@ export default function Recharge() {
               sender: 'bot',
               time: nowTime(),
               type: 'banks_list',
-              text: response,
+              text: cleanResp,
               payload: { banks: collectionBanks },
             }));
             return;
@@ -1201,7 +1159,7 @@ export default function Recharge() {
               sender: 'bot',
               time: nowTime(),
               type: 'history_list',
-              text: response,
+              text: cleanResp,
               payload: { list: recentList },
             }));
             return;
@@ -1213,23 +1171,21 @@ export default function Recharge() {
             sender: 'bot',
             time: nowTime(),
             type: 'text',
-            text: response,
+            text: cleanResp,
           }));
           return;
         }
       } catch (err) {
-        console.error('Erro na classificação conversacional de depósito:', err);
         setIsTyping(false);
       }
 
-      // Fallback seguro caso o serviço backend fique temporariamente indisponível
+      // Resposta padrão caso não identifique
       botReply(() => ({
         id: 'bot-' + Date.now(),
         sender: 'bot',
         time: nowTime(),
         type: 'text',
-        text:
-          'Quero te ajudar! 😊 Pode me explicar um pouco melhor o que você precisa sobre o seu depósito? Se preferir, envie /depositar para recarregar ou /ajuda para ver as opções.',
+        text: 'Não entendi com clareza. Você pode pedir seu saldo, solicitar um depósito (ex: depositar 1000) ou enviar /historico.',
       }));
     },
     [
