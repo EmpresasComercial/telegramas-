@@ -305,7 +305,7 @@ export default function Withdraw() {
       };
 
       if (!error && data && data.length > 0) {
-        const d = data[0];
+        const d = data[0] as any;
         loaded.balance     = Number(d.balance) || 0;
         loaded.hasBank     = Boolean(d.has_bank);
         loaded.bankId      = d.bank_id || null;
@@ -1243,10 +1243,10 @@ export default function Withdraw() {
         ref={mainChatRef}
         onScroll={handleScroll}
         onClick={() => setShowMenuDropdown(false)}
-        className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2 relative select-text"
+        className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1 relative select-text"
         style={{
-          backgroundColor: '#8ea78f',
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%236f8a70' fill-opacity='0.22'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundColor: '#afc8af',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='none' stroke='%2372a072' stroke-width='1.2' opacity='0.45'%3E%3Ccircle cx='30' cy='28' r='10'/%3E%3Cpath d='M22 20L19 13L25 19'/%3E%3Cpath d='M38 20L41 13L35 19'/%3E%3Ccircle cx='26' cy='25' r='1.5' fill='%2372a072'/%3E%3Ccircle cx='34' cy='25' r='1.5' fill='%2372a072'/%3E%3Cpath d='M30 31L28 33L30 32L32 33Z'/%3E%3Cpath d='M19 27L24 28'/%3E%3Cpath d='M41 27L36 28'/%3E%3Cpath d='M164 15L167 7L170 15L178 15L172 20L174 28L167 23L160 28L162 20L156 15Z'/%3E%3Cpath d='M95 52C95 44 84 38 84 49C84 58 95 67 95 67C95 67 106 58 106 49C106 38 95 44 95 52Z'/%3E%3Ccircle cx='20' cy='112' r='7'/%3E%3Ccircle cx='10' cy='103' r='3.5'/%3E%3Ccircle cx='30' cy='103' r='3.5'/%3E%3Ccircle cx='14' cy='97' r='3'/%3E%3Ccircle cx='26' cy='97' r='3'/%3E%3Crect x='150' cy='100' width='26' height='19' rx='2'/%3E%3Crect x='148' y='93' width='30' height='9' rx='2'/%3E%3Cline x1='163' y1='93' x2='163' y2='119'/%3E%3Cpath d='M159 93C156 87 163 84 163 93'/%3E%3Cpath d='M167 93C170 87 163 84 163 93'/%3E%3Ccircle cx='163' cy='162' r='10'/%3E%3Cpath d='M155 154L152 146L158 153'/%3E%3Cpath d='M171 154L174 146L168 153'/%3E%3Ccircle cx='159' cy='160' r='1.5' fill='%2372a072'/%3E%3Ccircle cx='167' cy='160' r='1.5' fill='%2372a072'/%3E%3Cpath d='M163 164L161 166L163 165L165 166Z'/%3E%3Cpath d='M152 162L158 163'/%3E%3Cpath d='M174 162L168 163'/%3E%3Cpath d='M57 143C57 138 51 135 51 140C51 145 57 150 57 150C57 150 63 145 63 140C63 135 57 138 57 143Z'/%3E%3Cpath d='M140 44C140 39 134 36 134 41C134 46 140 51 140 51C140 51 146 46 146 41C146 36 140 39 140 44Z'/%3E%3Cpath d='M64 72L66 64L68 72L76 72L70 77L72 85L66 81L60 85L62 77L56 72Z'/%3E%3Cpath d='M127 134L129 126L131 134L139 134L133 139L135 147L129 143L123 147L125 139L119 134Z'/%3E%3Cpath d='M95 110L95 128'/%3E%3Ccircle cx='92' cy='129' r='4'/%3E%3Cpath d='M95 110L106 106L106 120'/%3E%3Ccircle cx='103' cy='121' r='4'/%3E%3C/g%3E%3C/svg%3E")`,
         }}
       >
         <div className="flex justify-center my-1 select-none">
@@ -1264,36 +1264,57 @@ export default function Withdraw() {
             const isCmd = msg.text?.trim().startsWith('/');
             const isValid = isCmd && isRecognizedCommand(msg.text || '');
             return (
-              <div key={msg.id} className="flex justify-end mb-1">
-                <div
-                  className="bg-[#effdde] rounded-[16px] rounded-br-[4px] px-3.5 py-1.5 max-w-[85%] relative select-text flex items-baseline gap-2"
-                  style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
-                >
-                  <p
-                    className={`text-[14.5px] leading-snug whitespace-pre-line ${
-                      isValid ? 'text-[#00c853] font-semibold' : 'text-black font-normal'
-                    }`}
+              <div key={msg.id} className="flex flex-col items-end mb-1.5 pr-2">
+                <div className="relative max-w-[80%]">
+                  <div
+                    className="bg-[#eeffde] rounded-[16px] rounded-br-none px-3.5 py-2 select-text flex flex-col gap-1"
+                    style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
                   >
-                    {msg.text}
-                  </p>
-                  <div className="flex items-center gap-1 shrink-0 text-[11px] text-[#537c3e] select-none ml-1">
-                    <span>{msg.time}</span>
-                    <span className="text-[#3ca3e8] font-bold text-[12px] leading-none">✓✓</span>
+                    <p
+                      className={`text-[15px] leading-snug whitespace-pre-line ${
+                        isValid ? 'text-[#1a7ac7] font-medium' : 'text-black font-normal'
+                      }`}
+                    >
+                      {msg.text}
+                    </p>
+                    <div className="flex justify-end items-center gap-1 mt-0.5 shrink-0 text-[11px] text-[#6a9a6a] select-none">
+                      <span>{msg.time}</span>
+                      <span className="text-[#4fae4e] font-bold text-[11px] leading-none">✓✓</span>
+                    </div>
                   </div>
+                  <svg
+                    width="9"
+                    height="20"
+                    viewBox="0 0 9 20"
+                    className="absolute"
+                    style={{ bottom: 0, right: -8, fill: '#eeffde' }}
+                  >
+                    <path d="M0 20H9C4.5 20 1 16 0 8V20Z" />
+                  </svg>
                 </div>
               </div>
             );
           }
 
           return (
+            <React.Fragment key={msg.id}>
             <div
-              key={msg.id}
-              className="flex flex-col items-start mb-2 max-w-[92%] sm:max-w-[85%]"
+              className="flex flex-col items-start mb-2 max-w-[88%] sm:max-w-[80%] pl-2"
             >
-              <div
-                className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2.5 text-gray-900 w-full relative select-text"
-                style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
-              >
+              <div className="relative w-full">
+                <svg
+                  width="9"
+                  height="20"
+                  viewBox="0 0 9 20"
+                  className="absolute"
+                  style={{ top: 0, left: -8, fill: 'white' }}
+                >
+                  <path d="M9 0H0C4.5 0 8 4 9 12V0Z" />
+                </svg>
+                <div
+                  className="bg-white rounded-[16px] rounded-tl-none px-3.5 py-2.5 text-gray-900 w-full relative select-text"
+                  style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}
+                >
                 {/* APRESENTAÇÃO / BOAS-VINDAS */}
                 {msg.type === 'welcome' && (
                   <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
@@ -1453,34 +1474,30 @@ export default function Withdraw() {
                   </div>
                 )}
 
-                <div className="flex justify-end mt-1 text-[11px] text-[#707579] font-normal select-none">
+                <div className="flex justify-end mt-1 text-[11px] text-[#8a8a8a] font-normal select-none">
                   <span>{msg.time}</span>
                 </div>
               </div>
+            </div>
+            </div>
 
               {/* INLINE KEYBOARD: CONFIRMAR RETIRADA */}
               {msg.type === 'confirm_withdraw' && pendingAmount !== null && (
-                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
-                  <div className="grid grid-cols-2">
+                <div className="w-full max-w-[80%] flex flex-col items-center justify-center gap-1 -mt-1.5 mb-2 pl-2">
+                  <div className="w-full flex items-center gap-1">
                     <button
                       onClick={handleConfirmButton}
                       disabled={isProcessing}
-                      className="py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center border-r border-white/20 disabled:opacity-60"
-                      style={{ background: '#25ae60' }}
-                      onMouseEnter={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#1e8f4f'; }}
-                      onMouseLeave={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#25ae60'; }}
+                      className="flex-1 bg-[#6b7b8a] bg-opacity-70 text-white rounded-lg px-2 py-2 text-[13px] font-medium active:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center gap-1 cursor-pointer"
                     >
-                      {isProcessing ? '⏳  Processando...' : '✅  Confirmar Retirada'}
+                      {isProcessing ? '⏳ Proc...' : '✅ Confirmar'}
                     </button>
                     <button
                       onClick={handleCancelButton}
                       disabled={isProcessing}
-                      className="py-2.5 px-3 text-[13.5px] font-semibold text-white/90 transition-all cursor-pointer flex items-center justify-center disabled:opacity-60"
-                      style={{ background: '#707579' }}
-                      onMouseEnter={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#5a5e62'; }}
-                      onMouseLeave={e => { if(!isProcessing) (e.currentTarget as HTMLButtonElement).style.background='#707579'; }}
+                      className="flex-1 bg-[#6b7b8a] bg-opacity-70 text-white rounded-lg px-2 py-2 text-[13px] font-medium active:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center gap-1 cursor-pointer"
                     >
-                      ✕  Cancelar
+                      ✕ Cancelar
                     </button>
                   </div>
                 </div>
@@ -1488,34 +1505,28 @@ export default function Withdraw() {
 
               {/* INLINE KEYBOARD: CADASTRAR BANCO */}
               {msg.type === 'no_bank' && (
-                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
+                <div className="w-full max-w-[80%] flex flex-col items-center justify-center gap-1 -mt-1.5 mb-2 pl-2">
                   <button
                     onClick={() => navigate('/adicionar-banco?redirect=/retirada')}
-                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
-                    style={{ background: '#00c853' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#00b050'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#00c853'; }}
+                    className="w-full bg-[#6b7b8a] bg-opacity-70 text-white rounded-lg px-4 py-2 text-[14px] font-medium active:bg-opacity-90 transition-colors flex justify-center items-center gap-1.5 cursor-pointer"
                   >
-                    ➕  Cadastrar Conta Bancária
+                    ➕ Cadastrar Conta Bancária
                   </button>
                 </div>
               )}
 
               {/* BOTÃO DE AÇÃO: COMPRAR ROBÔ */}
               {msg.type === 'no_bots' && (
-                <div className="w-full mt-0.5 select-none overflow-hidden rounded-b-[12px]" style={{ boxShadow: '0 1px 2px rgba(16,35,47,0.15)' }}>
+                <div className="w-full max-w-[80%] flex flex-col items-center justify-center gap-1 -mt-1.5 mb-2 pl-2">
                   <button
                     onClick={() => navigate('/bot-pay')}
-                    className="w-full py-2.5 px-3 text-[13.5px] font-semibold text-white transition-all cursor-pointer flex items-center justify-center"
-                    style={{ background: '#00c853' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background='#00b050'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background='#00c853'; }}
+                    className="w-full bg-[#6b7b8a] bg-opacity-70 text-white rounded-lg px-4 py-2 text-[14px] font-medium active:bg-opacity-90 transition-colors flex justify-center items-center gap-1.5 cursor-pointer"
                   >
-                    🤖  Ir para o Catálogo de Robôs
+                    🤖 Ir para o Catálogo de Robôs
                   </button>
                 </div>
               )}
-            </div>
+            </React.Fragment>
           );
         })}
 
@@ -1555,10 +1566,8 @@ export default function Withdraw() {
       )}
 
       {/* ── FOOTER DE ENTRADA DO TELEGRAM ── */}
-      <footer className="bg-white px-2 py-2 shrink-0 z-30 flex items-center gap-2 border-t border-gray-200">
-        
-
-        <div className="flex-1 flex items-center bg-[#f4f4f5] rounded-[20px] px-3.5 py-1.5 border border-transparent focus-within:border-[#3390ec]/40 focus-within:bg-white transition-all">
+      <footer className="px-3 py-2 shrink-0 z-30 flex items-center gap-2 border-t border-gray-200/60" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)' }}>
+        <div className="flex-1 flex items-center bg-white/70 border border-gray-200 rounded-full px-4 py-2" style={{ backdropFilter: 'blur(4px)' }}>
           <input
             type="text"
             value={inputText}
@@ -1577,28 +1586,25 @@ export default function Withdraw() {
             }}
             placeholder={
               pendingAmount !== null
-                ? 'Digite novo valor ou Sim / Não...'
-                : 'Mensagem ou comando (/saldo, /retirar)...'
+                ? 'Novo valor ou Sim/Não...'
+                : 'Mensagem...'
             }
-            className="w-full bg-transparent text-[15px] text-black placeholder-gray-400 outline-none"
+            className="flex-1 bg-transparent text-[15px] text-[#1c1c1e] placeholder-[#8a8a8e] outline-none"
           />
+          <button
+            onClick={() => handleSendMessage('/ajuda')}
+            className="text-[#1a7ac7] text-[13.5px] font-medium shrink-0 cursor-pointer hover:underline ml-2"
+          >
+            Ajuda
+          </button>
         </div>
 
         <button
-          onClick={() => handleSendMessage('/ajuda')}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[#707579] hover:text-[#3390ec] hover:bg-gray-100 active:scale-95 transition-all cursor-pointer shrink-0"
-          title="Ajuda"
-        >
-          <HelpCircle className="w-5 h-5" />
-        </button>
-
-        <button
           onClick={() => handleSendMessage()}
-          className="w-10 h-10 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer"
-          aria-label="Enviar mensagem"
-          style={{ boxShadow: '0 1px 4px rgba(51,144,236,0.3)' }}
+          className="w-9 h-9 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer"
+          aria-label="Enviar"
         >
-          <Send className="w-4 h-4 -ml-0.5" />
+          <Send className="w-[17px] h-[17px] -ml-0.5" />
         </button>
       </footer>
     </div>
