@@ -326,7 +326,7 @@ export default function TelegramBotsChat() {
         ).length;
       };
 
-      // 1. Comando Início / Ajuda
+      // 1. Comando Início / Ajuda (sem conversa humana, estritamente comandos)
       if (
         normalized === "start" ||
         normalized === "inicio" ||
@@ -334,9 +334,7 @@ export default function TelegramBotsChat() {
         normalized === "help" ||
         normalized === "ajuda" ||
         normalized === "menu" ||
-        normalized === "ola" ||
-        normalized === "olá" ||
-        normalized === "oi"
+        normalized === "comandos"
       ) {
         simulateBotReply(() => ({
           id: "bot-" + Date.now(),
@@ -357,9 +355,7 @@ export default function TelegramBotsChat() {
         normalized === "produtos" ||
         normalized === "loja" ||
         normalized === "robos" ||
-        normalized === "robôs" ||
-        normalized.includes("ver bot") ||
-        normalized.includes("comprar bot")
+        normalized === "robôs"
       ) {
         simulateBotReply(() => ({
           id: "bot-" + Date.now(),
@@ -377,11 +373,7 @@ export default function TelegramBotsChat() {
         normalized === "mybots" ||
         normalized === "ativos" ||
         normalized === "compras" ||
-        normalized === "minhascompras" ||
-        normalized.includes("meus bot") ||
-        normalized.includes("meu bot") ||
-        normalized.includes("robos ativo") ||
-        normalized.includes("robôs ativo")
+        normalized === "minhascompras"
       ) {
         simulateBotReply(() => ({
           id: "bot-" + Date.now(),
@@ -393,56 +385,26 @@ export default function TelegramBotsChat() {
         return;
       }
 
-      // 4. Comando Saldo
-      if (
-        normalized === "saldo" ||
-        normalized === "carteira" ||
-        normalized.includes("meu saldo") ||
-        normalized.includes("quanto tenho")
-      ) {
-        const affordableProds = products.filter((p) => p.preco <= userBalance);
-        let extraTip = "";
-        if (affordableProds.length > 0) {
-          extraTip = `\n\n💡 Você tem saldo suficiente para comprar: **${affordableProds
-            .map((p) => p.nome)
-            .join(", ")}**.\nEnvie /comprar para ativar.`;
-        } else {
-          extraTip = `\n\n💡 O robô mais acessível é o **Spam Bot** (${formatCurrency(
-            4990,
-            "KZ"
-          )}).\nRecarregue sua carteira para ativar.`;
-        }
-
+      // 4. Comando Saldo (resposta direta e concisa, sem asteriscos ou textos extras)
+      if (normalized === "saldo" || normalized === "carteira") {
         simulateBotReply(() => ({
           id: "bot-" + Date.now(),
           sender: "bot",
           time: getCurrentTime(),
           type: "text",
-          text: `💰 **Consulta de Saldo**\n\nO seu saldo atual disponível na carteira é:\n**${formatCurrency(
-            userBalance,
-            "KZ"
-          )}**${extraTip}`
+          text: `Saldo disponível na carteira: ${formatCurrency(userBalance, "KZ")}. Envie /bots para ver o catálogo.`
         }));
         return;
       }
 
-      // 5. Comando Limites de Compra
-      if (
-        normalized === "limites" ||
-        normalized === "limite" ||
-        normalized.includes("limite de compra") ||
-        normalized.includes("quantas vezes posso comprar")
-      ) {
+      // 5. Comando Limites de Compra (direto, sem asteriscos ou cardinais)
+      if (normalized === "limites" || normalized === "limite") {
         const limitsText = products
           .map((prod) => {
             const bought = getPurchasedCountForProduct(prod);
             const maxLimit = prod.limite_compra || 1;
-            const remaining = Math.max(0, maxLimit - bought);
-            const status =
-              bought >= maxLimit
-                ? "⚠️ Esgotado para sua conta"
-                : `✅ ${remaining} disponível(is)`;
-            return `• **${prod.nome}**: Comprado ${bought}/${maxLimit} (${status})`;
+            const status = bought >= maxLimit ? "Esgotado" : `${maxLimit - bought} disponível(is)`;
+            return `• ${prod.nome}: ${bought}/${maxLimit} comprados (${status})`;
           })
           .join("\n");
 
@@ -451,18 +413,16 @@ export default function TelegramBotsChat() {
           sender: "bot",
           time: getCurrentTime(),
           type: "text",
-          text: `📊 **Limites de Compra por Robô**\n\nConsulte quantas vezes você já adquiriu cada robô:\n\n${limitsText}\n\nEnvie /bots para ver o catálogo completo.`
+          text: `Limites de compra por robô:\n\n${limitsText}\n\nEnvie /bots para ver o catálogo.`
         }));
         return;
       }
 
-      // 6. Comando Histórico de Rendas
+      // 6. Comando Histórico de Rendas (direto e conciso)
       if (
         normalized === "rendas" ||
         normalized === "historico" ||
-        normalized === "histórico" ||
-        normalized.includes("historico de renda") ||
-        normalized.includes("histórico de renda")
+        normalized === "histórico"
       ) {
         const activeBots = purchasedBots.filter((b) => b.ativo);
         const totalDaily = activeBots.reduce((acc, b) => acc + b.renda_diaria, 0);
@@ -474,15 +434,15 @@ export default function TelegramBotsChat() {
             sender: "bot",
             time: getCurrentTime(),
             type: "text",
-            text: `📊 **Histórico de Rendimentos**\n\nVocê ainda não possui robôs ativos gerando rendimentos.\n\nEnvie /bots para ver as opções disponíveis para compra.`
+            text: `Você não possui robôs ativos no momento. Envie /bots para ver as opções disponíveis.`
           }));
           return;
         }
 
         const botsSummary = activeBots
           .map(
-            (b, idx) =>
-              `• **${b.produto_nome}**: +${formatCurrency(b.renda_diaria, "KZ")}/dia (${b.dias_restantes} dias restantes)`
+            (b) =>
+              `• ${b.produto_nome}: +${formatCurrency(b.renda_diaria, "KZ")}/dia (${b.dias_restantes} dias restantes)`
           )
           .join("\n");
 
@@ -491,7 +451,7 @@ export default function TelegramBotsChat() {
           sender: "bot",
           time: getCurrentTime(),
           type: "text",
-          text: `📈 **Histórico e Rendimentos Ativos**\n\n• **Robôs em Atividade:** ${activeBots.length}\n• **Renda Diária Total:** +${formatCurrency(totalDaily, "KZ")} / dia\n• **Total Investido:** ${formatCurrency(totalInvested, "KZ")}\n\n**Detalhamento:**\n${botsSummary}\n\n⏰ Os rendimentos diários são creditados automaticamente a cada 24 horas no seu saldo.`
+          text: `Rendimentos ativos:\n• Robôs ativos: ${activeBots.length}\n• Renda diária total: +${formatCurrency(totalDaily, "KZ")}/dia\n• Total investido: ${formatCurrency(totalInvested, "KZ")}\n\nDetalhamento:\n${botsSummary}`
         }));
         return;
       }
@@ -515,25 +475,15 @@ export default function TelegramBotsChat() {
         return;
       }
 
-      // 6. Consulta por um bot específico (ex: /spambot, /spam, /skeddy, /renda spam, "qual a renda do bot x")
+      // 8. Consulta de Robô Específico por Comando (/spam, /skeddy, /botfather, /combot, /ia, /premium)
       let cleanQuery = normalized
-        .replace(/^renda\s+do\s+bot\s+/i, "")
-        .replace(/^renda\s+do\s+/i, "")
-        .replace(/^renda\s+/i, "")
-        .replace(/^qual\s+a\s+renda\s+do\s+bot\s+/i, "")
-        .replace(/^qual\s+a\s+renda\s+do\s+/i, "")
-        .replace(/^qual\s+a\s+renda\s+/i, "")
-        .replace(/^quanto\s+rende\s+o\s+bot\s+/i, "")
-        .replace(/^quanto\s+rende\s+o\s+/i, "")
-        .replace(/^quanto\s+rende\s+/i, "")
         .replace(/^info\s+/i, "")
         .replace(/^bot\s+/i, "")
         .replace(/\s+bot$/i, "")
         .trim();
 
-      // Mapeamento de termos curtos
-      if (cleanQuery === "ia" || cleanQuery === "botsdeia") cleanQuery = "ia";
-      if (cleanQuery === "father") cleanQuery = "botfother";
+      if (cleanQuery === "ia" || cleanQuery === "botsdeia" || cleanQuery === "botia") cleanQuery = "ia";
+      if (cleanQuery === "father" || cleanQuery === "botfather") cleanQuery = "botfother";
 
       const matchedProd = products.find((p) => {
         const pNome = p.nome.toLowerCase();
@@ -543,8 +493,7 @@ export default function TelegramBotsChat() {
           cleanQuery === pNome ||
           cleanQuery === pClean ||
           cleanQuery === pNoSpace ||
-          pNome.includes(cleanQuery) ||
-          pClean.includes(cleanQuery)
+          (cleanQuery.length >= 3 && (pNome.includes(cleanQuery) || pClean.includes(cleanQuery)))
         );
       });
 
@@ -568,13 +517,13 @@ export default function TelegramBotsChat() {
         return;
       }
 
-      // 7. Fallback amigável e explicativo
+      // 9. Fallback: Estritamente Comandos (Não conversa como humano)
       simulateBotReply(() => ({
         id: "bot-" + Date.now(),
         sender: "bot",
         time: getCurrentTime(),
         type: "text",
-        text: `Comando não reconhecido.\n\nEnvie /ajuda para ver a lista de comandos ou toque em /bots para ver os robôs disponíveis para compra.`
+        text: `Comando não reconhecido. Envie /ajuda para ver a lista de comandos disponíveis.`
       }));
     },
     [inputText, products, purchasedBots, userBalance, simulateBotReply]
@@ -609,7 +558,7 @@ export default function TelegramBotsChat() {
           showToast(result.message, "success");
 
           // Atualiza dados
-          const { cleanPurchased } = await loadData();
+          await loadData();
 
           setIsTyping(false);
           setMessages((prev) => [
@@ -624,7 +573,7 @@ export default function TelegramBotsChat() {
           ]);
         } else {
           setIsTyping(false);
-          const raw = result?.message || "Falha ao processar compra.";
+          const raw = (result?.message || "Falha ao processar compra.").replace(/[*#]/g, "");
           const isNoBalance = /saldo\s+insuficiente/i.test(raw);
 
           setMessages((prev) => [
@@ -635,14 +584,14 @@ export default function TelegramBotsChat() {
               time: getCurrentTime(),
               type: "text",
               text: isNoBalance
-                ? `❌ **Saldo Insuficiente**\n\nO robô custa **${formatCurrency(
+                ? `Saldo insuficiente. O robô custa ${formatCurrency(
                     product.preco,
                     "KZ"
-                  )}**, mas o seu saldo atual é de **${formatCurrency(
+                  )} e seu saldo atual é de ${formatCurrency(
                     userBalance,
                     "KZ"
-                  )}**.\n\nPor favor, recarregue a sua conta para ativar este robô.`
-                : `⚠️ ${raw}`
+                  )}. Recarregue sua carteira para continuar.`
+                : `Erro: ${raw}`
             }
           ]);
 
@@ -650,7 +599,7 @@ export default function TelegramBotsChat() {
         }
       } catch (err: any) {
         setIsTyping(false);
-        const raw = err.message || "Erro de conexão ao comprar bot.";
+        const raw = (err.message || "Erro de conexão ao comprar bot.").replace(/[*#]/g, "");
         setMessages((prev) => [
           ...prev,
           {
@@ -658,7 +607,7 @@ export default function TelegramBotsChat() {
             sender: "bot",
             time: getCurrentTime(),
             type: "text",
-            text: `❌ Erro ao ativar robô: ${raw}`
+            text: `Erro ao ativar robô: ${raw}`
           }
         ]);
         showToast(raw, "error");
@@ -781,75 +730,60 @@ export default function TelegramBotsChat() {
                 className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2.5 text-gray-900 w-full relative select-text"
                 style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
               >
-                {/* 1. Boas-vindas Inicial com Tutorial de Comandos Curtos */}
+                {/* 1. Guia Oficial de Comandos do BotFather */}
                 {msg.type === "welcome" && (
-                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
-                    <p className="mb-2">
-                      Bem-vindo! Eu sou o <strong>BotFather</strong>.
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
+                    <p className="font-bold text-[15px] mb-1.5 text-gray-900">
+                      BotFather - Central de Comandos
                     </p>
-                    <p className="mb-2.5 text-gray-800">
-                      Aqui você pode comprar seus produtos, consultar seus robôs de rendimento diário e acompanhar sua carteira sem complicação.
+                    <p className="mb-2 text-gray-700">
+                      Envie um dos comandos abaixo para interagir:
                     </p>
-                    <p className="mb-1 font-bold text-gray-950">
-                      Comandos Rápidos Disponíveis:
+                    <div className="space-y-1 mb-2.5">
+                      <div>• <span onClick={() => handleSendMessage("/bots")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/bots</span> — Catálogo de robôs</div>
+                      <div>• <span onClick={() => handleSendMessage("/saldo")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/saldo</span> — Saldo disponível</div>
+                      <div>• <span onClick={() => handleSendMessage("/meusbots")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/meusbots</span> — Robôs ativos</div>
+                      <div>• <span onClick={() => handleSendMessage("/limites")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/limites</span> — Limites por robô</div>
+                      <div>• <span onClick={() => handleSendMessage("/rendas")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/rendas</span> — Rendimentos diários</div>
+                      <div>• <span onClick={() => handleSendMessage("/limpar")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/limpar</span> — Limpar conversa</div>
+                      <div>• <span onClick={() => handleSendMessage("/ajuda")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/ajuda</span> — Lista de comandos</div>
+                    </div>
+                    <p className="font-bold text-[13.5px] text-gray-900 mb-1">
+                      Consultar robô individual:
                     </p>
-                    <p className="space-y-1 mb-2.5">
-                      • <span onClick={() => handleSendMessage("/bots")} className="text-[#3390ec] font-semibold cursor-pointer hover:underline">/bots</span> — Ver lista de robôs para comprar
-                      <br />
-                      • <span onClick={() => handleSendMessage("/saldo")} className="text-[#3390ec] font-semibold cursor-pointer hover:underline">/saldo</span> — Consultar saldo atual da carteira
-                      <br />
-                      • <span onClick={() => handleSendMessage("/meusbots")} className="text-[#3390ec] font-semibold cursor-pointer hover:underline">/meusbots</span> — Ver robôs que já comprou
-                      <br />
-                      • <span onClick={() => handleSendMessage("/limites")} className="text-[#3390ec] font-semibold cursor-pointer hover:underline">/limites</span> — Consultar limites de compra por robô
-                      <br />
-                      • <span onClick={() => handleSendMessage("/ajuda")} className="text-[#3390ec] font-semibold cursor-pointer hover:underline">/ajuda</span> — Reexibir este guia de comandos
-                    </p>
-                    <p className="mb-1 font-bold text-gray-950">
-                      Consultar Renda e Duração de Robô:
-                    </p>
-                    <p className="space-y-1 mb-2.5 text-[13.5px]">
-                      • <span onClick={() => handleSendMessage("/spam")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/spam</span> — Spam Bot (4.990 Kz)
-                      <br />
-                      • <span onClick={() => handleSendMessage("/skeddy")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/skeddy</span> — Skeddy Bot (7.990 Kz)
-                      <br />
-                      • <span onClick={() => handleSendMessage("/botfather")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/botfather</span> — BOTFOTHER (9.990 Kz)
-                      <br />
-                      • <span onClick={() => handleSendMessage("/combot")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/combot</span> — Com bot (14.990 Kz)
-                      <br />
-                      • <span onClick={() => handleSendMessage("/ia")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/ia</span> — Bots de IA (19.990 Kz)
-                      <br />
-                      • <span onClick={() => handleSendMessage("/premium")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/premium</span> — Premium Bot (35.990 Kz)
-                    </p>
-                    <p className="text-[#707579] text-[13px] pt-1.5 border-t border-gray-100">
-                      💡 Toque no botão <strong>Catálogo</strong> abaixo ou no botão abaixo para ver todos os robôs disponíveis.
+                    <p className="text-[13px] text-gray-600">
+                      <span onClick={() => handleSendMessage("/spam")} className="text-[#3390ec] cursor-pointer hover:underline">/spam</span>,{" "}
+                      <span onClick={() => handleSendMessage("/skeddy")} className="text-[#3390ec] cursor-pointer hover:underline">/skeddy</span>,{" "}
+                      <span onClick={() => handleSendMessage("/botfather")} className="text-[#3390ec] cursor-pointer hover:underline">/botfather</span>,{" "}
+                      <span onClick={() => handleSendMessage("/combot")} className="text-[#3390ec] cursor-pointer hover:underline">/combot</span>,{" "}
+                      <span onClick={() => handleSendMessage("/ia")} className="text-[#3390ec] cursor-pointer hover:underline">/ia</span>,{" "}
+                      <span onClick={() => handleSendMessage("/premium")} className="text-[#3390ec] cursor-pointer hover:underline">/premium</span>
                     </p>
                   </div>
                 )}
 
                 {/* 2. Meus Bots Comprados */}
                 {msg.type === "my_bots" && (
-                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
-                    <p className="font-bold text-[15px] mb-2">
-                      Seus Robôs em Execução ({msg.payload?.bots?.length || 0}):
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
+                    <p className="font-bold text-[15px] mb-1.5">
+                      Robôs em Execução ({msg.payload?.bots?.length || 0}):
                     </p>
 
                     {!msg.payload?.bots || msg.payload.bots.length === 0 ? (
                       <p className="text-gray-600">
-                        Você ainda não possui nenhum robô comprado.
-                        <br />
-                        Envie <span onClick={() => handleSendMessage("/bots")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/bots</span> para ver as opções disponíveis para compra.
+                        Você não possui robôs comprados. Envie <span onClick={() => handleSendMessage("/bots")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/bots</span> para abrir o catálogo.
                       </p>
                     ) : (
-                      <div className="space-y-3 my-1">
+                      <div className="space-y-2.5 my-1">
                         {msg.payload.bots.map((bot: PurchasedBotItem, idx: number) => (
                           <div key={bot.id || idx} className="text-[13.5px] leading-relaxed border-b border-gray-100 pb-2 last:border-0 last:pb-0">
                             <p className="font-bold text-gray-900">
                               {idx + 1}. {bot.produto_nome} <span className="text-[#25ae60] text-[12px] font-semibold">• Ativo</span>
                             </p>
                             <p className="text-gray-600">
-                              • Contrato: <span className="font-mono text-[12px] text-gray-800">#{bot.id?.slice(0, 6).toUpperCase()}</span>
+                              • ID Contrato: <span className="font-mono text-[12px] text-gray-800">{bot.id?.slice(0, 6).toUpperCase()}</span>
                               <br />
-                              • Renda Diária: <strong className="text-[#25ae60]">+{formatCurrency(bot.renda_diaria, "KZ")}</strong> / dia
+                              • Renda Diária: <span className="text-[#25ae60] font-semibold">+{formatCurrency(bot.renda_diaria, "KZ")}</span> / dia
                               <br />
                               • Valor Pago: {formatCurrency(bot.preco_pago, "KZ")}
                               <br />
@@ -871,20 +805,17 @@ export default function TelegramBotsChat() {
 
                 {/* 3. Catálogo de Bots */}
                 {msg.type === "catalog" && (
-                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
                     <p className="font-bold text-[15px] mb-1.5">
                       Robôs Disponíveis para Compra:
-                    </p>
-                    <p className="text-gray-600 text-[13.5px] mb-2">
-                      Toque no botão abaixo do robô que deseja comprar para ativar com o seu saldo:
                     </p>
                     <div className="space-y-2 mb-1">
                       {msg.payload?.products?.map((prod: ProductItem, idx: number) => (
                         <div key={prod.id || idx} className="text-[13.5px] text-gray-800">
-                          <strong>{idx + 1}. {prod.nome}</strong> — {formatCurrency(prod.preco, "KZ")}
+                          <span className="font-bold">{idx + 1}. {prod.nome}</span> — {formatCurrency(prod.preco, "KZ")}
                           <br />
                           <span className="text-gray-500 text-[12.5px]">
-                            Renda: <strong className="text-[#25ae60]">+{formatCurrency(prod.renda_diaria, "KZ")}/dia</strong> • Duração: {prod.duracao_dias} dias • Renda Total no Período: {formatCurrency(prod.renda_diaria * prod.duracao_dias, "KZ")}
+                            Renda: <span className="text-[#25ae60] font-medium">+{formatCurrency(prod.renda_diaria, "KZ")}/dia</span> • Duração: {prod.duracao_dias} dias • Renda Total: {formatCurrency(prod.renda_diaria * prod.duracao_dias, "KZ")}
                           </span>
                         </div>
                       ))}
@@ -892,29 +823,29 @@ export default function TelegramBotsChat() {
                   </div>
                 )}
 
-                {/* 4. Detalhe de Bot Específico com Consulta ao Banco de Dados */}
+                {/* 4. Detalhe de Bot Específico */}
                 {msg.type === "single_bot" && msg.payload?.product && (
-                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
                     <p className="font-bold text-[15px] text-[#2481cc] mb-1.5">
-                      🤖 Informações do {msg.payload.product.nome}:
+                      Informações do {msg.payload.product.nome}:
                     </p>
-                    <p className="text-[13.5px] text-gray-800 space-y-1 my-1.5">
-                      • <strong>Preço de Compra:</strong> {formatCurrency(msg.payload.product.preco, "KZ")}
+                    <p className="text-[13.5px] text-gray-800 space-y-1 my-1">
+                      • Preço de Compra: {formatCurrency(msg.payload.product.preco, "KZ")}
                       <br />
-                      • <strong>Renda Diária:</strong> <span className="text-[#25ae60] font-bold">+{formatCurrency(msg.payload.product.renda_diaria, "KZ")} / dia</span>
+                      • Renda Diária: <span className="text-[#25ae60] font-semibold">+{formatCurrency(msg.payload.product.renda_diaria, "KZ")} / dia</span>
                       <br />
-                      • <strong>Duração do Contrato:</strong> {msg.payload.product.duracao_dias} dias
+                      • Duração do Contrato: {msg.payload.product.duracao_dias} dias
                       <br />
-                      • <strong>Renda Total no Período:</strong> <span className="text-[#2481cc] font-bold">{formatCurrency(msg.payload.product.renda_diaria * msg.payload.product.duracao_dias, "KZ")}</span>
+                      • Renda Total no Período: <span className="text-[#2481cc] font-semibold">{formatCurrency(msg.payload.product.renda_diaria * msg.payload.product.duracao_dias, "KZ")}</span>
                       <br />
-                      • <strong>Limite de Compras:</strong>{" "}
+                      • Limite de Compras:{" "}
                       {msg.payload.boughtCount >= msg.payload.maxLimit ? (
                         <span className="text-amber-600 font-semibold">
                           Limite atingido ({msg.payload.boughtCount}/{msg.payload.maxLimit} comprados)
                         </span>
                       ) : (
                         <span>
-                          Você comprou {msg.payload.boughtCount} de {msg.payload.maxLimit} permitidos ({msg.payload.remaining} restante{msg.payload.remaining > 1 ? "s" : ""})
+                          {msg.payload.boughtCount}/{msg.payload.maxLimit} comprados ({msg.payload.remaining} disponível)
                         </span>
                       )}
                     </p>
@@ -923,57 +854,50 @@ export default function TelegramBotsChat() {
 
                 {/* 5. Sucesso de Compra */}
                 {msg.type === "purchase_success" && (
-                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
                     <p className="font-bold text-[#25ae60] text-[15px] mb-1">
-                      🎉 Robô Comprado com Sucesso!
+                      Robô Comprado com Sucesso!
                     </p>
-                    <p className="mb-2">
+                    <p className="mb-1 text-gray-700">
                       Chave de Ativação do Robô (HTTP API):
                     </p>
                     <div className="bg-[#e8eff5] rounded-[8px] px-2.5 py-1 font-mono text-[12.5px] text-[#2481cc] select-all my-1.5">
                       8723751541:AAF1i3n8zKtRJd5_mJmVDw0vQvJhMjzUjWU
                     </div>
                     <p className="text-[13px] text-gray-600">
-                      O robô <strong>{msg.payload?.product?.nome}</strong> já está ativo. O rendimento de <strong>+{formatCurrency(msg.payload?.product?.renda_diaria, "KZ")}</strong> será creditado diariamente a cada 24 horas no seu saldo.
+                      O robô <span className="font-semibold">{msg.payload?.product?.nome}</span> está ativo. Rendimento de <span className="font-semibold text-[#25ae60]">+{formatCurrency(msg.payload?.product?.renda_diaria, "KZ")}</span> creditado diariamente a cada 24 horas no saldo.
                     </p>
                   </div>
                 )}
 
-                {/* 6. Texto livre com formatação limpa */}
+                {/* 6. Texto livre sem asteriscos ou cardinais */}
                 {msg.type === "text" && (
-                  <div className="text-[14.5px] text-[#000000] leading-relaxed whitespace-pre-line font-normal">
-                    {msg.text?.split("\n").map((line, lIdx) => {
-                      const renderFormatted = (str: string) => {
-                        const parts = str.split(/(\*\*.*?\*\*|\*.*?\*|\/[-_a-zA-Z0-9]+)/g);
-                        return parts.map((part, pIdx) => {
-                          if (part.startsWith("**") && part.endsWith("**")) {
-                            return <strong key={pIdx} className="font-bold">{part.slice(2, -2)}</strong>;
-                          }
-                          if (part.startsWith("*") && part.endsWith("*")) {
-                            return <strong key={pIdx} className="font-bold">{part.slice(1, -1)}</strong>;
-                          }
-                          if (part.startsWith("/")) {
-                            return (
-                              <span
-                                key={pIdx}
-                                onClick={() => handleSendMessage(part)}
-                                className="text-[#3390ec] font-medium cursor-pointer hover:underline"
-                              >
-                                {part}
-                              </span>
-                            );
-                          }
-                          return part;
-                        });
-                      };
-
-                      return (
-                        <span key={lIdx}>
-                          {renderFormatted(line)}
-                          {lIdx < (msg.text?.split("\n").length || 1) - 1 && <br />}
-                        </span>
-                      );
-                    })}
+                  <div className="text-[14px] text-[#000000] leading-relaxed whitespace-pre-line font-normal">
+                    {msg.text
+                      ?.replace(/[*#]/g, "")
+                      .split("\n")
+                      .map((line, lIdx) => {
+                        const parts = line.split(/(\/[-_a-zA-Z0-9]+)/g);
+                        return (
+                          <span key={lIdx}>
+                            {parts.map((part, pIdx) => {
+                              if (part.startsWith("/")) {
+                                return (
+                                  <span
+                                    key={pIdx}
+                                    onClick={() => handleSendMessage(part)}
+                                    className="text-[#3390ec] font-medium cursor-pointer hover:underline"
+                                  >
+                                    {part}
+                                  </span>
+                                );
+                              }
+                              return part;
+                            })}
+                            {lIdx < (msg.text?.replace(/[*#]/g, "").split("\n").length || 1) - 1 && <br />}
+                          </span>
+                        );
+                      })}
                   </div>
                 )}
 
@@ -1106,7 +1030,7 @@ export default function TelegramBotsChat() {
                 handleSendMessage();
               }
             }}
-            placeholder="Mensagem..."
+            placeholder="Digite um comando (/bots, /saldo)..."
             className="w-full bg-transparent text-[15px] text-[#000000] placeholder-gray-400 outline-none"
           />
         </div>

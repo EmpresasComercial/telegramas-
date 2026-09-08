@@ -213,7 +213,15 @@ export default function PurchaseHistory() {
 
       const normalized = content.toLowerCase().replace(/^\//, "").trim();
 
-      if (normalized === "start" || normalized === "inicio" || normalized === "help" || normalized === "ajuda") {
+      if (
+        normalized === "start" ||
+        normalized === "inicio" ||
+        normalized === "início" ||
+        normalized === "help" ||
+        normalized === "ajuda" ||
+        normalized === "menu" ||
+        normalized === "comandos"
+      ) {
         botReply(() => ({
           id: "bot-" + Date.now(),
           sender: "bot",
@@ -236,7 +244,7 @@ export default function PurchaseHistory() {
             sender: "bot",
             time: nowTime(),
             type: "text",
-            text: `Você ainda não possui nenhum robô comprado.\n\nEnvie /comprar para abrir o catálogo e ativar o seu primeiro robô.`
+            text: `Você não possui robôs comprados. Envie /comprar para abrir o catálogo.`
           }));
           return;
         }
@@ -258,7 +266,7 @@ export default function PurchaseHistory() {
             sender: "bot",
             time: nowTime(),
             type: "text",
-            text: `Você não tem rendimentos em andamento porque ainda não comprou robôs. Envie /comprar para ativar um bot.`
+            text: `Você não possui rendimentos ativos. Envie /comprar para adquirir um robô.`
           }));
           return;
         }
@@ -279,7 +287,7 @@ export default function PurchaseHistory() {
           sender: "bot",
           time: nowTime(),
           type: "text",
-          text: `O seu saldo disponível na carteira é:\n**${formatCurrency(userBalance, "KZ")}**\n\nEnvie /comprar para ver os robôs disponíveis para ativação.`
+          text: `Saldo disponível na carteira: ${formatCurrency(userBalance, "KZ")}. Envie /comprar para ver os robôs.`
         }));
         return;
       }
@@ -296,12 +304,13 @@ export default function PurchaseHistory() {
         return;
       }
 
+      // Fallback estritamente baseado em comandos (não conversa como humano)
       botReply(() => ({
         id: "bot-" + Date.now(),
         sender: "bot",
         time: nowTime(),
         type: "text",
-        text: `Comando não reconhecido. Envie /ajuda para ver o tutorial ou /status para consultar os robôs comprados.`
+        text: `Comando não reconhecido. Envie /ajuda para ver a lista de comandos disponíveis.`
       }));
     },
     [botReply, inputText, navigate, purchasedBots, userBalance]
@@ -409,49 +418,44 @@ export default function PurchaseHistory() {
                 className="bg-white rounded-[16px] rounded-bl-[3px] px-3.5 py-2.5 text-gray-900 w-full relative select-text"
                 style={{ boxShadow: "0 1px 2px rgba(16, 35, 47, 0.15)" }}
               >
-                {/* 1. Boas-vindas com Tutorial de Comandos */}
+                {/* 1. Guia de Comandos do BotFather */}
                 {msg.type === "welcome" && (
-                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
-                    <p className="mb-2">
-                      Bem-vindo! Eu sou o <strong>BotFather</strong>.
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
+                    <p className="font-bold text-[15px] mb-1.5 text-gray-900">
+                      BotFather - Gestão de Robôs
                     </p>
-                    <p className="mb-2">
-                      Aqui você pode consultar o status dos seus robôs comprados e acompanhar os rendimentos diários em tempo real.
+                    <p className="mb-2 text-gray-700">
+                      Envie um dos comandos para consultar:
                     </p>
-                    <p className="mb-1.5 font-bold">
-                      Comandos Rápidos Disponíveis:
-                    </p>
-                    <p className="space-y-1 mb-2">
-                      • <span onClick={() => handleSendMessage("/status")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/status</span> — Ver seus robôs comprados em execução
-                      <br />
-                      • <span onClick={() => handleSendMessage("/rendimento")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/rendimento</span> — Tempo para o próximo crédito diário
-                      <br />
-                      • <span onClick={() => handleSendMessage("/saldo")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/saldo</span> — Consultar saldo da carteira
-                      <br />
-                      • <span onClick={() => handleSendMessage("/comprar")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/comprar</span> — Comprar um novo robô
-                    </p>
+                    <div className="space-y-1 mb-2.5">
+                      <div>• <span onClick={() => handleSendMessage("/status")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/status</span> — Robôs comprados</div>
+                      <div>• <span onClick={() => handleSendMessage("/rendimento")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/rendimento</span> — Próximo crédito diário</div>
+                      <div>• <span onClick={() => handleSendMessage("/saldo")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/saldo</span> — Saldo da carteira</div>
+                      <div>• <span onClick={() => handleSendMessage("/comprar")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/comprar</span> — Catálogo de robôs</div>
+                      <div>• <span onClick={() => handleSendMessage("/ajuda")} className="text-[#3390ec] font-medium cursor-pointer hover:underline">/ajuda</span> — Lista de comandos</div>
+                    </div>
                     <p className="text-[#707579] text-[13px] pt-1 border-t border-gray-100">
-                      Você possui atualmente <strong>{msg.payload?.activeCount || 0} robô(s) ativo(s)</strong> gerando lucros diários.
+                      Você possui {msg.payload?.activeCount || 0} robô(s) ativo(s).
                     </p>
                   </div>
                 )}
 
                 {/* 2. Relatório de Status dos Bots Comprados */}
                 {msg.type === "status_report" && msg.payload?.bots && (
-                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
-                    <p className="font-bold text-[15px] mb-2">
-                      Robôs Comprados em Execução ({msg.payload.bots.length}):
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
+                    <p className="font-bold text-[15px] mb-1.5">
+                      Robôs em Execução ({msg.payload.bots.length}):
                     </p>
-                    <div className="space-y-3 my-1">
+                    <div className="space-y-2.5 my-1">
                       {msg.payload.bots.map((bot: PurchasedBot, idx: number) => (
                         <div key={bot.id || idx} className="text-[13.5px] leading-relaxed border-b border-gray-100 pb-2 last:border-0 last:pb-0">
                           <p className="font-bold text-gray-900">
                             {idx + 1}. {bot.produto_nome} <span className="text-[#25ae60] text-[12px] font-semibold">• Ativo</span>
                           </p>
                           <p className="text-gray-600">
-                            • Contrato: <span className="font-mono text-[12px] text-gray-800">#{bot.id?.slice(0, 6).toUpperCase()}</span>
+                            • ID Contrato: <span className="font-mono text-[12px] text-gray-800">{bot.id?.slice(0, 6).toUpperCase()}</span>
                             <br />
-                            • Renda Diária: <strong className="text-[#25ae60]">+{formatCurrency(bot.renda_diaria, "KZ")}</strong> / dia
+                            • Renda Diária: <span className="text-[#25ae60] font-semibold">+{formatCurrency(bot.renda_diaria, "KZ")}</span> / dia
                             <br />
                             • Valor Pago: {formatCurrency(bot.preco_pago, "KZ")}
                             <br />
@@ -472,18 +476,18 @@ export default function PurchaseHistory() {
 
                 {/* 3. Contagem Regressiva do Ciclo */}
                 {msg.type === "cycle_countdown" && msg.payload?.bots && (
-                  <div className="text-[14.5px] text-gray-950 leading-relaxed font-normal">
+                  <div className="text-[14px] text-gray-950 leading-relaxed font-normal">
                     <p className="font-bold text-[15px] mb-1.5">
-                      ⏳ Sincronização de Rendimento Diário
+                      Sincronização de Rendimento Diário
                     </p>
-                    <p className="text-[13.5px] text-gray-800 mb-2">
-                      Os rendimentos dos seus robôs são creditados diariamente a cada 24 horas:
+                    <p className="text-[13px] text-gray-700 mb-2">
+                      Créditos automáticos a cada 24 horas:
                     </p>
-                    <div className="space-y-2 my-1.5">
+                    <div className="space-y-2 my-1">
                       {msg.payload.bots.map((bot: PurchasedBot, idx: number) => (
                         <div key={bot.id || idx} className="text-[13px] border-b border-gray-100 pb-1.5 last:border-0">
                           <p className="font-bold text-gray-900">{bot.produto_nome}:</p>
-                          <p>• Crédito: <strong className="text-[#25ae60]">+{formatCurrency(bot.renda_diaria, "KZ")}</strong></p>
+                          <p>• Crédito: <span className="text-[#25ae60] font-semibold">+{formatCurrency(bot.renda_diaria, "KZ")}</span></p>
                           <div className="flex items-center gap-1.5 text-[#2481cc] mt-0.5">
                             <Clock className="w-3.5 h-3.5" />
                             <span>Tempo restante:</span>
@@ -495,41 +499,34 @@ export default function PurchaseHistory() {
                   </div>
                 )}
 
-                {/* 4. Mensagem de Texto Comum */}
+                {/* 4. Mensagem de Texto (sem asteriscos ou cardinais) */}
                 {msg.type === "text" && (
-                  <div className="text-[14.5px] text-[#000000] leading-relaxed whitespace-pre-line font-normal">
-                    {msg.text?.split("\n").map((line, lIdx) => {
-                      const renderFormatted = (str: string) => {
-                        const parts = str.split(/(\*\*.*?\*\*|\*.*?\*|\/[-_a-zA-Z0-9]+)/g);
-                        return parts.map((part, pIdx) => {
-                          if (part.startsWith("**") && part.endsWith("**")) {
-                            return <strong key={pIdx} className="font-bold">{part.slice(2, -2)}</strong>;
-                          }
-                          if (part.startsWith("*") && part.endsWith("*")) {
-                            return <strong key={pIdx} className="font-bold">{part.slice(1, -1)}</strong>;
-                          }
-                          if (part.startsWith("/")) {
-                            return (
-                              <span
-                                key={pIdx}
-                                onClick={() => handleSendMessage(part)}
-                                className="text-[#3390ec] font-medium cursor-pointer hover:underline"
-                              >
-                                {part}
-                              </span>
-                            );
-                          }
-                          return part;
-                        });
-                      };
-
-                      return (
-                        <span key={lIdx}>
-                          {renderFormatted(line)}
-                          {lIdx < (msg.text?.split("\n").length || 1) - 1 && <br />}
-                        </span>
-                      );
-                    })}
+                  <div className="text-[14px] text-[#000000] leading-relaxed whitespace-pre-line font-normal">
+                    {msg.text
+                      ?.replace(/[*#]/g, "")
+                      .split("\n")
+                      .map((line, lIdx) => {
+                        const parts = line.split(/(\/[-_a-zA-Z0-9]+)/g);
+                        return (
+                          <span key={lIdx}>
+                            {parts.map((part, pIdx) => {
+                              if (part.startsWith("/")) {
+                                return (
+                                  <span
+                                    key={pIdx}
+                                    onClick={() => handleSendMessage(part)}
+                                    className="text-[#3390ec] font-medium cursor-pointer hover:underline"
+                                  >
+                                    {part}
+                                  </span>
+                                );
+                              }
+                              return part;
+                            })}
+                            {lIdx < (msg.text?.replace(/[*#]/g, "").split("\n").length || 1) - 1 && <br />}
+                          </span>
+                        );
+                      })}
                   </div>
                 )}
 
@@ -600,7 +597,7 @@ export default function PurchaseHistory() {
                 handleSendMessage();
               }
             }}
-            placeholder="Mensagem (ex: /status, /rendimento, /comprar)"
+            placeholder="Digite um comando (/status, /saldo)..."
             className="w-full bg-transparent text-[15px] text-[#000000] placeholder-gray-400 outline-none"
           />
         </div>
