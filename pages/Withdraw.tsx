@@ -295,34 +295,49 @@ export default function Withdraw() {
 
       if (!error && data && data.length > 0) {
         const d = data[0];
-        loaded.balance = Number(d.balance) || 0;
-        loaded.hasBank = Boolean(d.has_bank);
-        loaded.bankId = d.bank_id || null;
-        loaded.bankName = d.bank_name || '';
-        loaded.iban = d.iban || '';
-        loaded.isVerified = Boolean(d.is_verified);
-        loaded.hasPending = Boolean(d.has_pending);
+        loaded.balance     = Number(d.balance) || 0;
+        loaded.hasBank     = Boolean(d.has_bank);
+        loaded.bankId      = d.bank_id || null;
+        loaded.bankName    = d.bank_name || '';
+        loaded.iban        = d.iban || '';
+        loaded.isVerified  = Boolean(d.is_verified);
+        loaded.hasPending  = Boolean(d.has_pending);
+        // Lidos diretamente da RPC atualizada (inclui verificação de data_fim > now())
+        loaded.hasBots          = Boolean(d.has_bots);
+        loaded.totalDailyIncome = Number(d.total_daily_income) || 0;
       }
 
-      if (!loaded.hasBank) {
-        const { data: bankAccounts } = await supabase.rpc('get_my_bank_accounts_mcpn');
-        if (bankAccounts && bankAccounts.length > 0) {
-          const first = bankAccounts[0];
-          loaded.hasBank = true;
-          loaded.bankId = first.id || null;
-          loaded.bankName = first.bank_name || '';
-          loaded.iban = first.iban || '';
+      // Fallback: se RPC ainda não devolveu has_bots (versão antiga), consulta separada
+      if (!loaded.hasBots) {
+        try {
+          const { data: myBots } = await supabase.rpc('get_my_purchased_products_mcpn');
+          if (myBots && Array.isArray(myBots)) {
+            const activeBots = myBots.filter(
+              (b: any) => Boolean(b.ativo) && (!b.data_fim || new Date(b.data_fim) > new Date())
+            );
+            loaded.hasBots          = activeBots.length > 0;
+            loaded.totalDailyIncome = activeBots.reduce(
+              (acc: number, b: any) => acc + (Number(b.renda_diaria) || 0),
+              0
+            );
+          }
+        } catch (_) {
+          // silencioso — fallback não crítico
         }
       }
 
-      const { data: myBots } = await supabase.rpc('get_my_purchased_products_mcpn');
-      if (myBots && Array.isArray(myBots)) {
-        const activeBots = myBots.filter((b: any) => Boolean(b.ativo));
-        loaded.hasBots = activeBots.length > 0;
-        loaded.totalDailyIncome = activeBots.reduce(
-          (acc: number, b: any) => acc + (Number(b.renda_diaria) || 0),
-          0
-        );
+      // Fallback de banco: se get_withdraw_info não devolveu conta
+      if (!loaded.hasBank) {
+        try {
+          const { data: bankAccounts } = await supabase.rpc('get_my_bank_accounts_mcpn');
+          if (bankAccounts && bankAccounts.length > 0) {
+            const first = bankAccounts[0];
+            loaded.hasBank  = true;
+            loaded.bankId   = first.id || null;
+            loaded.bankName = first.bank_name || '';
+            loaded.iban     = first.iban || '';
+          }
+        } catch (_) {}
       }
 
       setInfo(loaded);
@@ -778,8 +793,20 @@ export default function Withdraw() {
 
       // 9. INTENT: RETIRADA / SAQUE (COM OU SEM VALOR ESPECIFICADO)
       if (parsed.intent === 'withdraw') {
+        // ─── BUSCAR DADOS FRESCOS DO SERVIDOR (evita state desatualizado) ───
+        setIsTyping(true);
+        const fresh = await fetchData();
+        setIsTyping(false);
+        const currentBal  = fresh?.balance     ?? info.balance;
+        const hasPending  = fresh?.hasPending  ?? info.hasPending;
+        const hasBank     = fresh?.hasBank     ?? info.hasBank;
+        const bankId      = fresh?.bankId      ?? info.bankId;
+        const bankName    = fresh?.bankName    ?? info.bankName;
+        const iban        = fresh?.iban        ?? info.iban;
+        const hasBots     = fresh?.hasBots     ?? info.hasBots;
+
         // Validação 1: Pedido já em análise
-        if (info.hasPending) {
+        if (hasPending) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
@@ -804,7 +831,7 @@ export default function Withdraw() {
         }
 
         // Validação 3: Conta bancária cadastrada
-        if (!info.hasBank) {
+        if (!hasBank || !bankId) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
@@ -815,21 +842,21 @@ export default function Withdraw() {
           return;
         }
 
-        // Validação 4: Robô de rendimento ativo
-        if (!info.hasBots) {
+        // Validação 4: Robô de rendimento ATIVO e não expirado (dados frescos do servidor)
+        if (!hasBots) {
           botReply(() => ({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             time: nowTime(),
             type: 'no_bots',
-            text: withCmds('🤖 **Robô Ativo Necessário:**\n\nPara liberar o saque de rendimentos, você precisa ter um robô ativo na plataforma:'),
+            text: withCmds(
+              '🤖 **Robô Ativo Necessário:**\n\n' +
+              'Para liberar saques de rendimentos, você precisa ter pelo menos **um robô ativo** e dentro do prazo de validade na plataforma.\n\n' +
+              'Se já comprou um robô, verifique se ele ainda está dentro do período de actividade. Robôs expirados não contam para liberação de saques.'
+            ),
           }));
           return;
         }
-
-        // Buscar saldo fresco da conta
-        const fresh = await fetchData();
-        const currentBal = fresh?.balance ?? info.balance;
 
         // Determinar o valor pretendido
         let targetAmount: number | null = null;
