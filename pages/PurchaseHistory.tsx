@@ -115,25 +115,64 @@ export default function PurchaseHistory() {
   const fetchPurchasedBots = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc("get_my_purchased_products_mcpn");
-      if (error) throw error;
-
       let clean: PurchasedBot[] = [];
-      if (data && Array.isArray(data)) {
-        clean = data.map((b: any) => ({
-          id: b.id,
-          preco_pago: Number(b.preco_pago) || 0,
-          renda_diaria: Number(b.renda_diaria) || 0,
-          data_inicio: b.data_inicio,
-          data_fim: b.data_fim,
-          dias_restantes: b.dias_restantes || 0,
-          ativo: Boolean(b.ativo),
-          produto_nome: b.produto_nome || "Spam Bot",
-          produto_imagem: b.produto_imagem || "",
-          storage_size: b.storage_size || ""
-        }));
-        setPurchasedBots(clean);
+
+      // 1. Tentar RPC get_my_purchased_products_mcpn
+      try {
+        const { data, error } = await supabase.rpc("get_my_purchased_products_mcpn");
+        if (!error && data && Array.isArray(data) && data.length > 0) {
+          clean = data.map((b: any) => ({
+            id: b.id,
+            preco_pago: Number(b.preco_pago) || 0,
+            renda_diaria: Number(b.renda_diaria) || 0,
+            data_inicio: b.data_inicio,
+            data_fim: b.data_fim,
+            dias_restantes: b.dias_restantes !== undefined ? Number(b.dias_restantes) : 0,
+            ativo: Boolean(b.ativo),
+            produto_nome: b.produto_nome || "Robô de Renda",
+            produto_imagem: b.produto_imagem || "",
+            storage_size: b.storage_size || "Cloud"
+          }));
+        }
+      } catch (rpcErr) {
+        console.warn("RPC get_my_purchased_products_mcpn falhou, tentando fallback direto:", rpcErr);
       }
+
+      // 2. Fallback direto na tabela sys_600 caso RPC retorne vazio ou falhe
+      if (clean.length === 0) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData?.session?.user?.id;
+        if (uid) {
+          const { data: sysData, error: sysError } = await (supabase as any)
+            .from("sys_600")
+            .select("*, produtos(nome, preco, renda_diaria, duracao_dias)")
+            .eq("user_id", uid)
+            .order("data_inicio", { ascending: false });
+
+          if (!sysError && sysData && Array.isArray(sysData) && sysData.length > 0) {
+            clean = sysData.map((b: any) => {
+              const diffDays = b.data_fim
+                ? Math.max(0, Math.ceil((new Date(b.data_fim).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+                : 90;
+              const isStillActive = Boolean(b.ativo) && (!b.data_fim || new Date(b.data_fim) > new Date());
+              return {
+                id: b.id,
+                preco_pago: Number(b.preco_pago) || Number(b.produtos?.preco) || 0,
+                renda_diaria: Number(b.renda_diaria) || Number(b.produtos?.renda_diaria) || 0,
+                data_inicio: b.data_inicio || b.created_at || new Date().toISOString(),
+                data_fim: b.data_fim,
+                dias_restantes: b.dias_restantes !== undefined ? Number(b.dias_restantes) : diffDays,
+                ativo: isStillActive,
+                produto_nome: b.produtos?.nome || b.produto_nome || "Robô de Renda",
+                produto_imagem: "",
+                storage_size: "Cloud"
+              };
+            });
+          }
+        }
+      }
+
+      setPurchasedBots(clean);
 
       // Saldo do usuário
       const { data: sessionData } = await supabase.auth.getSession();
@@ -196,7 +235,7 @@ export default function PurchaseHistory() {
 
   /* ── Enviar mensagem para o BotFather ── */
   const handleSendMessage = useCallback(
-    (textToSend?: string) => {
+    async (textToSend?: string) => {
       const content = (textToSend || inputText).trim();
       if (!content) return;
 
@@ -238,7 +277,12 @@ export default function PurchaseHistory() {
         normalized === "mybots" ||
         normalized === "ativos"
       ) {
-        if (!purchasedBots || purchasedBots.length === 0) {
+        let currentBots = purchasedBots;
+        if (!currentBots || currentBots.length === 0) {
+          currentBots = await fetchPurchasedBots();
+        }
+
+        if (!currentBots || currentBots.length === 0) {
           botReply(() => ({
             id: "bot-" + Date.now(),
             sender: "bot",
@@ -254,13 +298,18 @@ export default function PurchaseHistory() {
           sender: "bot",
           time: nowTime(),
           type: "status_report",
-          payload: { bots: purchasedBots }
+          payload: { bots: currentBots }
         }));
         return;
       }
 
       if (normalized === "rendimento" || normalized === "proximo" || normalized === "ciclo") {
-        if (!purchasedBots || purchasedBots.length === 0) {
+        let currentBots = purchasedBots;
+        if (!currentBots || currentBots.length === 0) {
+          currentBots = await fetchPurchasedBots();
+        }
+
+        if (!currentBots || currentBots.length === 0) {
           botReply(() => ({
             id: "bot-" + Date.now(),
             sender: "bot",
@@ -276,7 +325,7 @@ export default function PurchaseHistory() {
           sender: "bot",
           time: nowTime(),
           type: "cycle_countdown",
-          payload: { bots: purchasedBots }
+          payload: { bots: currentBots }
         }));
         return;
       }
@@ -313,7 +362,7 @@ export default function PurchaseHistory() {
         text: `Comando não reconhecido. Envie /ajuda para ver a lista de comandos disponíveis.`
       }));
     },
-    [botReply, inputText, navigate, purchasedBots, userBalance]
+    [botReply, inputText, navigate, purchasedBots, userBalance, fetchPurchasedBots]
   );
 
   return (

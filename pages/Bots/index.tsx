@@ -209,22 +209,61 @@ export default function TelegramBotsChat() {
         : [];
       setProducts(cleanProducts);
 
-      // 2. Bots comprados
-      const { data: myData } = await supabase.rpc("get_my_purchased_products_mcpn");
-      const cleanPurchased: PurchasedBotItem[] = Array.isArray(myData)
-        ? myData.map((b: any) => ({
+      // 2. Bots comprados com fallback robusto na tabela sys_600
+      let cleanPurchased: PurchasedBotItem[] = [];
+      try {
+        const { data: myData, error: rpcErr } = await supabase.rpc("get_my_purchased_products_mcpn");
+        if (!rpcErr && Array.isArray(myData) && myData.length > 0) {
+          cleanPurchased = myData.map((b: any) => ({
             id: b.id,
             preco_pago: Number(b.preco_pago) || 0,
             renda_diaria: Number(b.renda_diaria) || 0,
             data_inicio: b.data_inicio,
             data_fim: b.data_fim,
-            dias_restantes: b.dias_restantes || 0,
+            dias_restantes: b.dias_restantes !== undefined ? Number(b.dias_restantes) : 0,
             ativo: Boolean(b.ativo),
-            produto_nome: b.produto_nome,
+            produto_nome: b.produto_nome || "Robô de Renda",
             produto_imagem: b.produto_imagem || "",
-            storage_size: b.storage_size || ""
-          }))
-        : [];
+            storage_size: b.storage_size || "Cloud"
+          }));
+        }
+      } catch (e) {
+        console.warn("RPC get_my_purchased_products_mcpn falhou, tentando fallback direto:", e);
+      }
+
+      // Fallback direto na tabela sys_600 se RPC retornar vazio
+      if (cleanPurchased.length === 0) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData?.session?.user?.id;
+        if (uid) {
+          const { data: sysData, error: sysError } = await (supabase as any)
+            .from("sys_600")
+            .select("*, produtos(nome, preco, renda_diaria, duracao_dias)")
+            .eq("user_id", uid)
+            .order("data_inicio", { ascending: false });
+
+          if (!sysError && sysData && Array.isArray(sysData) && sysData.length > 0) {
+            cleanPurchased = sysData.map((b: any) => {
+              const diffDays = b.data_fim
+                ? Math.max(0, Math.ceil((new Date(b.data_fim).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+                : 90;
+              const isStillActive = Boolean(b.ativo) && (!b.data_fim || new Date(b.data_fim) > new Date());
+              return {
+                id: b.id,
+                preco_pago: Number(b.preco_pago) || Number(b.produtos?.preco) || 0,
+                renda_diaria: Number(b.renda_diaria) || Number(b.produtos?.renda_diaria) || 0,
+                data_inicio: b.data_inicio || b.created_at || new Date().toISOString(),
+                data_fim: b.data_fim,
+                dias_restantes: b.dias_restantes !== undefined ? Number(b.dias_restantes) : diffDays,
+                ativo: isStillActive,
+                produto_nome: b.produtos?.nome || b.produto_nome || "Robô de Renda",
+                produto_imagem: "",
+                storage_size: "Cloud"
+              };
+            });
+          }
+        }
+      }
       setPurchasedBots(cleanPurchased);
 
       // 3. Saldo do usuário
@@ -300,7 +339,7 @@ export default function TelegramBotsChat() {
 
   /* ── Tratar Comandos e Mensagens do Usuário ── */
   const handleSendMessage = useCallback(
-    (textToSend?: string) => {
+    async (textToSend?: string) => {
       const content = (textToSend || inputText).trim();
       if (!content) return;
 
@@ -375,12 +414,18 @@ export default function TelegramBotsChat() {
         normalized === "compras" ||
         normalized === "minhascompras"
       ) {
+        let currentBots = purchasedBots;
+        if (!currentBots || currentBots.length === 0) {
+          const res = await loadData();
+          currentBots = res.cleanPurchased;
+        }
+
         simulateBotReply(() => ({
           id: "bot-" + Date.now(),
           sender: "bot",
           time: getCurrentTime(),
           type: "my_bots",
-          payload: { bots: purchasedBots }
+          payload: { bots: currentBots }
         }));
         return;
       }
@@ -424,7 +469,13 @@ export default function TelegramBotsChat() {
         normalized === "historico" ||
         normalized === "histórico"
       ) {
-        const activeBots = purchasedBots.filter((b) => b.ativo);
+        let currentBots = purchasedBots;
+        if (!currentBots || currentBots.length === 0) {
+          const res = await loadData();
+          currentBots = res.cleanPurchased;
+        }
+
+        const activeBots = currentBots.filter((b) => b.ativo);
         const totalDaily = activeBots.reduce((acc, b) => acc + b.renda_diaria, 0);
         const totalInvested = activeBots.reduce((acc, b) => acc + b.preco_pago, 0);
 
@@ -526,7 +577,7 @@ export default function TelegramBotsChat() {
         text: `Comando não reconhecido. Envie /ajuda para ver a lista de comandos disponíveis.`
       }));
     },
-    [inputText, products, purchasedBots, userBalance, simulateBotReply]
+    [inputText, products, purchasedBots, userBalance, simulateBotReply, loadData]
   );
 
   /* ── Ação de Compra de Bot Direto no Chat ── */
