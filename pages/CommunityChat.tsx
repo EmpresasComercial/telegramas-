@@ -254,6 +254,7 @@ export default function CommunityChat() {
   const [publicInput, setPublicInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [replyTo, setReplyTo] = useState<any>(null);
+  const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -295,6 +296,10 @@ export default function CommunityChat() {
   };
 
   const handleDeleteMessage = async (msgId: number) => {
+    if (editingMessage?.id === msgId) {
+      setEditingMessage(null);
+      setPublicInput("");
+    }
     try {
       await supabase.from('chat_gruop').delete().eq('id', msgId);
     } catch {}
@@ -525,6 +530,63 @@ export default function CommunityChat() {
       if (err) { showToast(err, "error"); return; }
     }
     const tempMsg = publicInput.trim();
+
+    // ── Fluxo de Edição de Mensagem Existente ──
+    if (editingMessage) {
+      const msgIdToEdit = editingMessage.id;
+      const prevDetalhes = (editingMessage.detalhes && typeof editingMessage.detalhes === 'object')
+        ? { ...editingMessage.detalhes }
+        : {};
+      const updatedDetalhes = {
+        ...prevDetalhes,
+        editado: true,
+        editado_em: new Date().toISOString()
+      };
+
+      setEditingMessage(null);
+      setPublicInput("");
+      if (inputRef.current) {
+        inputRef.current.value = "";
+        inputRef.current.style.height = "auto";
+      }
+
+      // Atualização otimista local imediata
+      setPublicMessages(prev => prev.map(m => {
+        if (m.id === msgIdToEdit) {
+          return {
+            ...m,
+            mensagem: tempMsg,
+            detalhes: updatedDetalhes
+          };
+        }
+        return m;
+      }));
+
+      setIsSending(true);
+      try {
+        const { error } = await supabase
+          .from("chat_gruop")
+          .update({
+            mensagem: tempMsg,
+            detalhes: updatedDetalhes
+          })
+          .eq("id", msgIdToEdit);
+
+        if (error) {
+          console.error('[CommunityChat] Erro ao editar mensagem:', error);
+          showToast('Erro ao atualizar a mensagem', 'error');
+        } else {
+          showToast('Mensagem editada', 'success');
+        }
+      } catch (err) {
+        console.error('[CommunityChat] Falha na edição:', err);
+        showToast('Erro ao atualizar a mensagem', 'error');
+      } finally {
+        setIsSending(false);
+      }
+      return;
+    }
+
     const tempImg = imagePreview;
     const tempReply = replyTo;
     const detalhes: Record<string, any> = {};
@@ -665,6 +727,7 @@ export default function CommunityChat() {
       icon: Reply, 
       label: 'Responder', 
       onClick: () => { 
+        setEditingMessage(null);
         setReplyTo(contextMenu.message); 
         closeContextMenu(); 
         setTimeout(() => inputRef.current?.focus(), 100); 
@@ -685,9 +748,19 @@ export default function CommunityChat() {
       icon: Pencil, 
       label: 'Editar', 
       onClick: () => { 
+        setReplyTo(null);
+        setEditingMessage(contextMenu.message); 
         setPublicInput(contextMenu.message.mensagem || ''); 
         closeContextMenu(); 
-        setTimeout(() => inputRef.current?.focus(), 100); 
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.style.height = "auto";
+            inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 100)}px`;
+            inputRef.current.selectionStart = inputRef.current.value.length;
+            inputRef.current.selectionEnd = inputRef.current.value.length;
+          }
+        }, 100); 
       }, 
       color: '#555' 
     }] : []),
@@ -701,7 +774,15 @@ export default function CommunityChat() {
   ] : [];
 
   return (
-    <div className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none flex flex-col items-stretch overflow-hidden relative tg-wallpaper transition-colors">
+    <div 
+      className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none tg-chat-no-select flex flex-col items-stretch overflow-hidden relative tg-wallpaper transition-colors"
+      onContextMenu={(e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target?.tagName !== 'INPUT' && target?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+        }
+      }}
+    >
       <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-3 sm:px-6 py-2 sticky top-0 z-40 flex items-center justify-between shadow-xs select-none">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <button 
@@ -767,6 +848,7 @@ export default function CommunityChat() {
           const parsedData: any = (m.detalhes && typeof m.detalhes === 'object') ? m.detalhes : {};
           const reply = parsedData.reply;
           const reactions = parsedData.reacoes || {};
+          const isEdited = Boolean(parsedData.editado);
 
           return (
             <React.Fragment key={m.id}>
@@ -811,7 +893,10 @@ export default function CommunityChat() {
                       onTouchEnd={(e) => e.stopPropagation()}
                     />
                     {/* Timestamp sobreposto */}
-                    <div className="absolute bottom-1.5 right-2 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 select-none">
+                    <div className="absolute bottom-1.5 right-2 flex items-center gap-1 bg-black/40 rounded-full px-1.5 py-0.5 select-none">
+                      {isEdited && (
+                        <span className="text-[9.5px] font-normal text-white/85 select-none">editada</span>
+                      )}
                       <span className="text-[10px] font-normal text-white">{formatTime(m.data_registrada)}</span>
                       {isMe && <CheckCheck className="w-3 h-3 text-white stroke-[2.4]" />}
                     </div>
@@ -878,11 +963,16 @@ export default function CommunityChat() {
                     )}
 
                     <div className="relative">
-                      <p className="text-[14.5px] leading-relaxed break-words whitespace-pre-wrap pr-12 text-[#202020] font-normal">
+                      <p className={cn("text-[14.5px] leading-relaxed break-words whitespace-pre-wrap text-[#202020] font-normal", isEdited ? "pr-20" : "pr-12")}>
                         <TranslatedMessage text={m.mensagem} language={language} renderFormatted={renderFormattedMessage} />
                       </p>
                       
-                      <div className="absolute right-0 bottom-[-2px] flex items-center gap-0.5 select-none">
+                      <div className="absolute right-0 bottom-[-2px] flex items-center gap-1 select-none">
+                        {isEdited && (
+                          <span className={`text-[10px] font-normal select-none ${isMe ? 'text-[#55864e]/85' : 'text-[#8e8e93]'}`}>
+                            editada
+                          </span>
+                        )}
                         <span className={`text-[10.5px] font-normal ${isMe ? 'text-[#55864e]' : 'text-[#8e8e93]'}`}>
                           {formatTime(m.data_registrada)}
                         </span>
@@ -933,7 +1023,43 @@ export default function CommunityChat() {
       <div className="fixed bottom-0 left-0 right-0 p-2.5 z-40 flex justify-center">
         <div className="w-full max-w-[480px] flex flex-col gap-1.5">
           <AnimatePresence>
-            {replyTo && (
+            {editingMessage && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }} 
+                animate={{ height: "auto", opacity: 1 }} 
+                exit={{ height: 0, opacity: 0 }}
+                className="bg-white/95 backdrop-blur-md border-l-[3px] border-[#2481cc] rounded-[14px] px-3 py-1.5 shadow-md flex justify-between items-center"
+              >
+                <div className="flex items-center gap-2 truncate flex-1 min-w-0">
+                  <Pencil className="w-4 h-4 text-[#2481cc] shrink-0 stroke-[2.2]" />
+                  <div className="truncate flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-[#2481cc] leading-tight">
+                      Editar mensagem
+                    </p>
+                    <p className="text-[11px] text-[#777777] truncate italic leading-tight">
+                      {editingMessage.mensagem || 'Foto'}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setEditingMessage(null);
+                    setPublicInput("");
+                    if (inputRef.current) {
+                      inputRef.current.value = "";
+                      inputRef.current.style.height = "auto";
+                    }
+                  }} 
+                  className="text-gray-400 hover:text-black p-1 cursor-pointer shrink-0"
+                  title="Cancelar edição"
+                >
+                  <X className="w-4 h-4 stroke-[2]" />
+                </button>
+              </motion.div>
+            )}
+
+            {replyTo && !editingMessage && (
               <motion.div 
                 initial={{ height: 0, opacity: 0 }} 
                 animate={{ height: "auto", opacity: 1 }} 
@@ -1002,9 +1128,17 @@ export default function CommunityChat() {
                   if (e.key === 'Enter' && !e.shiftKey) { 
                     e.preventDefault(); 
                     handleSend(); 
-                  } 
+                  } else if (e.key === 'Escape' && editingMessage) {
+                    e.preventDefault();
+                    setEditingMessage(null);
+                    setPublicInput("");
+                    if (inputRef.current) {
+                      inputRef.current.value = "";
+                      inputRef.current.style.height = "auto";
+                    }
+                  }
                 }}
-                placeholder="Message"
+                placeholder={editingMessage ? "Editar mensagem..." : "Message"}
                 className="w-full px-2 py-1.5 text-[15px] bg-transparent resize-none outline-none max-h-[100px] text-black placeholder:text-gray-400 font-normal leading-snug"
                 rows={1}
               />
@@ -1025,9 +1159,11 @@ export default function CommunityChat() {
               disabled={isSending}
               style={{ borderRadius: '9999px' }}
               className="w-[46px] h-[46px] !rounded-full rounded-full bg-[#2481cc] hover:bg-[#1f72b5] text-white flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_2px_10px_rgba(36,129,204,0.4)] cursor-pointer"
-              title="Enviar"
+              title={editingMessage ? "Salvar alterações" : "Enviar"}
             >
-              {(publicInput.trim() || imagePreview) ? (
+              {editingMessage ? (
+                <Check className="w-5 h-5 text-white stroke-[2.5]" />
+              ) : (publicInput.trim() || imagePreview) ? (
                 <Send className="w-5 h-5 text-white ml-0.5 stroke-[2]" />
               ) : (
                 <Mic className="w-5 h-5 text-white stroke-[2]" />

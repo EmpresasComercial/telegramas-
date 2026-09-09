@@ -570,7 +570,15 @@ export default function OfficialChannel() {
   };
 
   return (
-    <div className="w-full h-[100dvh] font-sans antialiased text-[#111827] select-none flex flex-col items-center overflow-hidden relative tg-wallpaper transition-colors">
+    <div 
+      className="w-full h-[100dvh] font-sans antialiased text-[#111827] select-none tg-chat-no-select flex flex-col items-center overflow-hidden relative tg-wallpaper transition-colors"
+      onContextMenu={(e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target?.tagName !== 'INPUT' && target?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+        }
+      }}
+    >
 
       {/* Input de arquivo invisível para galeria/fotos */}
       <input

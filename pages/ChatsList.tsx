@@ -612,7 +612,15 @@ export default function ChatsList() {
   }, [filteredContacts, activeFilter]);
 
   return (
-    <div className="w-full min-h-[100dvh] bg-white dark:bg-[#17212b] font-sans antialiased flex flex-col transition-colors">
+    <div 
+      className="w-full min-h-[100dvh] bg-white dark:bg-[#17212b] font-sans antialiased flex flex-col transition-colors select-none tg-chat-no-select"
+      onContextMenu={(e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target?.tagName !== 'INPUT' && target?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+        }
+      }}
+    >
       
       {/* ── TOP APP BAR OFICIAL DO TELEGRAM ── */}
       <header className="sticky top-0 z-40 bg-white dark:bg-[#242f3d] shadow-[0_1px_0_rgba(0,0,0,0.08)] select-none transition-colors">

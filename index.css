@@ -394,3 +394,44 @@ div[class*="rounded-full"]:has(svg),
   animation: slideInFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   BLOQUEIO DO SELETOR DE TEXTO NATIVO DO NAVEGADOR
+   Aplica-se à lista de chats, chat de comunidade, chat privado e canal oficial
+   ══════════════════════════════════════════════════════════════════ */
+.tg-chat-no-select,
+.tg-chat-no-select *,
+.select-none,
+.select-none * {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  -khtml-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.tg-chat-no-select img,
+.select-none img {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  -webkit-touch-callout: none !important;
+  pointer-events: auto;
+}
+
+/* Permitir digitação e seleção normal DENTRO de inputs e textareas */
+.tg-chat-no-select input,
+.tg-chat-no-select textarea,
+.select-none input,
+.select-none textarea,
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-touch-callout: default !important;
+  -webkit-user-select: text !important;
+  -khtml-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+

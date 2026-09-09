@@ -359,7 +359,15 @@ export default function PrivateChat() {
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none flex flex-col items-stretch overflow-hidden relative tg-wallpaper transition-colors">
+    <div 
+      className="w-full h-[100dvh] font-sans antialiased text-[#202020] select-none tg-chat-no-select flex flex-col items-stretch overflow-hidden relative tg-wallpaper transition-colors"
+      onContextMenu={(e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target?.tagName !== 'INPUT' && target?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+        }
+      }}
+    >
 
       {/* ── HEADER ── */}
       <header className="w-full bg-[#517da2] dark:bg-[#242f3d] text-white px-3 sm:px-6 py-2 sticky top-0 z-40 flex items-center justify-between shadow-xs select-none">
