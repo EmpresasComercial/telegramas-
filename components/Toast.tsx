@@ -63,7 +63,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     if (toast) {
       const timer = setTimeout(() => {
         setToast(null);
-      }, 3500); // Auto dismiss after 3.5 seconds like Telegram
+      }, 2500); // Mais leve e ágil
       return () => clearTimeout(timer);
     }
   }, [toast]);
@@ -77,16 +77,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toast && (
           <motion.div
             key={toast.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ type: 'tween', ease: 'easeOut', duration: 0.2 }}
-            className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[9999] pointer-events-none px-4 w-full flex justify-center"
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.94 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="fixed inset-0 z-[9999] pointer-events-none p-4 flex items-center justify-center"
           >
             <div 
-              className="bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.12)] px-5 py-3 max-w-[320px] text-center"
+              className="bg-black/75 backdrop-blur-md text-white rounded-full px-4.5 py-2 max-w-[85vw] text-center shadow-none select-none"
             >
-              <p className="font-sans font-medium text-[14.5px] text-black leading-snug">
+              <p 
+                className="font-normal text-[14.5px] text-white/95 leading-snug tracking-wide"
+                style={{ fontFamily: '"Times New Roman", Times, serif' }}
+              >
                 {toast.message}
               </p>
             </div>

@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/device';
 import { subscribeToPushNotifications } from '../lib/pushNotifications';
-import { Loader2, Search, X, Check, Copy, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Search, X, Check, Copy, CheckCircle, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { COUNTRIES, Country } from '../lib/countries';
 
 export default function Messager() {
@@ -201,91 +201,95 @@ export default function Messager() {
         </p>
 
         {/* ── FORMULÁRIO DE CADASTRO ── */}
-        <form onSubmit={executeRegistration} className="w-full flex flex-col space-y-3">
+        <form onSubmit={executeRegistration} className="w-full flex flex-col gap-4">
 
-          {/* 1. NÚMERO DE TELEFONE COM SELETOR DE PAÍS */}
-          <div className="w-full h-[48px] rounded-[10px] bg-[#f5f5f7] border border-gray-200/80 focus-within:border-[#3390ec] focus-within:bg-white flex items-center px-3.5 transition-all">
-            <button
-              type="button"
-              onClick={() => setShowCountryModal(true)}
-              className="flex items-center gap-1 text-[14.5px] font-medium text-gray-900 border-r border-gray-300/80 pr-2.5 mr-2.5 shrink-0 cursor-pointer hover:opacity-75"
-              title="Mudar país"
-            >
-              <span>{selectedCountry.dial_code}</span>
-            </button>
-            <input
-              name="phone"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel"
-              placeholder="Por favor, insira o número de telefone."
-              className="flex-1 h-full bg-transparent outline-none text-[14px] text-gray-900 placeholder:text-[#a1a1aa] font-normal"
-              value={formData.phone}
-              onChange={handleChange}
-              maxLength={selectedCountry.maxLength}
-            />
-          </div>
-
-          {/* 2. SENHA */}
-          <div className="w-full h-[48px] rounded-[10px] bg-[#f5f5f7] border border-gray-200/80 focus-within:border-[#3390ec] focus-within:bg-white flex items-center px-3.5 transition-all">
-            <input
-              name="userPasskey"
-              type={showUserPasskey ? 'text' : 'password'}
-              placeholder="Por favor, insira a sua senha."
-              className="flex-1 h-full bg-transparent outline-none text-[14px] text-gray-900 placeholder:text-[#a1a1aa] font-normal"
-              value={userPasskey}
-              onChange={(e) => setUserPasskey(e.target.value)}
-              autoComplete="new-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowUserPasskey(v => !v)}
-              className="text-[#9ca3af] hover:text-[#3390ec] transition-colors p-1 cursor-pointer shrink-0"
-              aria-label={showUserPasskey ? 'Ocultar senha' : 'Ver senha'}
-            >
-              {showUserPasskey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-
-          {/* 3. CÓDIGO DE CONVITE */}
-          <div className="w-full h-[48px] rounded-[10px] bg-[#f5f5f7] border border-gray-200/80 focus-within:border-[#3390ec] focus-within:bg-white flex items-center px-3.5 transition-all">
-            <input
-              name="inviteCode"
-              type="text"
-              placeholder="Por favor, insira o código de convite."
-              className="flex-1 h-full bg-transparent outline-none text-[14px] text-gray-900 placeholder:text-[#a1a1aa] font-normal"
-              value={formData.inviteCode}
-              onChange={handleChange}
-              maxLength={10}
-            />
-          </div>
-
-          {/* 4. VERIFICAÇÃO "NÃO SOU UM ROBÔ" */}
-          <div
-            onClick={() => setIsRobotVerified(prev => !prev)}
-            className="w-full h-[48px] rounded-[10px] bg-[#f5f5f7] border border-gray-200/80 flex items-center justify-between px-3.5 select-none cursor-pointer transition-all hover:bg-[#efeff2]"
-          >
-            <div className="flex items-center gap-2.5">
+          {/* Campos divididos apenas por divisores horizontais */}
+          <div className="w-full flex flex-col">
+            {/* 1. Telefone com seletor de país */}
+            <div className="flex items-center px-1 h-[52px] border-b border-[#e5e5e5]">
+              <button
+                type="button"
+                onClick={() => setShowCountryModal(true)}
+                className="flex items-center gap-1 text-[15px] font-medium text-black border-r border-[#e5e5e5] pr-2.5 mr-3 shrink-0 cursor-pointer hover:opacity-70"
+                title="Mudar país"
+              >
+                <span>{selectedCountry.dial_code}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#8e8e93] stroke-[2.2]" />
+              </button>
               <input
-                type="checkbox"
-                checked={isRobotVerified}
-                onChange={() => {}}
-                className="w-4 h-4 rounded text-[#3390ec] accent-[#3390ec] cursor-pointer"
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="Por favor, insira o número de telefone."
+                className="flex-1 bg-transparent outline-none text-[15px] text-black placeholder:text-[#c7c7cc] font-normal"
+                value={formData.phone}
+                onChange={handleChange}
+                maxLength={selectedCountry.maxLength}
               />
-              <span className="text-[13.5px] text-gray-700 font-normal">Não sou um robô</span>
             </div>
-            <div className="flex items-center gap-1 text-[12px] font-medium text-emerald-600">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Verificação</span>
+
+            {/* 2. Senha */}
+            <div className="flex items-center px-1 h-[52px] border-b border-[#e5e5e5]">
+              <input
+                name="userPasskey"
+                type={showUserPasskey ? 'text' : 'password'}
+                placeholder="Por favor, insira a sua senha."
+                className="flex-1 bg-transparent outline-none text-[15px] text-black placeholder:text-[#c7c7cc] font-normal"
+                value={userPasskey}
+                onChange={(e) => setUserPasskey(e.target.value)}
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowUserPasskey(v => !v)}
+                className="ml-2 text-[#c7c7cc] hover:text-[#3390ec] active:opacity-50 transition-colors p-1 cursor-pointer shrink-0"
+                aria-label={showUserPasskey ? 'Ocultar senha' : 'Ver senha'}
+              >
+                {showUserPasskey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {/* 3. Código de convite */}
+            <div className="flex items-center px-1 h-[52px] border-b border-[#e5e5e5]">
+              <input
+                name="inviteCode"
+                type="text"
+                placeholder="Por favor, insira o código de convite."
+                className="flex-1 bg-transparent outline-none text-[15px] text-black placeholder:text-[#c7c7cc] font-normal"
+                value={formData.inviteCode}
+                onChange={handleChange}
+                maxLength={10}
+              />
+            </div>
+
+            {/* 4. Verificação "Não sou um robô" */}
+            <div
+              onClick={() => setIsRobotVerified(prev => !prev)}
+              className="flex items-center justify-between px-1 h-[52px] border-b border-[#e5e5e5] select-none cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={isRobotVerified}
+                  onChange={() => {}}
+                  className="w-4 h-4 rounded text-[#3390ec] accent-[#3390ec] cursor-pointer"
+                />
+                <span className="text-[14px] text-black font-normal">Não sou um robô</span>
+              </div>
+              <div className="flex items-center gap-1 text-[12px] font-medium text-emerald-600">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Verificação</span>
+              </div>
             </div>
           </div>
 
           {/* 5. BOTÕES DE AÇÃO */}
-          <div className="w-full pt-2 space-y-2.5">
+          <div className="w-full pt-1 space-y-2.5">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-[46px] rounded-[10px] bg-[#3390ec] hover:bg-[#2881dc] active:scale-[0.98] text-white font-semibold text-[14.5px] transition-all disabled:opacity-50 flex items-center justify-center shadow-xs cursor-pointer"
+              className="w-full h-[48px] rounded-[12px] bg-[#3390ec] hover:bg-[#2881dc] active:scale-[0.98] text-white font-semibold text-[15px] transition-all disabled:opacity-50 flex items-center justify-center shadow-xs cursor-pointer"
             >
               {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'Inscrever-se'}
             </button>
@@ -293,7 +297,7 @@ export default function Messager() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="w-full h-[46px] rounded-[10px] bg-white hover:bg-gray-50 active:scale-[0.98] border border-gray-200 text-gray-800 font-medium text-[13.5px] transition-all flex items-center justify-center shadow-2xs cursor-pointer"
+              className="w-full text-center text-[#3390ec] hover:text-[#2881dc] font-medium text-[14.5px] transition-colors py-2 cursor-pointer hover:underline"
             >
               Já tenho conta — Conectar-se
             </button>
