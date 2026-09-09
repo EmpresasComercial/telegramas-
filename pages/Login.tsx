@@ -1,34 +1,47 @@
-import React, { useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { useToast } from '../components/Toast';
-import { useLanguage } from '../contexts/LanguageContext';
-import { LanguageSelector } from '../components/LanguageSelector';
 import { supabase } from '../lib/supabase';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Search, X, Check } from 'lucide-react';
+import { COUNTRIES, Country } from '../lib/countries';
 
 export default function Login() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { t } = useLanguage();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPasskey, setShowPasskey] = useState(false);
   const [phone, setPhone] = useState('');
   const [passkey, setPasskey] = useState('');
 
+  // Country selector
+  const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
+    try {
+      const savedCode = localStorage.getItem('saved_dial_code');
+      const found = COUNTRIES.find(c => c.dial_code === savedCode);
+      return found || COUNTRIES[0];
+    } catch {
+      return COUNTRIES[0];
+    }
+  });
+  const [showCountryModal, setShowCountryModal] = useState(false);
+  const [searchCountry, setSearchCountry] = useState('');
+
+  // Auto-fill saved phone if available
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('saved_phone');
+      if (saved) setPhone(saved);
+    } catch {}
+  }, []);
+
   const togglePasskey = useCallback(() => setShowPasskey(v => !v), []);
 
   const handlePhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only digits, max 15
-    const val = e.target.value.replace(/\D/g, '').slice(0, 15);
+    const val = e.target.value.replace(/\D/g, '').slice(0, selectedCountry.maxLength);
     setPhone(val);
-  }, []);
-
-  const handlePasskeyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    // Alphanumeric only, max 6
-    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6);
-    setPasskey(val);
-  }, []);
+  }, [selectedCountry.maxLength]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,11 +50,11 @@ export default function Login() {
     const cleanPasskey = passkey.trim();
 
     if (!cleanPhone) {
-      showToast('Ops! Introduza o seu número de telefone.', 'error');
+      showToast('Por favor, insira o número de telefone.', 'error');
       return;
     }
-    if (!cleanPasskey || cleanPasskey.length !== 6) {
-      showToast('Ops! A Chave de Acesso deve ter exactamente 6 caracteres.', 'error');
+    if (!cleanPasskey || cleanPasskey.length < 4) {
+      showToast('Por favor, insira a sua senha.', 'error');
       return;
     }
 
@@ -54,7 +67,7 @@ export default function Login() {
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          showToast('Ops! Número ou chave de acesso incorrectos. Tente novamente.', 'error');
+          showToast('Ops! Número ou senha incorrectos. Tente novamente.', 'error');
         } else {
           throw error;
         }
@@ -63,8 +76,8 @@ export default function Login() {
       }
 
       if (data.session) {
-        // Save phone for next sessions
         localStorage.setItem('saved_phone', cleanPhone);
+        localStorage.setItem('saved_dial_code', selectedCountry.dial_code);
         showToast('Bem-vindo de volta!', 'success');
         navigate('/telegramBussiness');
       } else {
@@ -77,17 +90,21 @@ export default function Login() {
     }
   };
 
-  return (
-    <div className="w-full min-h-screen bg-white pb-12 font-sans antialiased text-black select-none flex flex-col items-center">
-      {/* Header */}
-      <div className="w-full max-w-[400px] flex justify-end p-4">
-        <LanguageSelector />
-      </div>
+  const filteredCountries = useMemo(() => {
+    if (!searchCountry) return COUNTRIES;
+    return COUNTRIES.filter(c =>
+      c.name.toLowerCase().includes(searchCountry.toLowerCase()) ||
+      c.dial_code.includes(searchCountry)
+    );
+  }, [searchCountry]);
 
-      <main className="w-full max-w-[400px] px-4 flex flex-col items-center mt-2">
-        {/* Telegram Logo */}
-        <div className="mb-6 flex items-center justify-center">
-          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[90px] h-[90px]">
+  return (
+    <div className="w-full min-h-screen bg-white pb-12 font-sans antialiased text-black select-none flex flex-col items-center justify-center p-4">
+      <main className="w-full max-w-[340px] sm:max-w-[360px] flex flex-col items-center">
+
+        {/* ── LOGO OFICIAL TELEGRAM ── */}
+        <div className="mb-3.5 flex items-center justify-center">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[58px] h-[58px]">
             <defs>
               <linearGradient id="tgLoginGrad" x1=".667" x2=".417" y1=".167" y2=".75">
                 <stop offset="0" stopColor="#37aee2"/>
@@ -101,77 +118,149 @@ export default function Login() {
           </svg>
         </div>
 
-        <h1 className="text-[28px] font-semibold mb-1 text-center tracking-tight text-black">
+        {/* ── TÍTULO E SUBTÍTULO ── */}
+        <h1 className="text-[26px] font-bold text-center mb-1.5 tracking-tight text-[#1c1c1e]">
           Telegram
         </h1>
-        <p className="text-[14px] text-[#707579] text-center mb-8 leading-snug max-w-[300px]">
+
+        <p className="text-[13px] text-[#8e8e93] text-center mb-6 leading-snug max-w-[280px]">
           Introduza o seu número de telefone e chave de acesso para entrar.
         </p>
 
-        <form onSubmit={handleSubmit} className="w-full flex flex-col items-center gap-4">
-          {/* Phone field */}
-          <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group">
-            <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
-              Número de Telefone
-            </label>
+        {/* ── FORMULÁRIO DE LOGIN ── */}
+        <form onSubmit={handleSubmit} className="w-full flex flex-col space-y-3">
+
+          {/* 1. TELEFONE COM CÓDIGO DE PAÍS */}
+          <div className="w-full h-[48px] rounded-[10px] bg-[#f5f5f7] border border-gray-200/80 focus-within:border-[#3390ec] focus-within:bg-white flex items-center px-3.5 transition-all">
+            <button
+              type="button"
+              onClick={() => setShowCountryModal(true)}
+              className="flex items-center gap-1 text-[14.5px] font-medium text-gray-900 border-r border-gray-300/80 pr-2.5 mr-2.5 shrink-0 cursor-pointer hover:opacity-75"
+              title="Mudar país"
+            >
+              <span>{selectedCountry.dial_code}</span>
+            </button>
             <input
               name="phone"
               type="tel"
               inputMode="numeric"
-              placeholder="9XXXXXXXX"
-              className="flex-1 h-full bg-transparent outline-none text-[15px] text-black"
+              autoComplete="tel"
+              placeholder="Por favor, insira o número de telefone."
+              className="flex-1 h-full bg-transparent outline-none text-[14px] text-gray-900 placeholder:text-[#a1a1aa] font-normal"
               value={phone}
               onChange={handlePhoneChange}
-              autoFocus
-              autoComplete="tel"
+              maxLength={selectedCountry.maxLength}
             />
           </div>
 
-          {/* Passkey field */}
-          <div className="relative w-full h-[46px] rounded-[22px] border border-[#c8c7cc] focus-within:border-[#3390ec] px-4 flex items-center transition-colors bg-white group">
-            <label className="absolute -top-2.5 left-4 bg-white px-1 text-[11px] text-[#707579] font-medium pointer-events-none group-focus-within:text-[#3390ec]">
-              Chave de Acesso (6 caracteres)
-            </label>
+          {/* 2. SENHA */}
+          <div className="w-full h-[48px] rounded-[10px] bg-[#f5f5f7] border border-gray-200/80 focus-within:border-[#3390ec] focus-within:bg-white flex items-center px-3.5 transition-all">
             <input
               name="passkey"
               type={showPasskey ? 'text' : 'password'}
-              placeholder="••••••"
-              maxLength={6}
-              className="flex-1 h-full bg-transparent outline-none text-[22px] text-black font-bold tracking-widest pr-10"
+              placeholder="Por favor, insira a sua senha."
+              className="flex-1 h-full bg-transparent outline-none text-[14px] text-gray-900 placeholder:text-[#a1a1aa] font-normal"
               value={passkey}
-              onChange={handlePasskeyChange}
+              onChange={(e) => setPasskey(e.target.value)}
               autoComplete="current-password"
             />
             <button
               type="button"
               onClick={togglePasskey}
-              className="absolute right-4 text-[#707579] hover:text-[#3390ec] active:scale-95 transition-transform"
-              aria-label={showPasskey ? 'Ocultar chave' : 'Mostrar chave'}
+              className="text-[#9ca3af] hover:text-[#3390ec] transition-colors p-1 cursor-pointer shrink-0"
+              aria-label={showPasskey ? 'Ocultar senha' : 'Ver senha'}
             >
-              {showPasskey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPasskey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
 
-          {/* Login button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full h-[46px] rounded-[22px] bg-[#3390ec] hover:bg-[#2b7bc9] active:scale-[0.98] text-white font-semibold text-[14px] uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center shadow-sm"
-          >
-            {isSubmitting
-              ? <Loader2 className="animate-spin h-5 w-5 text-white" />
-              : 'ENTRAR'
-            }
-          </button>
+          {/* 3. BOTÕES DE AÇÃO */}
+          <div className="w-full pt-1.5 space-y-2.5">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-[46px] rounded-[10px] bg-[#3390ec] hover:bg-[#2881dc] active:scale-[0.98] text-white font-semibold text-[14.5px] transition-all disabled:opacity-50 flex items-center justify-center shadow-xs cursor-pointer"
+            >
+              {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 text-white" /> : 'Conectar-se'}
+            </button>
 
-          <p className="text-[14px] text-[#707579] text-center mt-2">
-            {t('auth.no_account')}{' '}
-            <Link to="/t" className="text-[#3390ec] font-semibold hover:underline uppercase text-[13px] tracking-wider ml-1">
-              {t('auth.signup_button')}
-            </Link>
-          </p>
+            <button
+              type="button"
+              onClick={() => navigate('/messager')}
+              className="w-full h-[46px] rounded-[10px] bg-white hover:bg-gray-50 active:scale-[0.98] border border-gray-200 text-gray-800 font-medium text-[13.5px] transition-all flex items-center justify-center shadow-2xs cursor-pointer"
+            >
+              Não tem conta? Inscrever-se
+            </button>
+          </div>
         </form>
       </main>
+
+      {/* ════════════════════════════════════════════════════════
+          MODAL — Seleção de Países
+      ════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showCountryModal && (
+          <motion.div
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: 'tween', ease: 'easeOut', duration: 0.3 }}
+            className="fixed inset-0 z-[200] bg-white flex flex-col"
+          >
+            <div className="h-[56px] px-4 flex items-center border-b border-[#c8c7cc] shrink-0 bg-[#f8f8f8]">
+              <button onClick={() => setShowCountryModal(false)} className="text-[#3390ec] text-[17px] font-medium cursor-pointer">
+                Voltar
+              </button>
+              <h2 className="flex-1 text-center text-[17px] font-semibold">Escolha um país</h2>
+              <div className="w-[40px]" />
+            </div>
+            <div className="p-2 bg-[#f8f8f8] border-b border-[#c8c7cc] shrink-0">
+              <div className="bg-[#e3e3e8] h-[36px] rounded-[20px] flex items-center px-3">
+                <Search className="w-5 h-5 text-[#8e8e93] mr-2" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar país ou código"
+                  className="bg-transparent outline-none flex-1 text-[16px] text-black"
+                  value={searchCountry}
+                  onChange={(e) => setSearchCountry(e.target.value)}
+                />
+                {searchCountry && (
+                  <button onClick={() => setSearchCountry('')} className="bg-[#8e8e93] text-white rounded-full p-0.5 ml-2 cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {filteredCountries.map((c) => (
+                <div
+                  key={c.code}
+                  className="flex items-center px-4 h-[50px] border-b border-[#c8c7cc] active:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    setSelectedCountry(c);
+                    setPhone('');
+                    setShowCountryModal(false);
+                    setSearchCountry('');
+                  }}
+                >
+                  <img
+                    src={`https://flagcdn.com/w40/${c.code.toLowerCase()}.png`}
+                    alt={c.name}
+                    className="w-8 h-auto rounded-sm object-cover mr-3 shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <span className="flex-1 text-[17px] font-medium text-black">{c.name}</span>
+                  <span className="text-[#8e8e93] text-[17px] mr-2">{c.dial_code}</span>
+                  {selectedCountry.code === c.code && <Check className="w-5 h-5 text-[#3390ec]" />}
+                </div>
+              ))}
+              {filteredCountries.length === 0 && (
+                <div className="p-8 text-center text-[#8e8e93]">Nenhum país encontrado</div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

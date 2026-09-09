@@ -669,7 +669,7 @@ export default function TelegramBotsChat() {
       <main
         ref={mainChatRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1 relative select-text"
+        className="flex-1 overflow-y-auto px-2.5 py-3 pb-24 space-y-1 relative select-text"
         style={{ backgroundColor: "#afc8af", backgroundImage: DOODLE_BG }}
       >
         <div className="flex justify-center my-2 select-none">
@@ -828,35 +828,51 @@ export default function TelegramBotsChat() {
       </main>
 
       {showScrollDown && (
-        <button onClick={() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" })} className="absolute right-3.5 bottom-16 w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-[#8a8a8e] hover:bg-gray-50 active:scale-95 transition-all z-20 cursor-pointer">
+        <button onClick={() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" })} className="absolute right-3.5 bottom-20 w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center text-[#8a8a8e] hover:bg-gray-50 active:scale-95 transition-all z-20 cursor-pointer">
           <ChevronDown className="w-5 h-5" />
         </button>
       )}
 
-      {/* ── FOOTER ── */}
-      <footer className="bg-white px-3 py-2 shrink-0 z-30 flex items-center gap-2.5 border-t border-gray-200">
-        <button onClick={() => handleSendMessage("/meusbots")} className="text-[#1a7ac7] text-[13.5px] font-medium shrink-0 cursor-pointer hover:underline">
-          Meus Bots
-        </button>
-
-        <div className="flex-1">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSendMessage(); } }}
-            placeholder="Mensagem"
-            className="w-full bg-transparent text-[15px] text-[#1c1c1e] placeholder-[#8a8a8e] outline-none"
-          />
+      {/* ── FOOTER FLUTUANTE IDÊNTICO AO OFFICIAL CHANNEL ── */}
+      <footer className="fixed bottom-0 left-0 right-0 p-2 pb-3 z-40 flex justify-center bg-transparent pointer-events-none">
+        <div className="w-full max-w-[650px] flex items-center gap-2 pointer-events-auto px-2">
+          <div className="flex-1 bg-white dark:bg-[#182533] rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.12)] flex items-center px-3 py-1.5 min-h-[48px] border border-black/5 dark:border-white/10 transition-colors">
+            {/* Meus Bots à esquerda */}
+            <button
+              onClick={() => handleSendMessage("/meusbots")}
+              className="text-[#2481cc] text-[13px] font-semibold shrink-0 cursor-pointer hover:underline mr-2 active:scale-95 transition-transform whitespace-nowrap"
+            >
+              Meus Bots
+            </button>
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder="Mensagem"
+              className="flex-1 min-w-0 px-1 py-1 text-[15px] bg-transparent outline-none text-black dark:text-white placeholder:text-[#8e8e93] font-normal leading-snug"
+            />
+            {/* Ajuda à direita */}
+            <button
+              onClick={() => handleSendMessage("/ajuda")}
+              className="text-[#2481cc] text-[13.5px] font-semibold shrink-0 cursor-pointer hover:underline ml-2 active:scale-95 transition-transform"
+            >
+              Ajuda
+            </button>
+          </div>
+          <button
+            onClick={() => handleSendMessage()}
+            className="w-[48px] h-[48px] rounded-full text-white bg-[#2481cc] hover:bg-[#1f72b5] flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_2px_8px_rgba(36,129,204,0.4)] cursor-pointer"
+            aria-label="Enviar"
+          >
+            <Send className="w-5 h-5 ml-0.5" />
+          </button>
         </div>
-
-        <button onClick={() => handleSendMessage("/ajuda")} className="text-[#1a7ac7] text-[13.5px] font-medium shrink-0 cursor-pointer hover:underline">
-          Ajuda
-        </button>
-
-        <button onClick={() => handleSendMessage()} className="w-9 h-9 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer" aria-label="Enviar">
-          <Send className="w-[17px] h-[17px] -ml-0.5" />
-        </button>
       </footer>
     </div>
   );

@@ -1114,7 +1114,7 @@ export default function Withdraw() {
         <div className="flex items-center gap-2.5 min-w-0">
           <button
             onClick={() => navigate(-1)}
-            className="p-1 -ml-1 text-black hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors cursor-pointer relative"
+            className="p-1 -ml-1 text-black hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors cursor-pointer"
             aria-label="Voltar"
           >
             <svg
@@ -1129,15 +1129,11 @@ export default function Withdraw() {
             >
               <path d="M19 12H5M5 12l7-7M5 12l7 7" />
             </svg>
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#3390ec] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-              1
-            </span>
           </button>
 
           {/* Avatar BotWithdrawal */}
           <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-200/80 bg-white">
             <img src="/botRetirada.jpg" alt="BotWithdrawal" className="w-full h-full object-cover" />
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-sky-400 border-2 border-white rounded-full"></span>
           </div>
 
           <div className="flex flex-col min-w-0">
@@ -1240,7 +1236,7 @@ export default function Withdraw() {
         ref={mainChatRef}
         onScroll={handleScroll}
         onClick={() => setShowMenuDropdown(false)}
-        className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1 relative select-text"
+        className="flex-1 overflow-y-auto px-2.5 py-3 pb-24 space-y-1 relative select-text"
         style={{
           backgroundColor: '#afc8af',
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='none' stroke='%2372a072' stroke-width='1.2' opacity='0.45'%3E%3Ccircle cx='30' cy='28' r='10'/%3E%3Cpath d='M22 20L19 13L25 19'/%3E%3Cpath d='M38 20L41 13L35 19'/%3E%3Ccircle cx='26' cy='25' r='1.5' fill='%2372a072'/%3E%3Ccircle cx='34' cy='25' r='1.5' fill='%2372a072'/%3E%3Cpath d='M30 31L28 33L30 32L32 33Z'/%3E%3Cpath d='M19 27L24 28'/%3E%3Cpath d='M41 27L36 28'/%3E%3Cpath d='M164 15L167 7L170 15L178 15L172 20L174 28L167 23L160 28L162 20L156 15Z'/%3E%3Cpath d='M95 52C95 44 84 38 84 49C84 58 95 67 95 67C95 67 106 58 106 49C106 38 95 44 95 52Z'/%3E%3Ccircle cx='20' cy='112' r='7'/%3E%3Ccircle cx='10' cy='103' r='3.5'/%3E%3Ccircle cx='30' cy='103' r='3.5'/%3E%3Ccircle cx='14' cy='97' r='3'/%3E%3Ccircle cx='26' cy='97' r='3'/%3E%3Crect x='150' cy='100' width='26' height='19' rx='2'/%3E%3Crect x='148' y='93' width='30' height='9' rx='2'/%3E%3Cline x1='163' y1='93' x2='163' y2='119'/%3E%3Cpath d='M159 93C156 87 163 84 163 93'/%3E%3Cpath d='M167 93C170 87 163 84 163 93'/%3E%3Ccircle cx='163' cy='162' r='10'/%3E%3Cpath d='M155 154L152 146L158 153'/%3E%3Cpath d='M171 154L174 146L168 153'/%3E%3Ccircle cx='159' cy='160' r='1.5' fill='%2372a072'/%3E%3Ccircle cx='167' cy='160' r='1.5' fill='%2372a072'/%3E%3Cpath d='M163 164L161 166L163 165L165 166Z'/%3E%3Cpath d='M152 162L158 163'/%3E%3Cpath d='M174 162L168 163'/%3E%3Cpath d='M57 143C57 138 51 135 51 140C51 145 57 150 57 150C57 150 63 145 63 140C63 135 57 138 57 143Z'/%3E%3Cpath d='M140 44C140 39 134 36 134 41C134 46 140 51 140 51C140 51 146 46 146 41C146 36 140 39 140 44Z'/%3E%3Cpath d='M64 72L66 64L68 72L76 72L70 77L72 85L66 81L60 85L62 77L56 72Z'/%3E%3Cpath d='M127 134L129 126L131 134L139 134L133 139L135 147L129 143L123 147L125 139L119 134Z'/%3E%3Cpath d='M95 110L95 128'/%3E%3Ccircle cx='92' cy='129' r='4'/%3E%3Cpath d='M95 110L106 106L106 120'/%3E%3Ccircle cx='103' cy='121' r='4'/%3E%3C/g%3E%3C/svg%3E")`,
@@ -1562,47 +1558,56 @@ export default function Withdraw() {
         </button>
       )}
 
-      {/* ── FOOTER DE ENTRADA DO TELEGRAM ── */}
-      <footer className="px-3 py-2 shrink-0 z-30 flex items-center gap-2 border-t border-gray-200/60" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)' }}>
-        <div className="flex-1 flex items-center bg-white/70 border border-gray-200 rounded-full px-4 py-2" style={{ backdropFilter: 'blur(4px)' }}>
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => {
-              if (pendingAmount !== null && /^\d*$/.test(e.target.value)) {
-                setInputText(e.target.value);
-              } else if (pendingAmount === null) {
-                setInputText(e.target.value);
+      {/* ── FOOTER FLUTUANTE IDÊNTICO AO OFFICIAL CHANNEL ── */}
+      <footer className="fixed bottom-0 left-0 right-0 p-2 pb-3 z-40 flex justify-center bg-transparent pointer-events-none">
+        <div className="w-full max-w-[650px] flex items-center gap-2 pointer-events-auto px-2">
+
+          {/* Cápsula branca flutuante sobre o wallpaper */}
+          <div className="flex-1 bg-white dark:bg-[#182533] rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.12)] flex items-center px-3 py-1.5 min-h-[48px] border border-black/5 dark:border-white/10 transition-colors">
+
+            {/* Campo de texto */}
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => {
+                if (pendingAmount !== null && /^\d*$/.test(e.target.value)) {
+                  setInputText(e.target.value);
+                } else if (pendingAmount === null) {
+                  setInputText(e.target.value);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder={
+                pendingAmount !== null
+                  ? 'Novo valor ou Sim/Não...'
+                  : 'Mensagem...'
               }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            placeholder={
-              pendingAmount !== null
-                ? 'Novo valor ou Sim/Não...'
-                : 'Mensagem...'
-            }
-            className="flex-1 bg-transparent text-[15px] text-[#1c1c1e] placeholder-[#8a8a8e] outline-none"
-          />
+              className="flex-1 min-w-0 px-1 py-1 text-[15px] bg-transparent outline-none text-black dark:text-white placeholder:text-[#8e8e93] dark:placeholder:text-gray-400 font-normal leading-snug"
+            />
+
+            {/* Botão Ajuda à direita dentro da cápsula */}
+            <button
+              onClick={() => handleSendMessage('/ajuda')}
+              className="text-[#2481cc] text-[13.5px] font-semibold shrink-0 cursor-pointer hover:underline ml-2 active:scale-95 transition-transform"
+            >
+              Ajuda
+            </button>
+          </div>
+
+          {/* Botão circular azul Telegram */}
           <button
-            onClick={() => handleSendMessage('/ajuda')}
-            className="text-[#1a7ac7] text-[13.5px] font-medium shrink-0 cursor-pointer hover:underline ml-2"
+            onClick={() => handleSendMessage()}
+            className="w-[48px] h-[48px] rounded-full text-white bg-[#2481cc] hover:bg-[#1f72b5] flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_2px_8px_rgba(36,129,204,0.4)] cursor-pointer"
+            aria-label="Enviar"
           >
-            Ajuda
+            <Send className="w-5 h-5 ml-0.5" />
           </button>
         </div>
-
-        <button
-          onClick={() => handleSendMessage()}
-          className="w-9 h-9 rounded-full bg-[#3390ec] hover:bg-[#2881dc] active:scale-95 text-white flex items-center justify-center shrink-0 transition-all cursor-pointer"
-          aria-label="Enviar"
-        >
-          <Send className="w-[17px] h-[17px] -ml-0.5" />
-        </button>
       </footer>
     </div>
   );
