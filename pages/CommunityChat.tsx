@@ -312,6 +312,8 @@ export default function CommunityChat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  // IDs de mensagens com reações em voo (impede o realtime de sobrescrever estado otimista)
+  const pendingReactionIds = useRef<Set<number>>(new Set());
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     requestAnimationFrame(() => {
@@ -488,7 +490,18 @@ export default function CommunityChat() {
                 m.mensagem === data.mensagem
               ));
               const msgMap = new Map(withoutTemp.map(m => [m.id, m]));
-              msgMap.set(data.id, dataWithPhone);
+              // Se a mensagem tem reação pendente, mesclar reacoes locais
+              // para evitar que o realtime sobrescreva o estado otimista
+              if (pendingReactionIds.current.has(data.id)) {
+                const localMsg = c.find(m => m.id === data.id);
+                const localDetalhes = (localMsg?.detalhes && typeof localMsg.detalhes === 'object') ? (localMsg.detalhes as any) : {} as any;
+                const serverDetalhes = (dataWithPhone.detalhes && typeof dataWithPhone.detalhes === 'object') ? (dataWithPhone.detalhes as any) : {} as any;
+                // Usar as reacoes locais (otimistas) em vez das do servidor
+                const mergedDetalhes = { ...serverDetalhes, reacoes: localDetalhes.reacoes || serverDetalhes.reacoes };
+                msgMap.set(data.id, { ...dataWithPhone, detalhes: mergedDetalhes });
+              } else {
+                msgMap.set(data.id, dataWithPhone);
+              }
               return Array.from(msgMap.values()).sort((a, b) => 
                 new Date(a.data_registrada).getTime() - new Date(b.data_registrada).getTime()
               );
@@ -657,13 +670,58 @@ export default function CommunityChat() {
   const handleToggleReaction = async (messageId: number, emoji: string) => {
     if (!user) return;
     setReactionMenuId(null);
+    closeContextMenu();
+
+    const targetMsg = publicMessages.find(m => m.id === messageId);
+    if (!targetMsg) return;
+
+    const prevDetalhes = (targetMsg.detalhes && typeof targetMsg.detalhes === 'object')
+      ? { ...targetMsg.detalhes }
+      : {};
+    const currentReactions: Record<string, string[]> = { ...(prevDetalhes.reacoes || {}) };
+    const usersForEmoji: string[] = Array.isArray(currentReactions[emoji]) 
+      ? [...currentReactions[emoji]] 
+      : [];
+    const hasReacted = usersForEmoji.includes(user.id);
+
+    if (hasReacted) {
+      const filtered = usersForEmoji.filter(uid => uid !== user.id);
+      if (filtered.length === 0) {
+        delete currentReactions[emoji];
+      } else {
+        currentReactions[emoji] = filtered;
+      }
+    } else {
+      currentReactions[emoji] = [...usersForEmoji, user.id];
+    }
+
+    const updatedDetalhes = {
+      ...prevDetalhes,
+      reacoes: currentReactions
+    };
+
+    // 1. Marcar como pendente para o realtime não sobrescrever
+    pendingReactionIds.current.add(messageId);
+
+    // 2. Atualização otimista imediata no estado local
+    setPublicMessages(prev => prev.map(m => m.id === messageId ? { ...m, detalhes: updatedDetalhes } : m));
+
+    // 3. Persistir no Supabase chat_gruop
     try {
-      await supabase.rpc('toggle_reaction_mcpn', {
-        p_message_id: messageId,
-        p_emoji: emoji,
-        p_user_id: user.id
-      });
-    } catch {}
+      const { error } = await supabase
+        .from('chat_gruop')
+        .update({ detalhes: updatedDetalhes })
+        .eq('id', messageId);
+
+      if (error) {
+        console.error('[CommunityChat] Erro ao salvar reação:', error);
+      }
+    } catch (err) {
+      console.error('[CommunityChat] Falha ao persistir reação:', err);
+    } finally {
+      // 4. Remover da lista de pendentes após 3s (tempo suficiente para o realtime processar)
+      setTimeout(() => pendingReactionIds.current.delete(messageId), 3000);
+    }
   };
 
   const handleLongPressStart = (id: number) => {
