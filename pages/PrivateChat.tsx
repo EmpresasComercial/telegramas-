@@ -628,10 +628,19 @@ export default function PrivateChat() {
         </div>
       )}
 
-      {/* ── BARRA DE MENSAGEM ── */}
-      <div className="fixed bottom-0 left-0 right-0 p-2 sm:p-3 z-40 flex justify-center bg-white/90 dark:bg-[#17212b]/90 backdrop-blur-sm border-t border-gray-200/50 dark:border-[#202b36]">
-        <div className="w-full max-w-[1000px] flex items-end gap-2 px-1 sm:px-4">
-          <div className="flex-1 bg-white dark:bg-[#202b36] rounded-[24px] shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center px-3.5 py-1 min-h-[46px] border border-gray-200 dark:border-gray-700">
+      {/* ── BARRA DE MENSAGEM FLUTUANTE ── */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 flex justify-center"
+        style={{
+          paddingLeft: 'max(12px, env(safe-area-inset-left, 12px))',
+          paddingRight: 'max(12px, env(safe-area-inset-right, 12px))',
+          paddingBottom: 'max(10px, env(safe-area-inset-bottom, 10px))',
+          paddingTop: '6px',
+        }}
+      >
+        <div className="w-full max-w-[1000px] flex items-end gap-2">
+          {/* Pill flutuante */}
+          <div className="flex-1 bg-white dark:bg-[#202b36] rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.18)] flex items-center px-3.5 py-1 min-h-[46px]">
             <button
               type="button"
               onClick={() => setShowQuickHints(!showQuickHints)}
@@ -668,12 +677,13 @@ export default function PrivateChat() {
             </button>
           </div>
 
+          {/* Botão enviar flutuante */}
           <button
             type="button"
             onClick={() => handleSend()}
             disabled={!inputText.trim()}
-            className={`w-[46px] h-[46px] rounded-full text-white flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_2px_10px_rgba(36,129,204,0.4)] ${
-              inputText.trim() ? 'bg-[#2481cc] hover:bg-[#1f72b5] cursor-pointer' : 'bg-[#50a2e9] cursor-pointer'
+            className={`w-[46px] h-[46px] rounded-full text-white flex items-center justify-center active:scale-90 transition-transform shrink-0 shadow-[0_4px_16px_rgba(36,129,204,0.45)] ${
+              inputText.trim() ? 'bg-[#2481cc] hover:bg-[#1f72b5] cursor-pointer' : 'bg-[#2481cc] cursor-pointer'
             }`}
           >
             {inputText.trim() ? <Send className="w-5 h-5 text-white ml-0.5" /> : <Mic className="w-5 h-5 text-white" />}

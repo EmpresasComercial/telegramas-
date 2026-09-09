@@ -792,84 +792,123 @@ export default function CommunityChat() {
                   </div>
                 )}
 
-                <div
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setContextMenu({ message: m, isMe }); 
-                    setShowAllReactions(false); 
-                  }}
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={(e) => handleTouchEnd(e, m, isMe)}
-                  className={cn(
-                    "tg-bubble max-w-[82%] px-3.5 py-2 text-[#202020] shadow-[0_1px_2px_rgba(0,0,0,0.06)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none rounded-[18px]",
-                    isMe 
-                      ? "bg-[#dcf8c6]" 
-                      : "bg-white",
-                    contextMenu?.message.id === m.id && "brightness-90 scale-[0.985]"
-                  )}
-                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                >
-                  {!isMe && (
-                    <p 
-                      className="text-[13px] font-bold mb-0.5 cursor-pointer truncate"
-                      style={{ color: authorColor }}
-                    >
-                      {displayName}
-                    </p>
-                  )}
-
-                  {reply && (
-                    <div className={cn(
-                      "rounded-[8px] px-2.5 py-1 mb-1.5 text-[11px] border-l-[3px] bg-black/5 overflow-hidden",
-                      isMe ? "border-[#25D366] text-[#444444]" : "border-[#2b82c9] text-[#555555]"
-                    )}>
-                      <p className="font-bold text-[11px] text-[#2b82c9] truncate">{reply.sender}</p>
-                      <p className="truncate italic text-[11px] text-[#666666]">{reply.text || "📷 Foto"}</p>
+                {/* ── Mensagem só com imagem (sem balão) ── */}
+                {parsedData.imagem_url && !m.mensagem?.trim() ? (
+                  <div
+                    className="relative cursor-pointer rounded-[18px] overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.18)] max-w-[72vw] sm:max-w-[320px]"
+                    onClick={(e) => { e.stopPropagation(); setContextMenu({ message: m, isMe }); setShowAllReactions(false); }}
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={(e) => handleTouchEnd(e, m, isMe)}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    <img
+                      src={parsedData.imagem_url}
+                      alt="Foto"
+                      className="w-full h-auto block rounded-[18px] cursor-pointer active:opacity-90"
+                      style={{ maxHeight: '340px', objectFit: 'cover' }}
+                      onClick={(e) => { e.stopPropagation(); setZoomedImage(parsedData.imagem_url); }}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onTouchEnd={(e) => e.stopPropagation()}
+                    />
+                    {/* Timestamp sobreposto */}
+                    <div className="absolute bottom-1.5 right-2 flex items-center gap-0.5 bg-black/40 rounded-full px-1.5 py-0.5 select-none">
+                      <span className="text-[10px] font-normal text-white">{formatTime(m.data_registrada)}</span>
+                      {isMe && <CheckCheck className="w-3 h-3 text-white stroke-[2.4]" />}
                     </div>
-                  )}
-
-                  {parsedData.imagem_url && (
-                    <div className="mb-1.5 -mx-1.5 -mt-0.5 overflow-hidden rounded-[14px]">
-                      <img
-                        src={parsedData.imagem_url}
-                        alt="Anexo"
-                        className="w-full h-auto max-h-[260px] object-cover cursor-pointer active:opacity-90 rounded-[14px]"
-                        onClick={() => setZoomedImage(parsedData.imagem_url)}
-                      />
-                    </div>
-                  )}
-
-                  <div className="relative">
-                    <p className="text-[14.5px] leading-relaxed break-words whitespace-pre-wrap pr-12 text-[#202020] font-normal">
-                      <TranslatedMessage text={m.mensagem} language={language} renderFormatted={renderFormattedMessage} />
-                    </p>
-                    
-                    <div className="absolute right-0 bottom-[-2px] flex items-center gap-0.5 select-none">
-                      <span className={`text-[10.5px] font-normal ${isMe ? 'text-[#55864e]' : 'text-[#8e8e93]'}`}>
-                        {formatTime(m.data_registrada)}
-                      </span>
-                      {isMe && (
-                        <CheckCheck className="w-3.5 h-3.5 text-[#4fae4e] stroke-[2.4]" />
-                      )}
-                    </div>
+                    {/* Reações */}
+                    {Object.keys(reactions).length > 0 && (
+                      <div className="absolute -bottom-5 left-0 flex flex-wrap gap-1">
+                        {Object.entries(reactions).map(([emoji, users]: [string, any]) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => handleToggleReaction(m.id, emoji)}
+                            className="bg-white/90 border border-black/5 rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm hover:bg-white active:scale-95 transition-transform cursor-pointer"
+                          >
+                            <span className="text-[11px]">{emoji}</span>
+                            <span className="text-[10px] font-bold text-[#555555]">{(users as any[]).length}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  /* ── Mensagem normal (texto ± imagem) ── */
+                  <div
+                    onClick={(e) => { e.stopPropagation(); setContextMenu({ message: m, isMe }); setShowAllReactions(false); }}
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={(e) => handleTouchEnd(e, m, isMe)}
+                    className={cn(
+                      "tg-bubble max-w-[82%] px-3.5 py-2 text-[#202020] shadow-[0_1px_2px_rgba(0,0,0,0.06)] relative cursor-pointer active:brightness-95 active:scale-[0.985] transition-all select-none rounded-[18px]",
+                      isMe ? "bg-[#dcf8c6]" : "bg-white",
+                      contextMenu?.message.id === m.id && "brightness-90 scale-[0.985]"
+                    )}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    {!isMe && (
+                      <p 
+                        className="text-[13px] font-bold mb-0.5 cursor-pointer truncate"
+                        style={{ color: authorColor }}
+                      >
+                        {displayName}
+                      </p>
+                    )}
 
-                  {Object.keys(reactions).length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5 pt-1 border-t border-black/5">
-                      {Object.entries(reactions).map(([emoji, users]: [string, any]) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => handleToggleReaction(m.id, emoji)}
-                          className="bg-white/80 border border-black/5 rounded-full px-2 py-0.5 flex items-center gap-1 shadow-2xs hover:bg-white active:scale-95 transition-transform cursor-pointer"
-                        >
-                          <span className="text-[11px]">{emoji}</span>
-                          <span className="text-[10px] font-bold text-[#555555]">{users.length}</span>
-                        </button>
-                      ))}
+                    {reply && (
+                      <div className={cn(
+                        "rounded-[8px] px-2.5 py-1 mb-1.5 text-[11px] border-l-[3px] bg-black/5 overflow-hidden",
+                        isMe ? "border-[#25D366] text-[#444444]" : "border-[#2b82c9] text-[#555555]"
+                      )}>
+                        <p className="font-bold text-[11px] text-[#2b82c9] truncate">{reply.sender}</p>
+                        <p className="truncate italic text-[11px] text-[#666666]">{reply.text || "📷 Foto"}</p>
+                      </div>
+                    )}
+
+                    {parsedData.imagem_url && (
+                      <div className="mb-1.5 -mx-1.5 -mt-0.5 overflow-hidden rounded-[14px]">
+                        <img
+                          src={parsedData.imagem_url}
+                          alt="Anexo"
+                          className="w-full h-auto max-h-[260px] object-cover cursor-pointer active:opacity-90 rounded-[14px]"
+                          onClick={(e) => { e.stopPropagation(); setZoomedImage(parsedData.imagem_url); }}
+                          onTouchStart={(e) => e.stopPropagation()}
+                          onTouchEnd={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    )}
+
+                    <div className="relative">
+                      <p className="text-[14.5px] leading-relaxed break-words whitespace-pre-wrap pr-12 text-[#202020] font-normal">
+                        <TranslatedMessage text={m.mensagem} language={language} renderFormatted={renderFormattedMessage} />
+                      </p>
+                      
+                      <div className="absolute right-0 bottom-[-2px] flex items-center gap-0.5 select-none">
+                        <span className={`text-[10.5px] font-normal ${isMe ? 'text-[#55864e]' : 'text-[#8e8e93]'}`}>
+                          {formatTime(m.data_registrada)}
+                        </span>
+                        {isMe && (
+                          <CheckCheck className="w-3.5 h-3.5 text-[#4fae4e] stroke-[2.4]" />
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
+
+                    {Object.keys(reactions).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5 pt-1 border-t border-black/5">
+                        {Object.entries(reactions).map(([emoji, users]: [string, any]) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => handleToggleReaction(m.id, emoji)}
+                            className="bg-white/80 border border-black/5 rounded-full px-2 py-0.5 flex items-center gap-1 shadow-2xs hover:bg-white active:scale-95 transition-transform cursor-pointer"
+                          >
+                            <span className="text-[11px]">{emoji}</span>
+                            <span className="text-[10px] font-bold text-[#555555]">{(users as any[]).length}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </motion.div>
             </React.Fragment>
           );
@@ -1244,23 +1283,26 @@ export default function CommunityChat() {
         )}
       </AnimatePresence>
 
-      {/* ── CONTEXT MENU OVERLAY TELEGRAM NATIVO ── */}
+      {/* ── CONTEXT MENU — TOPO DA TELA (slide-down) ── */}
       {contextMenu && (
         <div
-          className="fixed inset-0 z-[200] flex flex-col justify-end items-center px-4 pb-6 bg-black/50 backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 z-[200] bg-black/40"
           style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           onClick={closeContextMenu}
         >
+          {/* Painel que desce do topo */}
           <div
-            className="w-full max-w-[325px] flex flex-col gap-2 select-none"
+            className="absolute top-0 left-0 right-0 bg-white dark:bg-[#1e1e1e] select-none shadow-2xl"
             onClick={(e) => e.stopPropagation()}
-            style={{ 
-              animation: 'slideUpMenu 0.18s cubic-bezier(0.16, 1, 0.3, 1) both',
-              touchAction: 'manipulation'
+            style={{
+              animation: 'slideDownMenu 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
+              touchAction: 'manipulation',
+              borderBottomLeftRadius: '20px',
+              borderBottomRightRadius: '20px',
             }}
           >
-            {/* ── Barra Flutuante de Reações Telegram ── */}
-            <div className="bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-xl px-2.5 py-2 flex items-center justify-between border border-gray-100 dark:border-white/10">
+            {/* ── Barra de Reações ── */}
+            <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100 dark:border-white/8">
               {(showAllReactions ? COMMUNITY_QUICK_REACTIONS : COMMUNITY_QUICK_REACTIONS.slice(0, 7)).map((emoji) => (
                 <button
                   key={emoji}
@@ -1270,7 +1312,7 @@ export default function CommunityChat() {
                     showToast(`Reação ${emoji} adicionada!`, 'success');
                     closeContextMenu();
                   }}
-                  className="w-9 h-9 flex items-center justify-center text-[24px] leading-none active:scale-130 transition-transform hover:scale-110 rounded-full select-none cursor-pointer"
+                  className="w-10 h-10 flex items-center justify-center text-[26px] leading-none active:scale-125 transition-transform rounded-full cursor-pointer"
                   style={{ touchAction: 'manipulation' }}
                   title={`Reagir com ${emoji}`}
                 >
@@ -1280,7 +1322,7 @@ export default function CommunityChat() {
               <button
                 type="button"
                 onClick={() => setShowAllReactions(!showAllReactions)}
-                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-[#3a3a3a] flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200 active:scale-90 transition-transform cursor-pointer"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3a3a3a] flex items-center justify-center text-gray-500 dark:text-gray-300 hover:bg-gray-200 active:scale-90 transition-transform cursor-pointer"
                 style={{ touchAction: 'manipulation' }}
                 title="Mais reações"
               >
@@ -1288,59 +1330,58 @@ export default function CommunityChat() {
               </button>
             </div>
 
-            {/* ── Lista de Ações Essenciais ── */}
-            <div className="bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-white/10">
-              {menuActions.map((action, idx) => (
-                <React.Fragment key={action.label}>
-                  <button
-                    type="button"
-                    onClick={action.onClick}
-                    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-[#333] active:bg-gray-100 dark:active:bg-[#3a3a3a] transition-colors cursor-pointer select-none text-left"
-                    style={{ touchAction: 'manipulation' }}
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <action.icon
-                        className="w-5 h-5 shrink-0"
-                        style={{ color: action.color }}
-                      />
-                      <div>
-                        <span
-                          className="text-[15px] font-semibold block leading-tight text-gray-900 dark:text-gray-100"
-                          style={{ color: action.color === '#e53e3e' ? '#e53e3e' : undefined }}
-                        >
-                          {action.label}
-                        </span>
-                        {action.subLabel && (
-                          <span className="text-[11px] text-gray-400 block mt-0.5">{action.subLabel}</span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                  {idx < menuActions.length - 1 && (
-                    <div className="h-px bg-gray-100 dark:bg-[#383838] mx-4" />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
+            {/* ── Lista de Ações Verticais ── */}
+            {menuActions.map((action, idx) => (
+              <React.Fragment key={action.label}>
+                <button
+                  type="button"
+                  onClick={action.onClick}
+                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] active:bg-gray-100 dark:active:bg-[#333] transition-colors cursor-pointer text-left"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  <action.icon
+                    className="w-5 h-5 shrink-0"
+                    style={{ color: action.color }}
+                  />
+                  <div>
+                    <span
+                      className="text-[15px] font-medium block leading-tight text-gray-900 dark:text-gray-100"
+                      style={{ color: action.color === '#e53e3e' ? '#e53e3e' : undefined }}
+                    >
+                      {action.label}
+                    </span>
+                    {action.subLabel && (
+                      <span className="text-[11px] text-gray-400 block mt-0.5">{action.subLabel}</span>
+                    )}
+                  </div>
+                </button>
+                {idx < menuActions.length - 1 && (
+                  <div className="h-px bg-gray-100 dark:bg-[#2e2e2e] mx-5" />
+                )}
+              </React.Fragment>
+            ))}
 
-            {/* Botão Cancelar */}
-            <button
-              type="button"
-              onClick={closeContextMenu}
-              className="w-full bg-white dark:bg-[#2b2b2b] rounded-2xl shadow-lg py-3 text-[15.5px] font-semibold text-[#2481cc] hover:bg-gray-50 dark:hover:bg-[#333] active:scale-[0.99] transition-all cursor-pointer border border-gray-100 dark:border-white/10 select-none text-center"
-              style={{ touchAction: 'manipulation' }}
-            >
-              Cancelar
-            </button>
+            {/* ── Fechar / handle ── */}
+            <div className="flex justify-center py-3">
+              <button
+                type="button"
+                onClick={closeContextMenu}
+                className="flex items-center gap-2 text-[13px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer select-none"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <X className="w-4 h-4" />
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* ── Animações CSS injetadas ── */}
       <style>{`
-        @keyframes slideUpMenu {
-          from { opacity: 0; transform: translateY(18px) scale(0.96); }
-          to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        @keyframes slideDownMenu {
+          from { opacity: 0; transform: translateY(-100%); }
+          to   { opacity: 1; transform: translateY(0);     }
         }
       `}</style>
     </div>
