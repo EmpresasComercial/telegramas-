@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronRight, Sparkles, Star, TrendingUp, Zap, ShieldCheck, Award } from 'lucide-react';
+import { X, ChevronRight } from 'lucide-react';
+import { openWhatsAppAtendimento } from '../lib/atendimento';
+import { useToast } from './Toast';
 
 export interface StoryItem {
   id: string;
@@ -16,85 +18,86 @@ export interface StoryItem {
     headline: string;
     subtext: string;
     actionText: string;
-    actionLink: string;
+    actionLink?: string;
+    isWhatsApp?: boolean;
     gradient: string;
   }[];
 }
 
 const STORIES_DATA: StoryItem[] = [
   {
-    id: 'story-stars',
-    title: 'Estrelas',
-    avatar: '/tg_stars_gold.jpg',
+    id: 'story-botfather',
+    title: 'BotFather',
+    avatar: '/BotFather.jpg',
     hasUnread: true,
     slides: [
       {
-        id: 'stars-1',
-        image: '/tg_stars_gold.jpg',
-        badge: 'TELEGRAM STARS',
+        id: 'botfather-1',
+        image: '/BotFather.jpg',
+        badge: 'BOT OFICIAL',
         badgeBg: 'bg-[#f59e0b]',
-        headline: 'Chegou o Sistema de Telegram Stars! 🌟',
-        subtext: 'Compre pacotes de Estrelas digitais ou converta o seu saldo acumulado diretamente para Kwanzas via IBAN.',
-        actionText: 'Acessar Telegram Stars',
-        actionLink: '/stars',
+        headline: 'BotFather Oficial Telegram 🤖',
+        subtext: 'Gerencie os seus robôs de rendimento diário, acompanhe o catálogo e consulte o saldo de estrelas.',
+        actionText: 'Abrir BotFather',
+        actionLink: '/bot-pay',
         gradient: 'from-[#b45309] via-[#78350f] to-[#0f1015]'
       }
     ]
   },
   {
-    id: 'story-saques',
-    title: 'Saques Paga',
-    avatar: '/tg_banner_4.jpg',
+    id: 'story-depositbot',
+    title: 'DepositBot',
+    avatar: '/BotDeposit.jpg',
     hasUnread: true,
     slides: [
       {
-        id: 'saques-1',
-        image: '/tg_banner_4.jpg',
-        badge: 'PROVA SOCIAL',
+        id: 'depositbot-1',
+        image: '/BotDeposit.jpg',
+        badge: 'DEPOSIT BOT',
         badgeBg: 'bg-[#10b981]',
-        headline: 'Saques Aprovados em Segundos 💸',
-        subtext: 'Milhares de membros já retiraram os seus ganhos via Multicaixa Express e IBAN direto em Angola.',
-        actionText: 'Ver Histórico de Saques',
-        actionLink: '/perfil',
+        headline: 'DepositBot — Recargas Automáticas 💸',
+        subtext: 'Faça recargas e depósitos instantâneos via Multicaixa Express e transferência bancária.',
+        actionText: 'Abrir DepositBot',
+        actionLink: '/recarregar',
         gradient: 'from-[#047857] via-[#065f46] to-[#0f1015]'
       }
     ]
   },
   {
-    id: 'story-bots',
-    title: 'Novos Bots',
-    avatar: '/bot_botfather.jpg',
+    id: 'story-botwithdrawal',
+    title: 'BotWithdrawal',
+    avatar: '/botRetirada.jpg',
     hasUnread: true,
     slides: [
       {
-        id: 'bots-1',
-        image: '/bot_botfather.jpg',
-        badge: 'SUPER BOTS',
-        badgeBg: 'bg-[#8b5cf6]',
-        headline: 'Ative Bots de Alta Rentabilidade 🤖',
-        subtext: 'Escolha os melhores Bots oficiais com rendimento diário automático e retorno garantido.',
-        actionText: 'Explorar Loja de Bots',
-        actionLink: '/bot-pay',
-        gradient: 'from-[#6d28d9] via-[#4c1d95] to-[#0f1015]'
+        id: 'botwithdrawal-1',
+        image: '/botRetirada.jpg',
+        badge: 'WITHDRAWAL BOT',
+        badgeBg: 'bg-[#0284c7]',
+        headline: 'BotWithdrawal — Retiradas Rápidas 🏦',
+        subtext: 'Solicite levantamentos diretos para sua conta bancária com processamento ágil e seguro.',
+        actionText: 'Abrir BotWithdrawal',
+        actionLink: '/retirada',
+        gradient: 'from-[#0369a1] via-[#075985] to-[#0f1015]'
       }
     ]
   },
   {
-    id: 'story-afiliados',
-    title: 'Comissões',
-    avatar: '/pavel_durov.jpg',
+    id: 'story-botwhatsapp',
+    title: 'BotWhatsApp',
+    avatar: '/botWhatsap.jpg',
     hasUnread: true,
     slides: [
       {
-        id: 'afiliados-1',
-        image: '/pavel_durov.jpg',
-        badge: 'PROGRAMA DE AFILIADOS',
-        badgeBg: 'bg-[#3b82f6]',
-        headline: 'Ganhe até 18% em 3 Níveis de Rede ⭐',
-        subtext: 'Nível 1 (10%), Nível 2 (6%) e Nível 3 (2%). Receba comissões instantâneas quando amigos ativarem Bots.',
-        actionText: 'Ver Regras & Simulador',
-        actionLink: '/telegram-premium',
-        gradient: 'from-[#1d4ed8] via-[#1e40af] to-[#0f1015]'
+        id: 'botwhatsapp-1',
+        image: '/botWhatsap.jpg',
+        badge: 'WHATSAPP OFICIAL',
+        badgeBg: 'bg-[#25D366]',
+        headline: 'BotWhatsApp — Comunidade & Suporte 💬',
+        subtext: 'Participe do nosso grupo oficial do WhatsApp para provas de pagamento, comissões e atendimento VIP.',
+        actionText: 'Abrir Grupo WhatsApp',
+        isWhatsApp: true,
+        gradient: 'from-[#15803d] via-[#166534] to-[#0f1015]'
       }
     ]
   }
@@ -307,9 +310,16 @@ export default function TelegramStories() {
               {/* Action Button Footer */}
               <div className="w-full z-30 pb-4 pt-2">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     handleClose();
-                    navigate(activeSlide.actionLink);
+                    if (activeSlide.isWhatsApp) {
+                      const res = await openWhatsAppAtendimento();
+                      if (!res.success && res.message) {
+                        alert(res.message);
+                      }
+                    } else if (activeSlide.actionLink) {
+                      navigate(activeSlide.actionLink);
+                    }
                   }}
                   className="w-full h-[52px] rounded-[16px] bg-white text-black font-extrabold text-[15.5px] shadow-lg hover:bg-gray-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-none"
                 >

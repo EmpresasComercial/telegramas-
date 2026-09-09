@@ -61,8 +61,8 @@ const INITIAL_POSTS: ChannelPost[] = [
   {
     id: 'post-3',
     forwardedFrom: {
-      name: 'Telegram Business News Oficial',
-      avatar: '/telegram business_logo_icon_167892.webp'
+      name: 'Pavel Durov Fundador',
+      avatar: '/pavel_durov.jpg'
     },
     title: '🌟 Lançamento Oficial do Sistema Telegram Stars!',
     content: `Temos o prazer de anunciar o lançamento do novo sistema Telegram Stars na nossa aplicação!\n\nAgora você pode adquirir pacotes de Estrelas digitais para ativação rápida de Bots e serviços na plataforma, com liquidação instantânea.\n\nAcesse a seção de Estrelas no topo da página ou pelo menu lateral para conferir todos os benefícios!`,
@@ -149,25 +149,35 @@ export default function OfficialChannel() {
             <ArrowLeft className="w-6 h-6 stroke-[2.2]" />
           </button>
 
-          {/* Avatar Oficial Telegram (círculo azul com avião de papel) */}
+          {/* Avatar Pavel Durov Fundador */}
           <div className="relative shrink-0">
-            <div className="w-11 h-11 rounded-full bg-[#2481cc] flex items-center justify-center shadow-xs overflow-hidden">
-              <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="w-[24px] h-[24px]">
-                <path fill="#c8daea" d="m98 175c-3.888 0-3.227-1.468-4.568-5.17l-11.433-37.594 88.022-52.232" />
-                <path fill="#a9c9dd" d="m98 175c3 0 4.325-1.372 6-3l16-15.558-19.958-12.035" />
-                <path fill="#fff" d="m100.04 144.41 48.36 35.729c5.519 3.045 9.501 1.468 10.876-5.123l19.685-92.763c2.015-8.08-3.08-11.746-8.36-9.349l-115.59 44.571c-7.89 3.165-7.843 7.567-1.438 9.528l29.663 9.259 68.673-43.325c3.242-1.966 6.218-.91 3.776 1.258" />
-              </svg>
+            <div className="w-11 h-11 rounded-full overflow-hidden shadow-xs bg-[#2481cc]/20 border border-white/40">
+              <img
+                src="/pavel_durov.jpg"
+                alt="Pavel Durov Fundador"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as any).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop';
+                }}
+              />
             </div>
           </div>
 
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <h1 className="text-[16px] font-bold text-[#111827] dark:text-white tracking-tight truncate leading-tight">
-                Telegram Updates
+                Pavel Durov Fundador
               </h1>
-              <span className="w-4 h-4 rounded-full bg-[#2481cc] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                ✓
-              </span>
+              <svg viewBox="0 0 24 24" className="w-[17px] h-[17px] shrink-0 inline-block align-middle select-none">
+                <path
+                  fill="#2481cc"
+                  d="M10.26 2.45c.87-.6 2.05-.6 2.92 0l1.24.86c.4.28.88.42 1.37.4l1.51-.06c1.06-.04 1.98.63 2.23 1.66l.36 1.47c.12.48.38.9.76 1.21l1.17.97c.83.69 1.09 1.84.62 2.8l-.66 1.36c-.21.44-.27.94-.17 1.43l.31 1.48c.22 1.04-.37 2.07-1.41 2.47l-1.46.56c-.47.18-.86.51-1.12.94l-.79 1.3c-.56.92-1.68 1.32-2.7.98l-1.44-.48c-.46-.15-.96-.14-1.42.03l-1.43.52c-1.02.37-2.15-.01-2.73-.91l-.81-1.28c-.26-.42-.66-.74-1.13-.91l-1.47-.53c-1.05-.38-1.67-1.4-1.47-2.45l.28-1.49c.09-.48.05-.98-.14-1.43l-.63-1.38c-.45-.97-.16-2.11.69-2.78l1.19-.94c.39-.3.66-.72.79-1.19l.39-1.46c.27-1.02 1.21-1.67 2.26-1.6l1.51.09c.49.03.97-.1 1.38-.37l1.23-.88z"
+                />
+                <path
+                  fill="#ffffff"
+                  d="M9.5 12.5l-1.6-1.6a.8.8 0 0 0-1.13 1.13l2.17 2.17a.8.8 0 0 0 1.13 0l5.43-5.43a.8.8 0 0 0-1.13-1.13L9.5 12.5z"
+                />
+              </svg>
             </div>
             <span className="text-[12px] text-gray-500 dark:text-gray-400 font-normal leading-tight">
               {subscribersCount}

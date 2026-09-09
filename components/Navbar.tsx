@@ -11,7 +11,7 @@ export default function Navbar() {
     {
       name: 'Chats',
       path: '/telegramBussiness',
-      aliasPaths: ['/telegramBussiness', '/telegramBusiness', '/telegram-business', '/home'],
+      aliasPaths: ['/telegramBussiness', '/telegramBusiness', '/telegram-business'],
       icon: <MessageSquare className="w-[22px] h-[22px]" strokeWidth={2} />,
       badge: 3
     },
@@ -36,7 +36,7 @@ export default function Navbar() {
   ];
 
   // Mostra o botão flutuante de lápis (FAB Telegram) na lista de chats ou tela inicial
-  const showFab = ['/telegramBussiness', '/telegramBusiness', '/telegram-business', '/home'].includes(location.pathname);
+  const showFab = ['/telegramBussiness', '/telegramBusiness', '/telegram-business'].includes(location.pathname);
 
   return (
     <>

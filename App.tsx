@@ -19,7 +19,6 @@ import { GlobalLoadingIndicator } from './components/GlobalLoadingIndicator';
 // Critical path: carregadas no pacote principal (sem lazy)
 import Login    from './pages/Login';
 import Messager from './pages/Messager';
-import Home     from './pages/Home';
 
 const Bots             = lazy(() => import('./pages/Bots'));
 const Invite           = lazy(() => import('./pages/contactos'));
@@ -100,7 +99,7 @@ function RootRedirect() {
   }
 
   if (!ready) return null;
-  if (session) return <Navigate to="/home" replace />;
+  if (session) return <Navigate to="/telegramBussiness" replace />;
   if (joinCode) return <Navigate to={`/t?${encodeURIComponent(joinCode)}`} replace />;
   return <Navigate to="/t" replace />;
 }
@@ -164,7 +163,7 @@ export default function App() {
                   <Route path="/cadastro" element={<Navigate to="/t" replace />} />
 
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                    <Route path="home"                    element={<Home />} />
+                    <Route path="home"                    element={<Navigate to="/telegramBussiness" replace />} />
                     <Route path="bot-pay"                 element={<Bots />} />
                     <Route path="contactos"               element={<Invite />} />
                     <Route path="convite"                 element={<Navigate to="/contactos" replace />} />
@@ -190,7 +189,7 @@ export default function App() {
                     <Route path="sobre-telegram business" element={<AboutUs />} />
                     <Route path="help-faq"                element={<HelpFAQ />} />
                     <Route path="suporte/feedback"        element={<SupportFeedback />} />
-                    <Route path="provas-social"           element={<Navigate to="/home?postarProva=true" replace />} />
+                    <Route path="provas-social"           element={<Navigate to="/telegramBussiness" replace />} />
                     <Route path="confirmar-recarga"       element={<Navigate to="/recarregar" replace />} />
                     <Route path="payMoney"                element={<Navigate to="/recarregar" replace />} />
                     <Route path="telegramBussiness"       element={<ChatsList />} />

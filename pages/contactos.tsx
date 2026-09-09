@@ -167,7 +167,7 @@ export default function Invite() {
     if (window.history.length > 1 && window.history.state?.idx > 0) {
       navigate(-1);
     } else {
-      navigate('/home');
+      navigate('/telegramBussiness');
     }
   };
 

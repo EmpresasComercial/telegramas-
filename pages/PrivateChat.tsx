@@ -394,7 +394,7 @@ export default function PrivateChat() {
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <h1 className="text-[15.5px] font-semibold text-white tracking-tight truncate leading-tight">
-                {isPavel ? 'Pavel Durov' : contactDisplayName}
+                {isPavel ? 'Pavel Durov Fundador' : contactDisplayName}
               </h1>
               {isPavel && (
                 <span className="w-3.5 h-3.5 rounded-full bg-white text-[#2481cc] flex items-center justify-center text-[8px] font-black shrink-0">✓</span>
@@ -476,7 +476,7 @@ export default function PrivateChat() {
                         className="text-[12px] font-bold block mb-0.5"
                         style={{ color: isPavel ? '#2481cc' : contactColor }}
                       >
-                        {isPavel ? 'Pavel Durov' : contactDisplayName}
+                        {isPavel ? 'Pavel Durov Fundador' : contactDisplayName}
                       </span>
                     )}
 

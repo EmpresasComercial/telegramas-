@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
-import TelegramDrawer from './TelegramDrawer';
 import AutoMessagesModal from './AutoMessagesModal';
 
 export default function Layout() {
@@ -10,7 +9,6 @@ export default function Layout() {
   // Rotas onde a barra de navegação inferior oficial do Telegram deve ser exibida
   // Ao acessar /contactos ou /bot-pay, a barra some para deixar a página limpa com botão voltar
   const mainTabPaths = [
-    '/home',
     '/telegramBussiness',
     '/telegramBusiness',
     '/telegram-business',
@@ -25,18 +23,10 @@ export default function Layout() {
 
   const showNavbar = !isChatRoom && mainTabPaths.includes(location.pathname);
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAutoMessagesOpen, setIsAutoMessagesOpen] = useState(false);
 
   return (
     <div className="min-h-[100dvh] bg-white dark:bg-[#17212b] font-sans text-[#111827] dark:text-[#f3f4f6] antialiased">
-      {/* Drawer Global do Telegram */}
-      <TelegramDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        onOpenAutoMessages={() => setIsAutoMessagesOpen(true)}
-      />
-
       {/* Modal Global de Mensagens Automáticas */}
       <AutoMessagesModal
         isOpen={isAutoMessagesOpen}
@@ -47,7 +37,6 @@ export default function Layout() {
       <div className="w-full min-h-[100dvh] bg-white dark:bg-[#17212b] flex flex-col relative">
         <main className={showNavbar ? 'pb-[60px] flex-1 flex flex-col w-full' : 'flex-1 flex flex-col w-full'}>
           <Outlet context={{ 
-            openDrawer: () => setIsDrawerOpen(true),
             openAutoMessages: () => setIsAutoMessagesOpen(true)
           }} />
         </main>

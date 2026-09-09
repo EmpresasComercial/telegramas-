@@ -66,7 +66,7 @@ export default function Login() {
         // Save phone for next sessions
         localStorage.setItem('saved_phone', cleanPhone);
         showToast('Bem-vindo de volta!', 'success');
-        navigate('/home');
+        navigate('/telegramBussiness');
       } else {
         showToast('Não foi possível iniciar sessão. Verifique os seus dados.', 'error');
       }

@@ -76,7 +76,7 @@ const ESCAPED_FORBIDDEN = FORBIDDEN_WORDS.map(w => w.replace(/[.*+?^${}()|[\]\\]
 const FORBIDDEN_REGEX = new RegExp(`(?:^|[^\\p{L}\\p{N}])(?:${ESCAPED_FORBIDDEN.join('|')})(?:[^\\p{L}\\p{N}]|$)`, 'iu');
 
 const CONTEXT_GROUPS: Record<string, { path: string, keywords: string[] }> = {
-  Home: { path: "/home", keywords: ["home", "início", "inicio", "pagina inicial", "painel", "dashboard"] },
+  TelegramBusiness: { path: "/telegramBussiness", keywords: ["telegram business", "negócios", "conversas", "chats", "painel", "início", "inicio"] },
   Withdraw: { path: "/retirada", keywords: ["saque", "sacar", "retirada", "retirar", "levantamento", "levantar dinheiro", "withdraw", "withdrawal", "retrait", "retirer"] },
   Recharge: { path: "/recarregar", keywords: ["recarga", "recarregar", "depósito", "depositar", "recharge"] },
   Invite: { path: "/convite", keywords: ["convite", "convidar", "amigo", "afiliado", "indicar"] },

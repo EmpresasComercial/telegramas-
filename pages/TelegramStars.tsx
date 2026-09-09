@@ -133,7 +133,7 @@ export default function TelegramStars() {
             if (window.history.length > 1 && window.history.state?.idx > 0) {
               navigate(-1);
             } else {
-              navigate('/home');
+              navigate('/telegramBussiness');
             }
           }}
           className="p-2 -ml-2 text-[#000000] active:opacity-50 hover:opacity-75 transition-opacity cursor-pointer rounded-full border-none bg-transparent touch-manipulation z-30"

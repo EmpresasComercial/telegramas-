@@ -647,7 +647,7 @@ export default function TelegramBotsChat() {
 
         <div className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer" onClick={() => handleSendMessage("/saldo")}>
           <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-gray-200">
-            <img src="/botfather.png" alt="BotFather" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg"; }} />
+            <img src="/BotFather.jpg" alt="BotFather" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/botfather.png"; }} />
           </div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1">
